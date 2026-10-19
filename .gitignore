@@ -1,0 +1,4 @@
+node_modules
+dist
+.validar.mjs
+__pycache__
