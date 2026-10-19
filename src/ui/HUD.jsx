@@ -1,6 +1,6 @@
 import { useStore } from '../store.js'
 import { vivo } from '../lib/vivo.js'
-import { aEscena, NIVELES } from '../lib/datos.js'
+import { aEscena, NIVELES, NP } from '../lib/datos.js'
 
 const NOMBRES = [...NIVELES, 'Techo']
 const MUROS = [['arriba', 'Muros arriba'], ['recorte', 'Recorte'], ['abajo', 'Muros abajo']]
@@ -12,7 +12,7 @@ export function HUD() {
     <>
       <div className="hud hud-izq">
         <div className="grupo">
-          <button onClick={() => setNivel(nivel + 1)} disabled={nivel === 3} aria-label="Subir de piso">▲</button>
+          <button onClick={() => setNivel(nivel + 1)} disabled={nivel === NP} aria-label="Subir de piso">▲</button>
           <span className="nivel">{NOMBRES[nivel]}</span>
           <button onClick={() => setNivel(nivel - 1)} disabled={nivel === 0} aria-label="Bajar de piso">▼</button>
         </div>

@@ -1,9 +1,10 @@
 import { create } from 'zustand'
-import { ORIGEN_INICIAL } from './lib/lugares.js'
+import { ORIGEN_INICIAL, ORIGEN_URL } from './lib/lugares.js'
+import { NP } from './lib/datos.js'
 
 export const useStore = create((set) => ({
-  modo: '3d',             // '3d' recorrido · '2d' mapa
-  nivel: 0,               // 0 PB · 1 Piso 1 · 2 Piso 2 · 3 techo
+  modo: '2d',             // '2d' mapa · '3d' recorrido
+  nivel: ORIGEN_URL ? ORIGEN_URL.piso : 0,   // 0…NP−1 pisos · NP techo
   modoMuros: 'recorte',
   velocidad: 1,
   horaTexto: '10:00',
@@ -11,15 +12,15 @@ export const useStore = create((set) => ({
   accesible: false,
   orden: null,
   ruta: null,
-  zona: 'plaza',
+  zona: null,
   aviso: null,
   // mapa 2D
-  piso2d: 0,
+  piso2d: ORIGEN_INICIAL.piso,
   origen2d: ORIGEN_INICIAL,
   destino2d: null,
   navegando: false,
   setModo: (modo) => set({ modo }),
-  setNivel: (nivel) => set({ nivel: Math.max(0, Math.min(3, nivel)) }),
+  setNivel: (nivel) => set({ nivel: Math.max(0, Math.min(NP, nivel)) }),
   setModoMuros: (modoMuros) => set({ modoMuros }),
   setVelocidad: (velocidad) => set({ velocidad }),
   setHoraTexto: (horaTexto) => set({ horaTexto }),

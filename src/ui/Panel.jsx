@@ -48,7 +48,7 @@ export function Panel() {
             </ol>
           </>
         ) : (
-          <p className="vacio">Estás en la plaza de ingreso. Haz clic en cualquier piso para caminar, elige un servicio en "Ir a" o toca una escalera. El personaje usa el ascensor para cambiar de piso.</p>
+          <p className="vacio">Haz clic en cualquier piso para caminar, elige un servicio en "Ir a" o toca una escalera. El personaje usa el ascensor para cambiar de piso.</p>
         )}
       </div>
     </div>

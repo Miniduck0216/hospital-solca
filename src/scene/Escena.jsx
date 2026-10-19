@@ -8,7 +8,7 @@ import { Camara } from './Camara.jsx'
 
 export function Escena() {
   return (
-    <Canvas shadows dpr={[1, 1.75]} camera={{ fov: 38, position: [38, 46, 62], near: 0.3, far: 600 }} onContextMenu={(e) => e.preventDefault()}>
+    <Canvas shadows dpr={[1, 1.75]} camera={{ fov: 38, position: [-150, 150, 170], near: 0.5, far: 2000 }} onContextMenu={(e) => e.preventDefault()}>
       <Cielo />
       <ModeloSK />
       <Hospital />

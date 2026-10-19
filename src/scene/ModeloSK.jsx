@@ -4,7 +4,7 @@ import { useEffect, useMemo } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import M from '../data/modelo_sk.json'
-import { H, H_PISO } from '../lib/datos.js'
+import { H, H_PISO, NP } from '../lib/datos.js'
 import { useStore } from '../store.js'
 import { vivo } from '../lib/vivo.js'
 
@@ -212,8 +212,8 @@ export function ModeloSK() {
 
   // visibilidad por piso y modo de muros (igual que las escenas de SketchUp)
   useEffect(() => {
-    const top = Math.min(nivel, 2)
-    const todo = nivel === 3
+    const top = Math.min(nivel, NP - 1)
+    const todo = nivel === NP
     for (const [k, { grupo, materiales }] of Object.entries(partes)) {
       const p = /^\d/.test(k) ? +k[0] : null
       let visible = true
@@ -237,7 +237,7 @@ export function ModeloSK() {
       {Object.entries(partes).map(([k, { grupo }]) => <primitive key={k} object={grupo} />)}
       {/* terreno lejano para que no termine el mundo en el borde del lote */}
       <mesh rotation-x={-Math.PI / 2} position-y={-0.82} receiveShadow>
-        <planeGeometry args={[600, 600]} />
+        <planeGeometry args={[1600, 1600]} />
         <meshStandardMaterial color="#7FAE63" />
       </mesh>
     </group>

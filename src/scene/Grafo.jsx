@@ -1,5 +1,5 @@
 import { Line } from '@react-three/drei'
-import { H, nodeById, aEscena } from '../lib/datos.js'
+import { H, nodeById, aEscena, NP } from '../lib/datos.js'
 import { useStore } from '../store.js'
 import { COLOR } from './materiales.js'
 
@@ -7,7 +7,7 @@ export function Grafo() {
   const ver = useStore((s) => s.verGrafo)
   const nivel = useStore((s) => s.nivel)
   if (!ver) return null
-  const p = Math.min(nivel, 2)
+  const p = Math.min(nivel, NP - 1)
   const visible = (n) => n.piso === p
   return (
     <group>

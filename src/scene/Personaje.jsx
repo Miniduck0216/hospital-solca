@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Line } from '@react-three/drei'
-import { nodeById, aEscena, cuartoEn, tipoArista, H_PISO } from '../lib/datos.js'
-import { planificar, instrucciones } from '../lib/navegacion.js'
+import { H, nodeById, aEscena, cuartoEn, tipoArista, H_PISO, NP } from '../lib/datos.js'
+import { ORIGEN_INICIAL } from '../lib/lugares.js'
+import { planificar, instrucciones, cercanos } from '../lib/navegacion.js'
 import { useStore } from '../store.js'
 import { vivo } from '../lib/vivo.js'
 import { COLOR } from './materiales.js'
@@ -18,8 +19,9 @@ export function Personaje() {
   const grupo = useRef(), cuerpo = useRef(), pI = useRef(), pD = useRef(), bI = useRef(), bD = useRef()
   const st = useRef(null)
   if (!st.current) {
-    const n = nodeById['pb-plaza']
-    st.current = { pos: { x: n.x, y: n.y, h: n.h, piso: n.piso }, anclas: ['pb-plaza'], plan: null, seg: 0, avance: 0, yaw: Math.PI, fase: 0, zona: 'plaza' }
+    const id = nodeById[ORIGEN_INICIAL?.nodo] ? ORIGEN_INICIAL.nodo : H.inicio
+    const n = nodeById[id]
+    st.current = { pos: { x: n.x, y: n.y, h: n.h, piso: n.piso }, anclas: [id], plan: null, seg: 0, avance: 0, yaw: Math.PI, fase: 0, zona: null }
   }
   const orden = useStore((s) => s.orden)
   const [linea, setLinea] = useState(null)
@@ -34,7 +36,7 @@ export function Personaje() {
     const opciones = { accesible: useStore.getState().accesible }
     let plan = null
     if (obj.tipo === 'cercano') {
-      for (const id of obj.ids) {
+      for (const id of cercanos(s.pos, obj.ids)) {
         const p = planificar(desde, { tipo: 'nodo', id }, opciones)
         if (p && (!plan || p.costo < plan.costo)) plan = p
       }
@@ -81,7 +83,7 @@ export function Personaje() {
         const y = A.y + (B.y - A.y) * t
         const tt = tipoTramo(A, B)
         const h = (A.h || 0) + ((B.h || 0) - (A.h || 0)) * t + (tt === 'escalera' && Math.abs((B.h || 0) - (A.h || 0)) > 0.1 ? 0.09 : 0)
-        s.pos = { x, y, h, piso: Math.max(0, Math.min(2, Math.round((h - 0.2) / H_PISO))) }
+        s.pos = { x, y, h, piso: Math.max(0, Math.min(NP - 1, Math.round((h - 0.2) / H_PISO))) }
         s.anclas = [A.id, B.id].filter(Boolean)
         if (!s.anclas.length) s.anclas = s.plan.anclasFinal
         moviendo = true
@@ -115,11 +117,11 @@ export function Personaje() {
       useStore.getState().setZona(z)
     }
     // la vista sigue al personaje cuando cambia de piso (salvo en la vista de techo)
-    const pisoVista = Math.max(0, Math.min(2, Math.floor((s.pos.h + 0.5) / H_PISO)))
+    const pisoVista = Math.max(0, Math.min(NP - 1, Math.floor((s.pos.h + 0.5) / H_PISO)))
     if (pisoVista !== s.pisoVista) {
       s.pisoVista = pisoVista
       const { nivel, setNivel } = useStore.getState()
-      if (nivel !== 3 && nivel !== pisoVista) setNivel(pisoVista)
+      if (nivel !== NP && nivel !== pisoVista) setNivel(pisoVista)
     }
   })
 

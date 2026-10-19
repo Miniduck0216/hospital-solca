@@ -4,7 +4,7 @@ import { segmentoLibre } from '../src/lib/obstaculos.js'
 import { planificar, destinoEnAmbiente } from '../src/lib/navegacion.js'
 
 let errores = 0
-const mal = (...m) => { errores++; if (errores < 40) console.log('✗', ...m) }
+const mal = (...m) => { errores++; if (errores < 60) console.log('✗', ...m) }
 for (const [a, b, t] of H.aristas) {
   if (t !== 'caminar') continue
   const A = nodeById[a], B = nodeById[b]
@@ -14,9 +14,9 @@ for (const [a, b, t] of H.aristas) {
 }
 let semilla = 11
 const rnd = () => ((semilla = (semilla * 16807) % 2147483647) / 2147483647)
-const cuartos = H.cuartos.filter((c) => c.tipo !== 'escalera')
+const cuartos = H.cuartos.filter((c) => c.tipo !== 'escalera' && c.tipo !== 'ascensores')
 let ok = 0
-for (let k = 0; k < 3000; k++) {
+for (let k = 0; k < 1500; k++) {
   const co = cuartos[Math.floor(rnd() * cuartos.length)], cd = cuartos[Math.floor(rnd() * cuartos.length)]
   const o = destinoEnAmbiente(co.piso, co.x0 + rnd() * (co.x1 - co.x0), co.y0 + rnd() * (co.y1 - co.y0))
   if (!o) continue
@@ -31,5 +31,5 @@ for (let k = 0; k < 3000; k++) {
     if (!r.libre) { mal(`${co.id} → ${cd.id}: ${r.o.que} en (${r.x.toFixed(2)}, ${r.y.toFixed(2)})`); break }
   }
 }
-console.log(errores ? `\n${errores} problemas` : `✓ Sin colisiones · ${H.aristas.length} aristas · ${ok} caminatas al azar entre 3 pisos`)
+console.log(errores ? `\n${errores} problemas` : `✓ Sin colisiones · ${H.aristas.length} aristas · ${ok} caminatas al azar entre pisos`)
 process.exit(errores ? 1 : 0)

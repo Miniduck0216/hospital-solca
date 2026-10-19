@@ -1,6 +1,7 @@
 // Muros recortables al estilo "maqueta": cada pieza guarda su rango de altura y se recorta suavemente
 // según el modo (arriba / recorte dinámico / abajo) y el piso visible.
 import { useStore } from '../store.js'
+import { NP } from '../lib/datos.js'
 
 const items = new Set()
 export const registrar = (it) => { it.cur = it.h1; items.add(it); return () => items.delete(it) }
@@ -8,7 +9,7 @@ export const registrar = (it) => { it.cur = it.h1; items.add(it); return () => i
 const ALTO_ABAJO = 0.35
 export function actualizarRecorte(camara, objetivo, dt) {
   const { nivel, modoMuros } = useStore.getState()
-  const pisoArriba = Math.min(nivel, 2)
+  const pisoArriba = Math.min(nivel, NP - 1)
   let vx = camara.position.x - objetivo.x
   let vz = camara.position.z - objetivo.z
   const l = Math.hypot(vx, vz) || 1
@@ -16,7 +17,7 @@ export function actualizarRecorte(camara, objetivo, dt) {
   const k = Math.min(1, dt * 9)
   for (const it of items) {
     let meta = it.h1
-    if (it.piso === pisoArriba && nivel < 3) {
+    if (it.piso === pisoArriba && nivel < NP) {
       if (modoMuros === 'abajo') meta = Math.min(it.h1, ALTO_ABAJO)
       else if (modoMuros === 'recorte') {
         const s = it.cx * vx + it.cz * vz

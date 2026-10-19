@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { Html } from '@react-three/drei'
-import { H, H_PISO, aEscena } from '../lib/datos.js'
+import { H, H_PISO, aEscena, NP, CLAVES } from '../lib/datos.js'
 import { useStore } from '../store.js'
 import { vivo } from '../lib/vivo.js'
 import { caja } from './materiales.js'
@@ -11,7 +11,7 @@ const invisible = new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: f
 
 export function Hospital() {
   const nivel = useStore((s) => s.nivel)
-  const visibles = [0, 1, 2].filter((p) => p <= Math.min(nivel, 2))
+  const visibles = H.pisos.map((p) => p.nivel).filter((p) => p <= Math.min(nivel, NP - 1))
   return <group>{visibles.map((p) => <Nivel key={p} piso={p} />)}</group>
 }
 
@@ -20,7 +20,7 @@ function Nivel({ piso }) {
   return (
     <group>
       <Losas piso={piso} base={base} />
-      {H.escaleras.filter((e) => e.piso === piso && piso < 2).map((e, i) => <Escalera key={i} e={e} base={base} piso={piso} />)}
+      {H.escaleras.filter((e) => e.piso === piso).map((e, i) => <Escalera key={i} e={e} base={base} piso={piso} />)}
       <Etiquetas piso={piso} base={base} />
     </group>
   )
@@ -33,8 +33,7 @@ function Losas({ piso, base }) {
   const cuartos = H.cuartos.filter((c) => c.piso === piso)
   const huecos = (c) => {
     // en pisos altos: la escalera solo tiene el rellano de llegada y el ascensor solo el hall (el resto es el ducto)
-    if (piso > 0 && c.tipo === 'escalera') return [{ ...c, y1: c.y0 + 1.3 }]
-    if (piso > 0 && c.tipo === 'ascensores') return [{ ...c, y1: c.y0 + 3.1 }]
+    if (c.tipo === 'escalera' || c.tipo === 'ascensores') return []
     return [c]
   }
   return cuartos.flatMap((c) => huecos(c).map((r, k) => {
@@ -61,14 +60,13 @@ function Escalera({ e, base, piso }) {
   const usar = (ev) => {
     if (ev.delta > 6) return
     ev.stopPropagation()
-    const x = Math.round(e.x0)
     const p = vivo.personaje.piso
-    const id = p <= piso ? `${H.pisos[piso + 1].clave.toLowerCase()}-esc-${x}-llegada` : `${H.pisos[piso].clave.toLowerCase()}-esc-${x}-a0`
+    const id = p <= piso ? `${CLAVES[piso + 1]}-esc-${e.id}-llegada` : `${CLAVES[piso]}-esc-${e.id}-a0`
     ordenar({ tipo: 'nodo', id })
   }
-  const [X, , Z] = aEscena((e.x0 + e.x1) / 2, (e.y0 + 1.3 + e.y1) / 2)
+  const [X, , Z] = aEscena((e.x0 + e.x1) / 2, (e.y0 + e.y1) / 2)
   return (
-    <mesh geometry={caja} material={invisible} position={[X, base + 2.25, Z]} scale={[e.x1 - e.x0 - 0.2, 4.5, e.y1 - e.y0 - 1.4]} onClick={usar}
+    <mesh geometry={caja} material={invisible} position={[X, base + H_PISO / 2, Z]} scale={[e.x1 - e.x0 - 0.2, H_PISO, e.y1 - e.y0 - 0.2]} onClick={usar}
       onPointerOver={(ev) => { ev.stopPropagation(); document.body.style.cursor = 'pointer' }} onPointerOut={() => (document.body.style.cursor = '')} />
   )
 }
@@ -76,8 +74,8 @@ function Escalera({ e, base, piso }) {
 // ---------- rótulos de departamentos del piso visible ----------
 function Etiquetas({ piso, base }) {
   const nivel = useStore((s) => s.nivel)
-  if (Math.min(nivel, 2) !== piso || nivel === 3) return null
-  return H.destinos.filter((d) => d.piso === piso && !/Ascensores|Escalera|Baño/.test(d.nombre)).map((d, i) => (
+  if (Math.min(nivel, NP - 1) !== piso || nivel === NP) return null
+  return H.destinos.filter((d) => d.piso === piso && !/Ascensores|Escalera|Baño/.test(d.nombre) && d.nombre !== 'Pasillo').map((d, i) => (
     <Html key={i} position={aEscena(d.x, d.y, base + 0.1)} center zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
       <div className="lbl">{d.nombre}</div>
     </Html>

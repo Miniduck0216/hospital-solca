@@ -3,6 +3,7 @@ import { Panel } from './ui/Panel.jsx'
 import { HUD } from './ui/HUD.jsx'
 import { Vista2D } from './ui/mapa2d/Vista2D.jsx'
 import { useStore } from './store.js'
+import { H } from './lib/datos.js'
 
 export default function App() {
   const { modo, setModo } = useStore()
@@ -10,8 +11,8 @@ export default function App() {
     <div className={`wrap modo-${modo}`}>
       <header className="cabecera">
         <div>
-          <h1>Hospital de ejemplo</h1>
-          <p className="sub">Levantado desde los planos de AutoCAD · 3 pisos · rutas con A* sobre el grafo de pasillos, puertas, escaleras y ascensores</p>
+          <h1>Hospital SOLCA · Quito</h1>
+          <p className="sub">Prototipo académico: silueta, accesos y entorno del mapa real; la distribución interior es una propuesta · {H.pisos.length} pisos · rutas A*</p>
         </div>
         <div className="cambio-modo" role="tablist" aria-label="Forma de ver el hospital">
           <button role="tab" aria-selected={modo === '2d'} onClick={() => setModo('2d')}>Mapa 2D</button>

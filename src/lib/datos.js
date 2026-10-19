@@ -3,6 +3,8 @@ import H from '../data/hospital3d.json'
 export { H }
 export const H_PISO = H.alturaPiso
 export const NIVELES = H.pisos.map((p) => p.nombre)
+export const NP = H.pisos.length          // pisos del edificio; nivel NP = vista de techo
+export const CLAVES = H.pisos.map((p) => p.clave.toLowerCase())
 export const nodeById = Object.fromEntries(H.nodos.map((n) => [n.id, n]))
 export const cuartoById = Object.fromEntries(H.cuartos.map((c) => [c.id, c]))
 

@@ -4,7 +4,7 @@ import { OrbitControls } from '@react-three/drei'
 import * as THREE from 'three'
 import { useStore } from '../store.js'
 import { vivo } from '../lib/vivo.js'
-import { aEscena, H_PISO } from '../lib/datos.js'
+import { H, aEscena, H_PISO, NP } from '../lib/datos.js'
 import { actualizarRecorte } from './recorte.js'
 
 // Cámara de "casa de muñecas": clic para caminar, arrastrar para girar, clic derecho para desplazar,
@@ -41,7 +41,7 @@ export function Camara() {
     const mover = (dx, dy, dz) => { c.target.x += dx; c.target.y += dy; c.target.z += dz; camera.position.x += dx; camera.position.y += dy; camera.position.z += dz }
     // altura del piso visible
     const { nivel } = useStore.getState()
-    const yMeta = Math.min(nivel, 2) * H_PISO
+    const yMeta = Math.min(nivel, NP - 1) * H_PISO
     mover(0, (yMeta - c.target.y) * Math.min(1, dt * 5), 0)
     // desplazamiento con teclado relativo a la cámara
     const fx = c.target.x - camera.position.x, fz = c.target.z - camera.position.z
@@ -63,7 +63,7 @@ export function Camara() {
     const zoom = (T.has('-') ? 1 : 0) - (T.has('+') ? 1 : 0)
     if (zoom) {
       const off = camera.position.clone().sub(c.target)
-      const l = THREE.MathUtils.clamp(off.length() * (1 + zoom * dt * 1.5), 6, 130)
+      const l = THREE.MathUtils.clamp(off.length() * (1 + zoom * dt * 1.5), 6, 320)
       camera.position.copy(c.target).add(off.setLength(l))
     }
     // centrar en el personaje
@@ -74,7 +74,7 @@ export function Camara() {
       if (Math.hypot(ex - c.target.x, ez - c.target.z) < 0.05) vivo.enfocar = null
     }
     // límites del terreno
-    const cx = THREE.MathUtils.clamp(c.target.x, -50, 60), cz = THREE.MathUtils.clamp(c.target.z, -36, 34)
+    const cx = THREE.MathUtils.clamp(c.target.x, -H.ancho / 2 - 60, H.ancho / 2 + 60), cz = THREE.MathUtils.clamp(c.target.z, -H.largo / 2 - 60, H.largo / 2 + 60)
     if (cx !== c.target.x || cz !== c.target.z) mover(cx - c.target.x, 0, cz - c.target.z)
     actualizarRecorte(camera, c.target, dt)
   })
@@ -86,7 +86,7 @@ export function Camara() {
       enableDamping
       dampingFactor={0.12}
       minDistance={6}
-      maxDistance={130}
+      maxDistance={320}
       minPolarAngle={0.2}
       maxPolarAngle={1.35}
       screenSpacePanning={false}

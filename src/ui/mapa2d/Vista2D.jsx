@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from '../../store.js'
 import { H, nodeById } from '../../lib/datos.js'
-import { planificar, instrucciones } from '../../lib/navegacion.js'
+import { planificar, instrucciones, cercanos } from '../../lib/navegacion.js'
 import { LUGARES, catById, NOMBRES_PISO, CORTO_PISO } from '../../lib/lugares.js'
 import { Mapa2D, encuadreDe } from './Mapa2D.jsx'
 import { Buscador } from './Buscador.jsx'
+import { QR } from './QR.jsx'
 import { Icono, Insignia } from './Iconos.jsx'
 import './mapa2d.css'
 
@@ -12,7 +13,7 @@ function calcular(origen, destino, accesible) {
   if (!origen || !destino) return null
   const n0 = nodeById[origen.nodo]
   const estado = { pos: { ...n0 }, anclas: [origen.nodo] }
-  const metas = destino.especial === 'bano' ? H.banos : [destino.nodo]
+  const metas = destino.especial === 'bano' ? cercanos(n0, H.banos) : [destino.nodo]
   let mejor = null
   for (const m of metas) {
     const plan = planificar(estado, { tipo: 'nodo', id: m }, { accesible })
@@ -47,6 +48,7 @@ export function Vista2D() {
   const [popup, setPopup] = useState(null)
   const [encuadre, setEncuadre] = useState(null)
   const [anim, setAnim] = useState(0)
+  const [qr, setQr] = useState(null)
   const cont = useRef(null)
 
   const calc = useMemo(() => calcular(origen2d, destino2d, accesible), [origen2d, destino2d, accesible])
@@ -101,13 +103,16 @@ export function Vista2D() {
           <button className={`chip ${accesible ? 'on' : ''}`} aria-pressed={accesible} onClick={toggleAccesible} title="Evita escaleras: usa ascensores">
             <Icono nombre="silla" size={17} /> Ruta accesible
           </button>
+          <button className="chip chip-qr" onClick={() => origen2d && setQr(origen2d)} disabled={!origen2d?.codigo} title="Código QR de este punto de partida" aria-label="Código QR del punto de partida">
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4z" /><path d="M14 14h2v2h-2zM18 18h2v2h-2zM14 18h2M18 14h2" strokeLinecap="round" /></svg>
+          </button>
           <button className="btn-negro" disabled={!calc} onClick={iniciar}>{navegando ? 'En ruta' : 'Iniciar ruta'}</button>
         </div>
       </div>
 
       {/* selector de piso */}
       <div className="selector-piso" role="group" aria-label="Piso">
-        {[2, 1, 0].map((p) => (
+        {H.pisos.map((p) => p.nivel).reverse().map((p) => (
           <button key={p} aria-pressed={piso2d === p} onClick={() => cambiarPiso(p)} title={NOMBRES_PISO[p]}>
             {CORTO_PISO[p]}{pisosRuta.has(p) && <i className="punto-ruta" />}
           </button>
@@ -161,6 +166,7 @@ export function Vista2D() {
               <div className="ficha-btns">
                 <button className="btn-negro" onClick={() => { setDestino2d(popup.lugar); setPopup(null) }}>Cómo llegar</button>
                 <button className="btn-claro" onClick={() => { setOrigen2d(popup.lugar); setPopup(null) }}>Estoy aquí</button>
+                {popup.lugar.codigo && <button className="btn-claro" onClick={() => { setQr(popup.lugar); setPopup(null) }} aria-label="Código QR">QR</button>}
               </div>
             </>
           ) : (
@@ -168,6 +174,8 @@ export function Vista2D() {
           )}
         </div>
       )}
+
+      {qr && <QR lugar={qr} onCerrar={() => setQr(null)} />}
 
       {buscando && (
         <Buscador modo={buscando} onCerrar={() => setBuscando(null)}

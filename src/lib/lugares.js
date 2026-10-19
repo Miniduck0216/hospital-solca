@@ -29,20 +29,27 @@ const categoriaDe = (d) => {
   return d.cat
 }
 
-const salidas = [
-  { nombre: 'Entrada principal', nodo: 'pb-o-30.0', piso: 0, x: 30, y: -1.5, cat: 'salidas' },
-  { nombre: 'Entrada de Emergencia', nodo: 'pb-o-6.0', piso: 0, x: 6, y: -1.5, cat: 'salidas' },
-]
+const salidas = H.salidas
 
 export const LUGARES = [
   ...salidas,
-  ...H.destinos.map((d) => ({ nombre: d.nombre, nodo: d.nodo, piso: d.piso, x: d.x, y: d.y, cat: categoriaDe(d) })),
+  ...H.destinos.map((d) => ({ nombre: d.nombre, nodo: d.nodo, piso: d.piso, x: d.x, y: d.y, cat: categoriaDe(d), codigo: d.codigo })),
 ].map((l, i) => {
   const zona = nodeById[l.nodo]?.zona
-  return { ...l, id: `${l.nodo}#${i}`, icono: iconoDe(l.nombre, l.cat), cuarto: zona ? cuartoById[zona] : null, dep: zona ? cuartoById[zona]?.dep : null }
+  return { ...l, id: l.codigo || `${l.nodo}#${i}`, icono: iconoDe(l.nombre, l.cat), cuarto: zona ? cuartoById[zona] : null, dep: zona ? cuartoById[zona]?.dep : null }
 })
 
-export const ORIGEN_INICIAL = LUGARES[0]
+// Punto de partida desde la URL, como los códigos QR de los kioscos: ?origen=<código> (también acepta ?origin=)
+function origenDeUrl() {
+  try {
+    const q = new URLSearchParams(window.location.search)
+    const c = (q.get('origen') || q.get('origin') || '').trim().toLowerCase()
+    return c ? LUGARES.find((l) => l.codigo === c) || null : null
+  } catch { return null }
+}
+export const ORIGEN_URL = origenDeUrl()
+export const ORIGEN_INICIAL = ORIGEN_URL || LUGARES[0]
+export const enlaceDe = (l) => `${window.location.origin}${window.location.pathname}?origen=${encodeURIComponent(l.codigo)}`
 export const BANO_CERCANO = { id: 'bano-cercano', nombre: 'Baño más cercano', cat: 'banos', icono: 'bano', especial: 'bano' }
 export const NOMBRES_PISO = H.pisos.map((p) => p.nombre)
-export const CORTO_PISO = ['PB', 'P1', 'P2']
+export const CORTO_PISO = H.pisos.map((p) => p.clave)

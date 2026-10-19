@@ -5,7 +5,9 @@ import { InsigniaSVG, Icono } from './Iconos.jsx'
 
 const D = H.largo
 const sy = (y) => D - y            // plano (y hacia el norte) → SVG (y hacia abajo)
-const MARCO = { x: -3, y: -2.5, w: H.ancho + 6, h: D + 9.5 }
+const MARCO = { x: -20, y: -6, w: H.ancho + 28, h: D + 22 }
+const poli = (pts) => pts.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(2)} ${sy(y).toFixed(2)}`).join(' ') + 'Z'
+const SITIO = H.sitio || null
 
 const TINTE = {
   emergencia: '#FBE7E4', consulta: '#E7EEFD', diagnostico: '#EFE9FB', tratamiento: '#FCF0DF', hospitalizacion: '#E3F3E8',
@@ -165,16 +167,40 @@ export function Mapa2D({ piso, plan, origen, destino, onElegirCuarto, onCambiarP
         <defs>
           <filter id="sombra-edificio" x="-5%" y="-5%" width="110%" height="115%"><feDropShadow dx="0" dy="0.35" stdDeviation="0.45" floodColor="#1B2B3C" floodOpacity="0.16" /></filter>
         </defs>
-        {/* entorno */}
-        {piso === 0 && <rect x={-0.2} y={sy(-0.2)} width={H.ancho + 0.4} height={4.3} rx={0.4} fill="#E8E3DA" />}
-        {piso === 0 && <rect x={-3} y={sy(-4.5)} width={H.ancho + 6} height={3.4} fill="#DEE2E7" />}
-        <rect x={-0.15} y={sy(D + 0.15)} width={H.ancho + 0.3} height={D + 0.3} rx={0.3} fill="#FFFFFF" filter="url(#sombra-edificio)" />
+        {/* entorno: lote, calles y parqueos del mapa real */}
+        {SITIO && <path d={poli(SITIO.lote)} fill="#E9EEE4" />}
+        {SITIO && Object.values(SITIO.parqueos).map((pp, i) => <path key={i} d={poli(pp)} fill="#E1E5EA" />)}
+        {SITIO && Object.entries(SITIO.calles).map(([n, c]) => (
+          <path key={n} d={poli(c.eje).slice(0, -1)} stroke="#D5DAE0" strokeWidth={c.ancho} fill="none" strokeLinecap="butt" />
+        ))}
+        {SITIO && k < 0.45 && Object.entries(SITIO.calles).map(([n, c]) => {
+          const [[x0, y0], [x1, y1]] = c.eje
+          // rótulo a la altura del edificio sobre el eje de la calle
+          let t = 0.5, mejor = 1e9
+          for (let u = 0; u <= 1; u += 0.02) {
+            const x = x0 + (x1 - x0) * u, y = y0 + (y1 - y0) * u
+            const d = Math.hypot(x - H.ancho / 2, y - D / 2)
+            if (d < mejor) { mejor = d; t = u }
+          }
+          const x = x0 + (x1 - x0) * t, y = y0 + (y1 - y0) * t
+          let ang = (Math.atan2(-(y1 - y0), x1 - x0) * 180) / Math.PI
+          if (ang > 90) ang -= 180
+          if (ang < -90) ang += 180
+          return <text key={n + 't'} transform={`translate(${x} ${sy(y)}) rotate(${ang})`} className="txt-calle" fontSize={fs}>{n}</text>
+        })}
+        {H.cuartos.filter((c) => c.piso === piso && c.tipo === 'exterior').map((c, i) => (
+          <rect key={'ext' + i} x={c.x0} y={sy(c.y1)} width={c.x1 - c.x0} height={c.y1 - c.y0} rx={0.6} fill="#E8E3DA" />
+        ))}
+        {piso > 0 && H.contornos?.[piso - 1] && <path d={poli(H.contornos[piso - 1])} fill="#E3E7EC" stroke="#CDD3DA" strokeWidth={0.3} />}
+        {H.contornos?.[piso]
+          ? <path d={poli(H.contornos[piso])} fill="#FFFFFF" filter="url(#sombra-edificio)" />
+          : <rect x={-0.15} y={sy(D + 0.15)} width={H.ancho + 0.3} height={D + 0.3} rx={0.3} fill="#FFFFFF" filter="url(#sombra-edificio)" />}
         {/* ambientes */}
-        {geo.cuartos.map((c) => {
+        {geo.cuartos.map((c, ci) => {
           const activo = (depDestino && c.dep === depDestino && c.tipo !== 'bano_hab') || (depOrigen && c.dep === depOrigen)
           const esDest = depDestino && c.dep === depDestino
           return (
-            <rect key={c.id} x={c.x0} y={sy(c.y1)} width={c.x1 - c.x0} height={c.y1 - c.y0}
+            <rect key={ci} x={c.x0} y={sy(c.y1)} width={c.x1 - c.x0} height={c.y1 - c.y0}
               fill={activo ? (esDest ? colorDestino : '#2F5BEA') : tinte(c)} fillOpacity={activo ? 0.2 : 1}
               className={c.tipo === 'pasillo' ? '' : 'cuarto'} />
           )
@@ -188,8 +214,8 @@ export function Mapa2D({ piso, plan, origen, destino, onElegirCuarto, onCambiarP
             opacity={m.rol === 'bajo' ? 0 : 1} />
         ))}
         {/* números de cuartos (con zoom) */}
-        {detalle && geo.cuartos.filter((c) => c.nombre.includes('·')).map((c) => (
-          <text key={c.id + 't'} x={(c.x0 + c.x1) / 2} y={sy((c.y0 + c.y1) / 2)} className="txt-cuarto" fontSize={fs * 0.82}>
+        {detalle && geo.cuartos.filter((c) => c.nombre.includes('·') && (c.x1 - c.x0) * (c.y1 - c.y0) > 6).map((c, ci) => (
+          <text key={ci + 't'} x={(c.x0 + c.x1) / 2} y={sy((c.y0 + c.y1) / 2)} className="txt-cuarto" fontSize={fs * 0.82}>
             {c.nombre.split('·').pop().trim()}
           </text>
         ))}
@@ -264,6 +290,12 @@ export function Mapa2D({ piso, plan, origen, destino, onElegirCuarto, onCambiarP
         <button aria-label="Alejar" onClick={() => zoom(1.4)}><Icono nombre="menos" /></button>
         <button aria-label="Ver todo el piso" onClick={() => ajustar(MARCO)}><Icono nombre="centrar" /></button>
       </div>
+      {H.anguloNorte !== undefined && (
+        <div className="norte" title="Norte" style={{ transform: `rotate(${H.anguloNorte}deg)` }} aria-label="Norte">
+          <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 2l5 14-5-3-5 3z" fill="#D7443A" /><path d="M12 22l-5-6 5-3 5 3z" fill="#B8C1CB" /></svg>
+          <b>N</b>
+        </div>
+      )}
     </div>
   )
 }

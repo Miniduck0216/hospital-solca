@@ -10,32 +10,65 @@ for (const [a, b, t] of H.aristas) {
   adj[a].push([b, base, t]); adj[b].push([a, base, t])
 }
 
+// montículo binario mínimo para la lista abierta del A*
+class Monticulo {
+  constructor() { this.a = [] }
+  get size() { return this.a.length }
+  push(k, v) {
+    const a = this.a; a.push([k, v]); let i = a.length - 1
+    while (i > 0) { const p = (i - 1) >> 1; if (a[p][0] <= a[i][0]) break; [a[p], a[i]] = [a[i], a[p]]; i = p }
+  }
+  pop() {
+    const a = this.a, top = a[0], last = a.pop()
+    if (a.length) {
+      a[0] = last; let i = 0
+      for (;;) {
+        const l = 2 * i + 1, r = l + 1; let m = i
+        if (l < a.length && a[l][0] < a[m][0]) m = l
+        if (r < a.length && a[r][0] < a[m][0]) m = r
+        if (m === i) break
+        ;[a[m], a[i]] = [a[i], a[m]]; i = m
+      }
+    }
+    return top[1]
+  }
+}
+
 // A* con heurística en línea recta 3D; "accesible" evita las escaleras
 export function aStar(inicio, meta, { accesible = false } = {}) {
   if (inicio === meta) return { camino: [inicio], costo: 0 }
+  const M = nodeById[meta]
   const g = new Map([[inicio, 0]])
-  const f = new Map([[inicio, d3(nodeById[inicio], nodeById[meta])]])
   const vino = new Map()
-  const abiertos = new Set([inicio])
+  const cerrados = new Set()
+  const abiertos = new Monticulo()
+  abiertos.push(d3(nodeById[inicio], M), inicio)
   while (abiertos.size) {
-    let cur = null
-    for (const id of abiertos) if (cur === null || f.get(id) < f.get(cur)) cur = id
+    const cur = abiertos.pop()
+    if (cerrados.has(cur)) continue
     if (cur === meta) {
       const camino = [cur]
       while (vino.has(camino[0])) camino.unshift(vino.get(camino[0]))
       return { camino, costo: g.get(meta) }
     }
-    abiertos.delete(cur)
+    cerrados.add(cur)
     for (const [v, w, t] of adj[cur]) {
       if (accesible && t === 'escalera') continue
+      if (cerrados.has(v)) continue
       const tg = g.get(cur) + w
-      if (!g.has(v) || tg < g.get(v)) { vino.set(v, cur); g.set(v, tg); f.set(v, tg + d3(nodeById[v], nodeById[meta])); abiertos.add(v) }
+      if (!g.has(v) || tg < g.get(v)) { vino.set(v, cur); g.set(v, tg); abiertos.push(tg + d3(nodeById[v], M), v) }
     }
   }
   return null
 }
 
-const NO_DESTINO = new Set(['escalera'])
+// de muchos destinos posibles (p. ej. todos los baños), los más prometedores para calcular rutas reales
+export function cercanos(desde, ids, n = 8) {
+  const est = (id) => { const b = nodeById[id]; return Math.hypot(b.x - desde.x, b.y - desde.y) + Math.abs((b.h || 0) - (desde.h || 0)) * 6 }
+  return [...ids].sort((a, b) => est(a) - est(b)).slice(0, n)
+}
+
+const NO_DESTINO = new Set(['escalera', 'ascensores'])
 // Ajusta un punto pedido dentro de un ambiente: lo aleja de muros y muebles y garantiza línea libre desde algún nodo
 export function destinoEnAmbiente(piso, x, y) {
   const room = cuartoEn(piso, x, y)
@@ -104,7 +137,7 @@ export function instrucciones(plan, desde) {
   const { puntos, destino } = plan
   const out = []
   const ini = cuartoEn(desde.piso, desde.x, desde.y)
-  if (ini && destino && ini.id !== destino.id && ini.tipo !== 'pasillo') out.push(['Sal de ', { b: nombreCuarto(ini) }, '.'])
+  if (ini && destino && ini.id !== destino.id && ini.tipo !== 'pasillo' && ini.tipo !== 'exterior') out.push(['Sal de ', { b: nombreCuarto(ini) }, '.'])
   for (let i = 1; i < puntos.length - 1; i++) {
     const n = puntos[i], sig = puntos[i + 1], prev = puntos[i - 1]
     const t = n.id && sig.id ? tipoArista(n.id, sig.id) : 'caminar'
