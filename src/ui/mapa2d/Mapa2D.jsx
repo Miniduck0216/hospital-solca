@@ -121,6 +121,9 @@ export const Mapa2D = forwardRef(function Mapa2D({ piso, plan, origen, destino, 
       dragRotate: false, pitchWithRotate: false, touchPitch: false, attributionControl: { compact: true }, fadeDuration: 0,
     })
     mapa.current = map
+    // MapLibre no sigue los cambios de tamaño del contenedor: se redimensiona al cambiar
+    const ro = new ResizeObserver(() => map.resize())
+    ro.observe(ref.current)
     const marco = () => {
       const cerca = map.getZoom() >= 18.3
       ref.current?.classList.toggle('zoom-cerca', cerca)
@@ -156,7 +159,7 @@ export const Mapa2D = forwardRef(function Mapa2D({ piso, plan, origen, destino, 
       if (c && c.tipo !== 'pasillo') cb.current.onElegirCuarto(c, pt)
       else cb.current.onElegirCuarto(null, pt)
     })
-    return () => { map.remove(); mapa.current = null; setListo(false) }
+    return () => { ro.disconnect(); map.remove(); mapa.current = null; setListo(false) }
   }, [])
 
   // ---------- datos y filtros por piso
