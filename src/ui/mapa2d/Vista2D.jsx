@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from '../../store.js'
 import { H, nodeById } from '../../lib/datos.js'
 import { planificar, instrucciones, cercanos } from '../../lib/navegacion.js'
-import { LUGARES, catById, NOMBRES_PISO, CORTO_PISO } from '../../lib/lugares.js'
+import { LUGARES, CATEGORIAS, catById, NOMBRES_PISO, CORTO_PISO, BANO_CERCANO } from '../../lib/lugares.js'
 import { Mapa2D, encuadreDe } from './Mapa2D.jsx'
 import { Buscador } from './Buscador.jsx'
 import { QR } from './QR.jsx'
@@ -27,8 +27,10 @@ function calcular(origen, destino, accesible) {
   return { plan: mejor.plan, destino: real, pasos: instrucciones(mejor.plan, n0), pisos, ascensor }
 }
 
+// categorías de la barra superior (los ascensores y salidas no son destinos de búsqueda)
+const CHIPS = CATEGORIAS.filter((c) => !['circulacion', 'salidas'].includes(c.id))
+
 function Campo({ tipo, lugar, onClick }) {
-  const cat = lugar ? catById[lugar.cat] : null
   return (
     <button className={`campo campo-${tipo}`} onClick={onClick}>
       <span className="campo-marca" aria-hidden="true" />
@@ -37,19 +39,26 @@ function Campo({ tipo, lugar, onClick }) {
         <b className={lugar ? '' : 'vacio'}>{lugar ? lugar.nombre : '¿A dónde quieres ir?'}</b>
       </span>
       {lugar && !lugar.especial && <span className="campo-piso">{CORTO_PISO[lugar.piso]}</span>}
-      {cat && lugar.especial && <span className="campo-piso">Auto</span>}
+      {lugar?.especial && <span className="campo-piso">Auto</span>}
     </button>
   )
 }
 
+const IconoMenu = () => (
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+    <path d="M4 7h16M4 12h16M4 17h16" />
+  </svg>
+)
+
 export function Vista2D() {
-  const { piso2d, setPiso2d, origen2d, destino2d, setOrigen2d, setDestino2d, intercambiar2d, accesible, toggleAccesible, navegando, setNavegando } = useStore()
-  const [buscando, setBuscando] = useState(null)
+  const { piso2d, setPiso2d, origen2d, destino2d, setOrigen2d, setDestino2d, intercambiar2d, accesible, toggleAccesible, navegando, setNavegando, setModo } = useStore()
+  const [buscando, setBuscando] = useState(null)   // { modo: 'origen' | 'destino', cat? }
   const [popup, setPopup] = useState(null)
   const [encuadre, setEncuadre] = useState(null)
-  const [anim, setAnim] = useState(0)
   const [qr, setQr] = useState(null)
+  const [menu, setMenu] = useState(false)
   const cont = useRef(null)
+  const mapa = useRef(null)
 
   const calc = useMemo(() => calcular(origen2d, destino2d, accesible), [origen2d, destino2d, accesible])
 
@@ -59,7 +68,6 @@ export function Vista2D() {
     const p0 = calc.plan.puntos[0].piso
     setPiso2d(p0)
     setEncuadre(encuadreDe(calc.plan.puntos, p0))
-    setAnim((a) => a + 1)
   }, [calc, setPiso2d])
 
   const cambiarPiso = (p) => {
@@ -77,46 +85,91 @@ export function Vista2D() {
     if (!calc) return
     setNavegando(true)
     cambiarPiso(calc.plan.puntos[0].piso)
-    setAnim((a) => a + 1)
   }
+  const elegirChip = (c) => {
+    if (c.id === 'banos') { setDestino2d(BANO_CERCANO); return }
+    setBuscando({ modo: 'destino', cat: c.id })
+  }
+
   const metros = calc ? Math.round(calc.plan.metros) : 0
   const minutos = calc ? Math.max(1, Math.round(metros / 1.2 / 60 + (calc.ascensor ? 0.5 : 0))) : 0
   const pisosRuta = new Set(calc ? calc.pisos : [])
   const catDest = calc ? catById[calc.destino.cat] : null
+  const pisosLista = H.pisos.map((p) => p.nivel).reverse()
 
   return (
     <div className="vista2d" ref={cont}>
-      <Mapa2D piso={piso2d} plan={calc?.plan} origen={origen2d} destino={calc?.destino || (destino2d?.especial ? null : destino2d)}
-        onElegirCuarto={elegirCuarto} onCambiarPiso={cambiarPiso} encuadre={encuadre} animarRuta={anim} />
+      <Mapa2D ref={mapa} piso={piso2d} plan={calc?.plan} origen={origen2d} destino={calc?.destino || (destino2d?.especial ? null : destino2d)}
+        onElegirCuarto={elegirCuarto} onCambiarPiso={cambiarPiso} encuadre={encuadre} />
 
-      {/* origen y destino */}
-      <div className="tarjeta tarjeta-busqueda">
-        <div className="campos">
-          <Campo tipo="origen" lugar={origen2d} onClick={() => setBuscando('origen')} />
-          <Campo tipo="destino" lugar={destino2d} onClick={() => setBuscando('destino')} />
-          <span className="campos-guia" aria-hidden="true" />
-          <button className="icono-btn intercambiar" onClick={intercambiar2d} aria-label="Intercambiar origen y destino" disabled={!destino2d || destino2d.especial}>
-            <Icono nombre="intercambiar" size={18} />
-          </button>
+      {/* barra superior: menú, búsqueda y logo; debajo, categorías */}
+      <div className="columna-izq">
+        <div className="barra">
+          <div className="barra-fila">
+            <button className="barra-menu" aria-label="Menú" aria-expanded={menu} onClick={() => setMenu((m) => !m)}><IconoMenu /></button>
+            <button className="barra-buscar" onClick={() => setBuscando({ modo: 'destino' })}>
+              <Icono nombre="buscar" size={18} />
+              <span>{destino2d ? destino2d.nombre : 'Buscar en SOLCA'}</span>
+            </button>
+            <div className="barra-logo" aria-label="Hospital SOLCA Quito"><b>SOLCA</b><small>Quito</small></div>
+          </div>
+          <div className="chips" aria-label="Categorías">
+            {CHIPS.map((c) => (
+              <button key={c.id} className="chip-cat" onClick={() => elegirChip(c)}>
+                <span className="punto" style={{ background: c.color }} aria-hidden="true" />
+                {c.nombre}
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="acciones">
-          <button className={`chip ${accesible ? 'on' : ''}`} aria-pressed={accesible} onClick={toggleAccesible} title="Evita escaleras: usa ascensores">
-            <Icono nombre="silla" size={17} /> Ruta accesible
-          </button>
-          <button className="chip chip-qr" onClick={() => origen2d && setQr(origen2d)} disabled={!origen2d?.codigo} title="Código QR de este punto de partida" aria-label="Código QR del punto de partida">
-            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4z" /><path d="M14 14h2v2h-2zM18 18h2v2h-2zM14 18h2M18 14h2" strokeLinecap="round" /></svg>
-          </button>
-          <button className="btn-negro" disabled={!calc} onClick={iniciar}>{navegando ? 'En ruta' : 'Iniciar ruta'}</button>
+
+        {menu && (
+          <div className="menu" role="menu">
+            <button role="menuitem" className={`menu-op ${accesible ? 'on' : ''}`} aria-pressed={accesible} onClick={toggleAccesible}>
+              <Icono nombre="silla" size={18} /> Ruta accesible <small>{accesible ? 'activada' : 'usa ascensores'}</small>
+            </button>
+            <button role="menuitem" className="menu-op" disabled={!origen2d?.codigo} onClick={() => { setQr(origen2d); setMenu(false) }}>
+              <Icono nombre="info" size={18} /> Código QR del punto de partida
+            </button>
+            <button role="menuitem" className="menu-op" onClick={() => { setModo('3d'); setMenu(false) }}>
+              <Icono nombre="piso" size={18} /> Ver recorrido 3D
+            </button>
+          </div>
+        )}
+
+        <div className="tarjeta tarjeta-busqueda">
+          <div className="campos">
+            <Campo tipo="origen" lugar={origen2d} onClick={() => setBuscando({ modo: 'origen' })} />
+            <Campo tipo="destino" lugar={destino2d} onClick={() => setBuscando({ modo: 'destino' })} />
+            <span className="campos-guia" aria-hidden="true" />
+            <button className="icono-btn intercambiar" onClick={intercambiar2d} aria-label="Intercambiar origen y destino" disabled={!destino2d || destino2d.especial}>
+              <Icono nombre="intercambiar" size={18} />
+            </button>
+          </div>
+          <div className="acciones">
+            <button className="btn-negro" disabled={!calc} onClick={iniciar}>{navegando ? 'En ruta' : 'Iniciar ruta'}</button>
+          </div>
         </div>
       </div>
 
-      {/* selector de piso */}
-      <div className="selector-piso" role="group" aria-label="Piso">
-        {H.pisos.map((p) => p.nivel).reverse().map((p) => (
-          <button key={p} aria-pressed={piso2d === p} onClick={() => cambiarPiso(p)} title={NOMBRES_PISO[p]}>
-            {CORTO_PISO[p]}{pisosRuta.has(p) && <i className="punto-ruta" />}
-          </button>
-        ))}
+      {/* controles: pisos, zoom y norte */}
+      <div className="columna-der">
+        <div className="selector-piso" role="group" aria-label="Piso">
+          {pisosLista.map((p) => (
+            <button key={p} aria-pressed={piso2d === p} onClick={() => cambiarPiso(p)} title={NOMBRES_PISO[p]}>
+              {CORTO_PISO[p]}{pisosRuta.has(p) && <i className="punto-ruta" />}
+            </button>
+          ))}
+        </div>
+        <div className="zoom-ctrl" role="group" aria-label="Zoom">
+          <button aria-label="Acercar" onClick={() => mapa.current?.acercar()}><Icono nombre="mas" /></button>
+          <button aria-label="Alejar" onClick={() => mapa.current?.alejar()}><Icono nombre="menos" /></button>
+          <button aria-label="Ver todo el hospital" onClick={() => mapa.current?.centrar()}><Icono nombre="centrar" /></button>
+        </div>
+        <div className="norte" title="Norte" aria-label="Norte">
+          <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 2l5 14-5-3-5 3z" fill="#D7443A" /><path d="M12 22l-5-6 5-3 5 3z" fill="#B8C1CB" /></svg>
+          <b>N</b>
+        </div>
       </div>
 
       {/* resumen de ruta */}
@@ -178,8 +231,8 @@ export function Vista2D() {
       {qr && <QR lugar={qr} onCerrar={() => setQr(null)} />}
 
       {buscando && (
-        <Buscador modo={buscando} onCerrar={() => setBuscando(null)}
-          onElegir={(l) => { (buscando === 'origen' ? setOrigen2d : setDestino2d)(l); setBuscando(null); setPopup(null) }} />
+        <Buscador modo={buscando.modo} categoriaInicial={buscando.cat || null} onCerrar={() => setBuscando(null)}
+          onElegir={(l) => { (buscando.modo === 'origen' ? setOrigen2d : setDestino2d)(l); setBuscando(null); setPopup(null) }} />
       )}
     </div>
   )

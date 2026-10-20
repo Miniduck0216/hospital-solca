@@ -1,147 +1,107 @@
-import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
-import { H, cuartoEn, tipoArista } from '../../lib/datos.js'
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react'
+import maplibregl from 'maplibre-gl'
+import 'maplibre-gl/dist/maplibre-gl.css'
+import { renderToStaticMarkup } from 'react-dom/server'
+import { H, tipoArista } from '../../lib/datos.js'
 import { LUGARES, catById, NOMBRES_PISO } from '../../lib/lugares.js'
-import { InsigniaSVG, Icono } from './Iconos.jsx'
+import { Insignia } from './Iconos.jsx'
+import { aLonLat, limitesGeo } from '../../lib/geo.js'
 
-const D = H.largo
-const sy = (y) => D - y            // plano (y hacia el norte) → SVG (y hacia abajo)
-const MARCO = { x: -20, y: -6, w: H.ancho + 28, h: D + 22 }
-const poli = (pts) => pts.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(2)} ${sy(y).toFixed(2)}`).join(' ') + 'Z'
-const SITIO = H.sitio || null
+// Mapa vectorial de OpenStreetMap (estilo claro, sin clave). Datos © OpenStreetMap contributors.
+const ESTILO = 'https://tiles.openfreemap.org/styles/positron'
+const FONDO = { version: 8, sources: {}, layers: [{ id: 'fondo', type: 'background', paint: { 'background-color': '#E9EDF1' } }] }
+const EDIFICIO = { x: 0, y: 0, w: H.ancho, h: H.largo }
+const CENTRO = aLonLat(H.ancho / 2, H.largo / 2)
 
 const TINTE = {
   emergencia: '#FBE7E4', consulta: '#E7EEFD', diagnostico: '#EFE9FB', tratamiento: '#FCF0DF', hospitalizacion: '#E3F3E8',
   servicios: '#EDF0F3', administracion: '#F8E7F0', circulacion: '#EDF0F3',
 }
 const tinte = (c) => (c.tipo === 'pasillo' ? '#FFFFFF' : /^ban/.test(c.tipo) ? '#E1F1F7' : TINTE[c.cat] || '#EDF0F3')
-const BANOS = new Set(['banos_h', 'banos_m', 'bano_acc', 'bano_hab'])
 const SOLO_ICONO = (l) => ['banos', 'circulacion', 'salidas'].includes(l.cat)
 
-function partir(nombre) {
-  if (nombre.length <= 14) return [nombre]
-  const p = nombre.split(' ')
-  let mejor = [nombre], dif = 1e9
-  for (let i = 1; i < p.length; i++) {
-    const a = p.slice(0, i).join(' '), b = p.slice(i).join(' ')
-    if (Math.abs(a.length - b.length) < dif) { dif = Math.abs(a.length - b.length); mejor = [a, b] }
-  }
-  return mejor
+const anillo = (pts) => {
+  const r = pts.map(([x, y]) => aLonLat(x, y))
+  return [...r, r[0]]
+}
+const rectanguloGeo = (c) => [[c.x0, c.y0], [c.x1, c.y0], [c.x1, c.y1], [c.x0, c.y1]]
+
+// huella del edificio por piso (los contornos del modelo, georreferenciados)
+const EDIFICIO_FC = {
+  type: 'FeatureCollection',
+  features: (H.pisos || []).map((p, i) => ({
+    type: 'Feature',
+    properties: { piso: p.nivel },
+    geometry: { type: 'Polygon', coordinates: [anillo(H.contornos?.[p.nivel] || rectanguloGeo({ x0: 0, y0: 0, x1: H.ancho, y1: H.largo }))] },
+  })),
+}
+const CUARTOS_FC_BASE = H.cuartos.map((c, k) => ({ c, k }))
+
+function pad(tam, plan) {
+  if (tam.w < 700) return { top: 250, left: 12, right: 66, bottom: plan ? tam.h * 0.46 : 20 }
+  return { top: 30, left: tam.w > 1000 ? 470 : 400, right: 92, bottom: 30 }
 }
 
-export function Mapa2D({ piso, plan, origen, destino, onElegirCuarto, onCambiarPiso, encuadre, animarRuta }) {
+export const Mapa2D = forwardRef(function Mapa2D({ piso, plan, origen, destino, onElegirCuarto, onCambiarPiso, encuadre }, fwd) {
   const ref = useRef(null)
-  const [tam, setTam] = useState({ w: 800, h: 600 })
-  const [vista, setVista] = useState(MARCO)
-  const gesto = useRef({ punteros: new Map(), movido: false })
+  const mapa = useRef(null)
+  const [listo, setListo] = useState(false)
+  const cb = useRef({})
+  cb.current = { onElegirCuarto, onCambiarPiso }
 
-  // tamaño del contenedor
-  useEffect(() => {
-    const ro = new ResizeObserver(([e]) => setTam({ w: e.contentRect.width, h: e.contentRect.height }))
-    ro.observe(ref.current)
-    return () => ro.disconnect()
-  }, [])
+  // ---------- datos derivados
+  const depOrigen = origen?.cuarto?.dep
+  const depDestino = destino?.cuarto?.dep
+  const colorDestino = destino ? catById[destino.cat]?.color || '#2F5BEA' : '#2F5BEA'
 
-  // ajusta el encuadre pedido (todo el piso o la ruta) a la proporción del contenedor
-  // encaja el rectángulo pedido en el área libre (descontando las tarjetas flotantes)
-  const ajustar = useCallback((b) => {
-    const movil = tam.w < 700
-    const m = movil ? { l: 8, t: 175, r: 62, b: plan ? tam.h * 0.36 : 8 } : { l: tam.w > 1000 ? 400 : 330, t: 16, r: 76, b: 16 }
-    const aw = Math.max(80, tam.w - m.l - m.r), ah = Math.max(80, tam.h - m.t - m.b)
-    const kk = Math.max(b.w / aw, b.h / ah)
-    const cx = b.x + b.w / 2, cy = b.y + b.h / 2
-    setVista({ x: cx - (m.l + aw / 2) * kk, y: cy - (m.t + ah / 2) * kk, w: tam.w * kk, h: tam.h * kk })
-  }, [tam.w, tam.h, !!plan])
-  useEffect(() => {
-    if (encuadre) return ajustar(encuadre)
-    if (tam.w < 700 && origen && origen.piso === piso) return ajustar({ x: origen.x - 13, y: sy(origen.y) - 14, w: 26, h: 20 })
-    ajustar(MARCO)
-  }, [encuadre, ajustar])
+  const ambientesFC = useMemo(() => ({
+    type: 'FeatureCollection',
+    features: CUARTOS_FC_BASE.map(({ c, k }) => {
+      const esDest = depDestino && c.piso === destino.piso && c.dep === depDestino
+      const activo = (depDestino && c.piso === destino.piso && c.dep === depDestino && c.tipo !== 'bano_hab')
+        || (depOrigen && c.piso === origen.piso && c.dep === depOrigen)
+      let color = c.tipo === 'exterior' ? '#E8E3DA' : tinte(c)
+      let op = 1
+      if (activo) { color = esDest ? colorDestino : '#2F5BEA'; op = 0.22 }
+      return {
+        type: 'Feature',
+        properties: { piso: c.piso, k, color, op, pasillo: c.tipo === 'pasillo' ? 1 : 0 },
+        geometry: { type: 'Polygon', coordinates: [anillo(rectanguloGeo(c))] },
+      }
+    }),
+  }), [depOrigen, depDestino, origen, destino, colorDestino])
 
-  const k = vista.w / Math.max(1, tam.w)          // metros por píxel
-  const aPlano = (cx, cy) => {
-    const r = ref.current.getBoundingClientRect()
-    return { x: vista.x + ((cx - r.left) / r.width) * vista.w, Y: vista.y + ((cy - r.top) / r.height) * vista.h }
-  }
-  const zoom = (f, cx, cy) => setVista((v) => {
-    const w = Math.min(MARCO.w * 2.2, Math.max(6, v.w * f)); const real = w / v.w
-    const r = ref.current.getBoundingClientRect()
-    const px = cx === undefined ? 0.5 : (cx - r.left) / r.width, py = cy === undefined ? 0.5 : (cy - r.top) / r.height
-    return { x: v.x + v.w * px * (1 - real), y: v.y + v.h * py * (1 - real), w, h: v.h * real }
-  })
-  useEffect(() => {
-    const el = ref.current
-    const rueda = (e) => { e.preventDefault(); zoom(Math.exp(e.deltaY * 0.0015), e.clientX, e.clientY) }
-    el.addEventListener('wheel', rueda, { passive: false })
-    return () => el.removeEventListener('wheel', rueda)
-  })
-
-  const abajo = (e) => {
-    gesto.current.punteros.set(e.pointerId, { x: e.clientX, y: e.clientY })
-    gesto.current.movido = false
-  }
-  const mover = (e) => {
-    const g = gesto.current
-    const prev = g.punteros.get(e.pointerId)
-    if (!prev) return
-    const r = ref.current.getBoundingClientRect()
-    if (g.punteros.size === 2) {
-      const [a, b] = [...g.punteros.values()]
-      const otro = [...g.punteros.entries()].find(([id]) => id !== e.pointerId)[1]
-      const d0 = Math.hypot(a.x - b.x, a.y - b.y), d1 = Math.hypot(e.clientX - otro.x, e.clientY - otro.y)
-      if (d0 > 0) zoom(d0 / d1, (e.clientX + otro.x) / 2, (e.clientY + otro.y) / 2)
-      g.movido = true
-    } else {
-      const dx = e.clientX - prev.x, dy = e.clientY - prev.y
-      if (!g.movido && Math.abs(dx) + Math.abs(dy) > 3) { g.movido = true; try { ref.current.setPointerCapture(e.pointerId) } catch { /* sin captura */ } }
-      if (g.movido) setVista((v) => ({ ...v, x: v.x - (dx / r.width) * v.w, y: v.y - (dy / r.height) * v.h }))
+  // tramos de la ruta, separados por piso
+  const rutaFC = useMemo(() => {
+    if (!plan) return { type: 'FeatureCollection', features: [] }
+    const segs = []
+    let cur = null
+    for (const p of plan.puntos) {
+      if (!cur || cur.piso !== p.piso) { cur = { piso: p.piso, c: [] }; segs.push(cur) }
+      cur.c.push(aLonLat(p.x, p.y))
     }
-    g.punteros.set(e.pointerId, { x: e.clientX, y: e.clientY })
-  }
-  const arriba = (e) => {
-    const g = gesto.current
-    g.punteros.delete(e.pointerId)
-    if (!g.movido && g.punteros.size === 0) {
-      const p = aPlano(e.clientX, e.clientY)
-      const c = cuartoEn(piso, p.x, sy(p.Y))
-      onElegirCuarto(c && c.tipo !== 'pasillo' ? c : null, { x: e.clientX, y: e.clientY })
+    return {
+      type: 'FeatureCollection',
+      features: segs.filter((s) => s.c.length > 1).map((s) => ({
+        type: 'Feature', properties: { piso: s.piso }, geometry: { type: 'LineString', coordinates: s.c },
+      })),
     }
-  }
+  }, [plan])
 
-  // ---------- geometría del piso
-  const geo = useMemo(() => {
-    const cuartos = H.cuartos.filter((c) => c.piso === piso && c.tipo !== 'exterior')
-    const muros = H.piezas.filter((p) => p.piso === piso && p.h0 === 0)
-    const ventanas = H.ventanas.filter((v) => v.piso === piso)
-    const ancho = {}
-    for (const c of cuartos) {
-      const a = ancho[c.dep] || [1e9, -1e9]
-      ancho[c.dep] = [Math.min(a[0], c.x0), Math.max(a[1], c.x1)]
-    }
-    const lugares = LUGARES.filter((l) => l.piso === piso).map((l) => ({ ...l, ancho: l.dep && ancho[l.dep] ? ancho[l.dep][1] - ancho[l.dep][0] : 0 }))
-    return { cuartos, muros, ventanas, lugares }
-  }, [piso])
-
-  // ---------- ruta: tramos de este piso y cambios de piso
+  // cambios de piso, inicio y fin de la ruta en este piso
   const ruta = useMemo(() => {
     if (!plan) return null
     const P = plan.puntos
-    const tramos = []; let actual = []
     const cambios = []
     for (let i = 0; i < P.length; i++) {
       const p = P[i]
-      if (p.piso === piso) {
-        const vertical = i > 0 && P[i - 1].id && p.id && tipoArista(P[i - 1].id, p.id) === 'ascensor'
-        if (vertical && actual.length) { tramos.push(actual); actual = [] }
-        actual.push(p)
-      } else if (actual.length) { tramos.push(actual); actual = [] }
       const sig = P[i + 1], ant = P[i - 1]
       const vert = (u, v) => (u.id && v.id ? tipoArista(u.id, v.id) : 'caminar')
-      const dePaso = ant && sig && ant.piso !== piso && sig.piso !== piso     // piso intermedio del ascensor
+      const dePaso = ant && sig && ant.piso !== piso && sig.piso !== piso
       if (sig && p.piso === piso && sig.piso !== piso && !dePaso) {
         let j = i + 1
         while (j + 1 < P.length && vert(P[j], P[j + 1]) === 'ascensor') j++
-        const hacia = P[j].piso
-        cambios.push({ x: p.x, y: p.y, hacia, medio: vert(p, sig) === 'ascensor' ? 'ascensor' : 'escalera', sube: hacia > piso, sale: true })
+        cambios.push({ x: p.x, y: p.y, hacia: P[j].piso, medio: vert(p, sig) === 'ascensor' ? 'ascensor' : 'escalera', sube: P[j].piso > piso, sale: true })
       }
       if (ant && p.piso === piso && ant.piso !== piso && !dePaso) {
         let j = i - 1
@@ -149,163 +109,175 @@ export function Mapa2D({ piso, plan, origen, destino, onElegirCuarto, onCambiarP
         cambios.push({ x: p.x, y: p.y, hacia: P[j].piso, medio: vert(ant, p) === 'ascensor' ? 'ascensor' : 'escalera', sale: false })
       }
     }
-    if (actual.length) tramos.push(actual)
     const ini = P[0].piso === piso ? P[0] : null
     const fin = P[P.length - 1].piso === piso ? P[P.length - 1] : null
-    return { tramos: tramos.filter((t) => t.length > 1), cambios, ini, fin }
+    return { cambios, ini, fin }
   }, [plan, piso])
 
-  const depOrigen = origen?.cuarto?.dep && origen.piso === piso ? origen.cuarto.dep : null
-  const depDestino = destino?.cuarto?.dep && destino.piso === piso ? destino.cuarto.dep : null
-  const colorDestino = destino ? catById[destino.cat]?.color || '#2F5BEA' : '#2F5BEA'
-  const fs = 12 * k
-  const detalle = k < 0.035
+  // ---------- mapa: creación
+  useEffect(() => {
+    const map = new maplibregl.Map({
+      container: ref.current, style: ESTILO, center: CENTRO, zoom: 17.4, minZoom: 14.5, maxZoom: 21,
+      dragRotate: false, pitchWithRotate: false, touchPitch: false, attributionControl: { compact: true }, fadeDuration: 0,
+    })
+    mapa.current = map
+    const marco = () => {
+      const cerca = map.getZoom() >= 18.3
+      ref.current?.classList.toggle('zoom-cerca', cerca)
+    }
+    map.on('zoom', marco)
+    // si el mapa base no carga (sin red), se usa un fondo liso: el plano sigue funcionando
+    let respaldo = false
+    map.on('error', () => {
+      if (!respaldo && !map.getSource('edificio')) { respaldo = true; map.setStyle(FONDO) }
+    })
+    const preparar = () => {
+      if (map.getSource('edificio')) return
+      map.addSource('edificio', { type: 'geojson', data: EDIFICIO_FC })
+      map.addLayer({ id: 'edificio-previo', type: 'fill', source: 'edificio', paint: { 'fill-color': '#DCE2E9', 'fill-opacity': 0.9 } })
+      map.addLayer({ id: 'edificio-sombra', type: 'line', source: 'edificio', paint: { 'line-color': '#7D8A99', 'line-width': 5, 'line-opacity': 0.12, 'line-blur': 4 } })
+      map.addLayer({ id: 'edificio', type: 'fill', source: 'edificio', paint: { 'fill-color': '#FFFFFF' } })
+      map.addLayer({ id: 'edificio-borde', type: 'line', source: 'edificio', paint: { 'line-color': '#8D98A6', 'line-width': 1.6 } })
+      map.addSource('ambientes', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
+      map.addLayer({ id: 'ambientes', type: 'fill', source: 'ambientes', paint: { 'fill-color': ['get', 'color'], 'fill-opacity': ['get', 'op'] } })
+      map.addLayer({ id: 'ambientes-borde', type: 'line', source: 'ambientes', filter: ['==', ['get', 'pasillo'], 0], paint: { 'line-color': '#BAC3CE', 'line-width': 0.8 } })
+      map.addSource('ruta', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
+      map.addLayer({ id: 'ruta-borde', type: 'line', source: 'ruta', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#FFFFFF', 'line-width': 10 } })
+      map.addLayer({ id: 'ruta-linea', type: 'line', source: 'ruta', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#2F5BEA', 'line-width': 5.5 } })
+      marco()
+      setListo(true)
+    }
+    map.on('style.load', preparar)
+    map.on('click', (e) => {
+      const r = ref.current.getBoundingClientRect()
+      const pt = { x: r.left + e.point.x, y: r.top + e.point.y }
+      const f = map.queryRenderedFeatures(e.point, { layers: ['ambientes'] })
+      const c = f.length ? H.cuartos[f[0].properties.k] : null
+      if (c && c.tipo !== 'pasillo') cb.current.onElegirCuarto(c, pt)
+      else cb.current.onElegirCuarto(null, pt)
+    })
+    return () => { map.remove(); mapa.current = null; setListo(false) }
+  }, [])
+
+  // ---------- datos y filtros por piso
+  useEffect(() => {
+    const map = mapa.current
+    if (!listo || !map) return
+    const filtro = ['==', ['get', 'piso'], piso]
+    ;['edificio', 'edificio-borde', 'edificio-sombra'].forEach((id) => map.setFilter(id, filtro))
+    map.setFilter('edificio-previo', piso > 0 ? ['==', ['get', 'piso'], piso - 1] : ['==', ['get', 'piso'], -1])
+    map.setFilter('ambientes', filtro)
+    map.setFilter('ambientes-borde', ['all', filtro, ['==', ['get', 'pasillo'], 0]])
+    map.setFilter('ruta-borde', filtro)
+    map.setFilter('ruta-linea', filtro)
+  }, [listo, piso])
+
+  useEffect(() => { if (listo) mapa.current?.getSource('ambientes').setData(ambientesFC) }, [listo, ambientesFC])
+  useEffect(() => { if (listo) mapa.current?.getSource('ruta').setData(rutaFC) }, [listo, rutaFC])
+
+  // ---------- encuadre
+  const encuadrar = (rect, instantaneo) => {
+    const map = mapa.current
+    if (!map || !ref.current) return
+    const t = { w: ref.current.clientWidth, h: ref.current.clientHeight }
+    map.fitBounds(limitesGeo(rect), { padding: pad(t, plan), maxZoom: 20.5, duration: instantaneo ? 0 : 650 })
+  }
+  useImperativeHandle(fwd, () => ({
+    acercar: () => mapa.current?.zoomIn({ duration: 300 }),
+    alejar: () => mapa.current?.zoomOut({ duration: 300 }),
+    centrar: () => encuadrar(EDIFICIO),
+  }))
+  useEffect(() => {
+    if (!listo) return
+    if (encuadre) return encuadrar(encuadre)
+    const t = ref.current
+    const movil = t && t.clientWidth < 700
+    if (movil && origen && origen.piso === piso) {
+      return encuadrar({ x: origen.x - 14, y: origen.y - 14, w: 28, h: 28 })
+    }
+    encuadrar(EDIFICIO, true)
+  }, [listo, encuadre])
+
+  // ---------- marcadores HTML: lugares, origen, destino y cambios de piso
+  const marcadores = useRef([])
+  useEffect(() => {
+    const map = mapa.current
+    if (!listo || !map) return
+    marcadores.current.forEach((m) => m.remove())
+    const nuevos = []
+    const add = (el, lng, lat, anclaje = 'center') => {
+      const m = new maplibregl.Marker({ element: el, anchor: anclaje }).setLngLat([lng, lat]).addTo(map)
+      nuevos.push(m)
+    }
+    const ptoPantalla = (el) => {
+      const b = el.getBoundingClientRect()
+      return { x: b.left + b.width / 2, y: b.top + b.height / 2 }
+    }
+    LUGARES.filter((l) => l.piso === piso).forEach((l) => {
+      const cat = catById[l.cat]
+      const esDest = destino && destino.nodo === l.nodo
+      const el = document.createElement('button')
+      el.className = `marca-lugar${esDest ? ' activo' : ''}${destino && !esDest && depDestino ? ' atenuado' : ''}`
+      el.setAttribute('aria-label', l.nombre)
+      el.innerHTML = renderToStaticMarkup(<Insignia icono={l.icono} color={cat?.color || '#5B6B7C'} size={SOLO_ICONO(l) ? 26 : 30} />)
+      if (!SOLO_ICONO(l)) {
+        const t = document.createElement('span')
+        t.className = 'marca-texto'
+        t.textContent = l.nombre
+        el.appendChild(t)
+      }
+      el.addEventListener('click', (e) => {
+        e.stopPropagation()
+        const pt = ptoPantalla(el)
+        cb.current.onElegirCuarto(l.cuarto && l.cuarto.piso === piso ? l.cuarto : null, pt)
+      })
+      const [lng, lat] = aLonLat(l.x, l.y)
+      add(el, lng, lat)
+    })
+    const origenPunto = ruta?.ini ?? (!plan && origen && origen.piso === piso ? origen : null)
+    if (origenPunto) {
+      const el = document.createElement('div')
+      el.className = 'marca-origen'
+      el.innerHTML = '<i></i><b></b>'
+      const [lng, lat] = aLonLat(origenPunto.x, origenPunto.y)
+      add(el, lng, lat)
+    }
+    if (ruta?.fin) {
+      const el = document.createElement('div')
+      el.className = 'marca-destino'
+      el.innerHTML = `<svg width="30" height="38" viewBox="0 0 24 30" aria-hidden="true"><path d="M12 29C8 22 2 16 2 10a10 10 0 0 1 20 0c0 6-6 12-10 19z" fill="#14181F" stroke="#fff" stroke-width="2"/><circle cx="12" cy="10" r="4.6" fill="${colorDestino}"/></svg>`
+      const [lng, lat] = aLonLat(ruta.fin.x, ruta.fin.y)
+      add(el, lng, lat, 'bottom')
+    }
+    ruta?.cambios.forEach((c) => {
+      const texto = c.sale ? `${c.sube ? 'Sube' : 'Baja'} a ${NOMBRES_PISO[c.hacia]}` : `Desde ${NOMBRES_PISO[c.hacia]}`
+      const el = document.createElement('button')
+      el.className = `marca-cambio${c.sale ? ' activo' : ''}`
+      el.setAttribute('aria-label', texto)
+      const icono = c.medio === 'ascensor'
+        ? 'M5 3h14v18H5zM9 10.5l3-3 3 3M9 13.5l3 3 3-3'
+        : 'M3.5 20h4.5v-4.5h4.5V11H17V6.5h3.5'
+      el.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="${icono}"/></svg><span>${texto}</span>`
+      if (c.sale) el.addEventListener('click', (e) => { e.stopPropagation(); cb.current.onCambiarPiso(c.hacia) })
+      const [lng, lat] = aLonLat(c.x, c.y)
+      add(el, lng, lat)
+    })
+    marcadores.current = nuevos
+    return () => nuevos.forEach((m) => m.remove())
+  }, [listo, piso, plan, origen, destino, ruta, colorDestino, depDestino])
 
   return (
-    <div className="mapa2d" ref={ref} onPointerDown={abajo} onPointerMove={mover} onPointerUp={arriba} onPointerCancel={arriba}>
-      <svg viewBox={`${vista.x} ${vista.y} ${vista.w} ${vista.h}`} preserveAspectRatio="xMidYMid meet" role="img" aria-label={`Plano de ${NOMBRES_PISO[piso]}`}>
-        <defs>
-          <filter id="sombra-edificio" x="-5%" y="-5%" width="110%" height="115%"><feDropShadow dx="0" dy="0.35" stdDeviation="0.45" floodColor="#1B2B3C" floodOpacity="0.16" /></filter>
-        </defs>
-        {/* entorno: lote, calles y parqueos del mapa real */}
-        {SITIO && <path d={poli(SITIO.lote)} fill="#E9EEE4" />}
-        {SITIO && Object.values(SITIO.parqueos).map((pp, i) => <path key={i} d={poli(pp)} fill="#E1E5EA" />)}
-        {SITIO && Object.entries(SITIO.calles).map(([n, c]) => (
-          <path key={n} d={poli(c.eje).slice(0, -1)} stroke="#D5DAE0" strokeWidth={c.ancho} fill="none" strokeLinecap="butt" />
-        ))}
-        {SITIO && k < 0.45 && Object.entries(SITIO.calles).map(([n, c]) => {
-          const [[x0, y0], [x1, y1]] = c.eje
-          // rótulo a la altura del edificio sobre el eje de la calle
-          let t = 0.5, mejor = 1e9
-          for (let u = 0; u <= 1; u += 0.02) {
-            const x = x0 + (x1 - x0) * u, y = y0 + (y1 - y0) * u
-            const d = Math.hypot(x - H.ancho / 2, y - D / 2)
-            if (d < mejor) { mejor = d; t = u }
-          }
-          const x = x0 + (x1 - x0) * t, y = y0 + (y1 - y0) * t
-          let ang = (Math.atan2(-(y1 - y0), x1 - x0) * 180) / Math.PI
-          if (ang > 90) ang -= 180
-          if (ang < -90) ang += 180
-          return <text key={n + 't'} transform={`translate(${x} ${sy(y)}) rotate(${ang})`} className="txt-calle" fontSize={fs}>{n}</text>
-        })}
-        {H.cuartos.filter((c) => c.piso === piso && c.tipo === 'exterior').map((c, i) => (
-          <rect key={'ext' + i} x={c.x0} y={sy(c.y1)} width={c.x1 - c.x0} height={c.y1 - c.y0} rx={0.6} fill="#E8E3DA" />
-        ))}
-        {piso > 0 && H.contornos?.[piso - 1] && <path d={poli(H.contornos[piso - 1])} fill="#E3E7EC" stroke="#CDD3DA" strokeWidth={0.3} />}
-        {H.contornos?.[piso]
-          ? <path d={poli(H.contornos[piso])} fill="#FFFFFF" filter="url(#sombra-edificio)" />
-          : <rect x={-0.15} y={sy(D + 0.15)} width={H.ancho + 0.3} height={D + 0.3} rx={0.3} fill="#FFFFFF" filter="url(#sombra-edificio)" />}
-        {/* ambientes */}
-        {geo.cuartos.map((c, ci) => {
-          const activo = (depDestino && c.dep === depDestino && c.tipo !== 'bano_hab') || (depOrigen && c.dep === depOrigen)
-          const esDest = depDestino && c.dep === depDestino
-          return (
-            <rect key={ci} x={c.x0} y={sy(c.y1)} width={c.x1 - c.x0} height={c.y1 - c.y0}
-              fill={activo ? (esDest ? colorDestino : '#2F5BEA') : tinte(c)} fillOpacity={activo ? 0.2 : 1}
-              className={c.tipo === 'pasillo' ? '' : 'cuarto'} />
-          )
-        })}
-        {/* ventanas y muros */}
-        {geo.ventanas.map((v, i) => v.eje === 'h'
-          ? <rect key={i} x={v.a} y={sy(v.c) - 0.11} width={v.b - v.a} height={0.22} fill="#BFDDF2" />
-          : <rect key={i} x={v.c - 0.11} y={sy(v.b)} width={0.22} height={v.b - v.a} fill="#BFDDF2" />)}
-        {geo.muros.map((m, i) => (
-          <rect key={i} x={m.x0} y={sy(m.y1)} width={m.x1 - m.x0} height={m.y1 - m.y0} fill={m.ext ? '#7F8A97' : m.h1 <= 2.01 ? '#C4CBD3' : '#9AA4AF'}
-            opacity={m.rol === 'bajo' ? 0 : 1} />
-        ))}
-        {/* números de cuartos (con zoom) */}
-        {detalle && geo.cuartos.filter((c) => c.nombre.includes('·') && (c.x1 - c.x0) * (c.y1 - c.y0) > 6).map((c, ci) => (
-          <text key={ci + 't'} x={(c.x0 + c.x1) / 2} y={sy((c.y0 + c.y1) / 2)} className="txt-cuarto" fontSize={fs * 0.82}>
-            {c.nombre.split('·').pop().trim()}
-          </text>
-        ))}
-        {/* ruta */}
-        {ruta && ruta.tramos.map((t, i) => {
-          const d = t.map((p, j) => `${j ? 'L' : 'M'}${p.x.toFixed(2)} ${sy(p.y).toFixed(2)}`).join(' ')
-          let L = 0
-          for (let j = 1; j < t.length; j++) L += Math.hypot(t[j].x - t[j - 1].x, t[j].y - t[j - 1].y)
-          return (
-            <g key={`${animarRuta}-${i}`}>
-              <path d={d} className="ruta-borde" vectorEffect="non-scaling-stroke" />
-              <path d={d} className="ruta-linea" vectorEffect="non-scaling-stroke" style={{ '--L': (L / k + 40).toFixed(1) }} />
-              <path d={d} className="ruta-flujo" vectorEffect="non-scaling-stroke" />
-            </g>
-          )
-        })}
-        {/* lugares */}
-        {geo.lugares.map((l) => {
-          const cat = catById[l.cat]
-          const r = 10.5 * k
-          const esDest = destino && destino.nodo === l.nodo
-          const corto = l.cat === 'banos' ? l.nombre.replace(/^Baños? /, '').replace(/^./, (c) => c.toUpperCase()) : null
-          const lineas = SOLO_ICONO(l) ? [] : partir(l.nombre)
-          const conTexto = lineas.length && (detalle || l.ancho > 5 || k < 0.05)
-          return (
-            <g key={l.id} opacity={destino && !esDest && depDestino ? 0.55 : 1}>
-              <InsigniaSVG x={l.x} y={sy(l.y)} r={r} icono={l.icono} color={cat?.color || '#5B6B7C'} activo={esDest} />
-              {corto && k < 0.05 && <text x={l.x} y={sy(l.y) + r + fs * 0.95} className="txt-lugar" fontSize={fs * 0.82}>{corto}</text>}
-              {conTexto && lineas.map((t, j) => (
-                <text key={j} x={l.x} y={sy(l.y) + r + fs * (1.05 + j * 1.1)} className="txt-lugar" fontSize={fs}>{t}</text>
-              ))}
-            </g>
-          )
-        })}
-        {/* cambios de piso */}
-        {ruta && ruta.cambios.map((c, i) => {
-          const texto = c.sale ? `${c.sube ? 'Sube' : 'Baja'} a ${NOMBRES_PISO[c.hacia]}` : `Desde ${NOMBRES_PISO[c.hacia]}`
-          const w = (texto.length * 6.6 + 34) * k, h = 24 * k
-          return (
-            <g key={i} transform={`translate(${c.x} ${sy(c.y) - 26 * k})`} className={c.sale ? 'chip-piso activo' : 'chip-piso'}
-              onPointerUp={(e) => { if (c.sale) { e.stopPropagation(); onCambiarPiso(c.hacia) } }}>
-              <rect x={-w / 2} y={-h / 2} width={w} height={h} rx={h / 2} />
-              <g transform={`translate(${-w / 2 + 6 * k} ${-8 * k}) scale(${(16 * k) / 24})`} fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d={c.medio === 'ascensor' ? 'M5 3h14v18H5zM9 10.5l3-3 3 3M9 13.5l3 3 3-3' : 'M3.5 20h4.5v-4.5h4.5V11H17V6.5h3.5'} />
-              </g>
-              <text x={-w / 2 + 26 * k} y={0} fontSize={11 * k} dominantBaseline="central">{texto}</text>
-            </g>
-          )
-        })}
-        {/* origen y destino */}
-        {ruta?.ini && (
-          <g transform={`translate(${ruta.ini.x} ${sy(ruta.ini.y)})`}>
-            <circle r={16 * k} className="pulso" />
-            <circle r={8 * k} fill="#2F5BEA" stroke="#fff" strokeWidth={3 * k} />
-          </g>
-        )}
-        {!plan && origen && origen.piso === piso && (
-          <g transform={`translate(${origen.x} ${sy(origen.y)})`}>
-            <circle r={16 * k} className="pulso" />
-            <circle r={8 * k} fill="#2F5BEA" stroke="#fff" strokeWidth={3 * k} />
-          </g>
-        )}
-        {ruta?.fin && (
-          <g transform={`translate(${ruta.fin.x} ${sy(ruta.fin.y)}) scale(${k})`} className="pin-destino">
-            <path d="M0 0c-2-7-12-12-12-21a12 12 0 0 1 24 0c0 9-10 14-12 21z" fill="#14181F" stroke="#fff" strokeWidth="2" />
-            <circle cy={-21} r={7} fill={colorDestino} />
-          </g>
-        )}
-      </svg>
-      <div className="zoom-ctrl" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()}>
-        <button aria-label="Acercar" onClick={() => zoom(0.7)}><Icono nombre="mas" /></button>
-        <button aria-label="Alejar" onClick={() => zoom(1.4)}><Icono nombre="menos" /></button>
-        <button aria-label="Ver todo el piso" onClick={() => ajustar(MARCO)}><Icono nombre="centrar" /></button>
-      </div>
-      {H.anguloNorte !== undefined && (
-        <div className="norte" title="Norte" style={{ transform: `rotate(${H.anguloNorte}deg)` }} aria-label="Norte">
-          <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 2l5 14-5-3-5 3z" fill="#D7443A" /><path d="M12 22l-5-6 5-3 5 3z" fill="#B8C1CB" /></svg>
-          <b>N</b>
-        </div>
-      )}
-    </div>
+    <div className="mapa2d" ref={ref} role="region" aria-label={`Mapa de ${NOMBRES_PISO[piso]}`} />
   )
-}
+})
 
+// rectángulo (plano, metros) que encuadra los puntos de la ruta en un piso
 export function encuadreDe(puntos, piso) {
   const ps = puntos.filter((p) => p.piso === piso)
-  if (!ps.length) return MARCO
-  const xs = ps.map((p) => p.x), ys = ps.map((p) => sy(p.y))
+  if (!ps.length) return EDIFICIO
+  const xs = ps.map((p) => p.x), ys = ps.map((p) => p.y)
   const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys)
-  const pad = 5
-  const w = Math.max(18, x1 - x0 + pad * 2), h = Math.max(12, y1 - y0 + pad * 2)
+  const m = 6
+  const w = Math.max(18, x1 - x0 + m * 2), h = Math.max(12, y1 - y0 + m * 2)
   return { x: (x0 + x1) / 2 - w / 2, y: (y0 + y1) / 2 - h / 2, w, h }
 }

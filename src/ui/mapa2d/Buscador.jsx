@@ -17,9 +17,9 @@ function Fila({ lugar, onClick, sub }) {
   )
 }
 
-export function Buscador({ modo, onElegir, onCerrar }) {
+export function Buscador({ modo, onElegir, onCerrar, categoriaInicial = null }) {
   const [q, setQ] = useState('')
-  const [cat, setCat] = useState(null)
+  const [cat, setCat] = useState(categoriaInicial)
   const input = useRef(null)
   useEffect(() => { input.current?.focus() }, [])
 
