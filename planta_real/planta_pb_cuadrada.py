@@ -10,51 +10,75 @@ import ezdxf
 
 R = lambda x0, y0, x1, y1: [(x0, y0), (x1, y0), (x1, y1), (x0, y1)]
 
-CONTORNO = [(0, 54.6), (30.6, 54.6), (30.6, 9.6), (55.2, 9.6), (55.2, 0), (58.2, 0), (58.2, 76.2),
-            (40.2, 76.2), (40.2, 73.2), (0, 73.2)]
+CONTORNO = [(0, 54.6), (30.6, 54.6), (30.6, 9.6), (37.2, 9.6), (37.2, 8.4), (51.6, 8.4), (51.6, 9.6), (54.0, 9.6),
+            (54.0, 0), (58.2, 0), (58.2, 76.2), (43.8, 76.2), (43.8, 72.6), (10.2, 72.6), (10.2, 71.4), (0, 71.4)]
 
-AREAS = [  # «Nombre|categoria|sinónimos», polígono
-    # --- franja norte: consulta externa
-    ('Baños hombres|banos|baño,sanitario', R(0.0, 70.2, 4.2, 73.2)),
-    ('Consultorio 35|consulta|consulta externa,consultorio', R(4.8, 70.2, 18.0, 73.2)),
-    ('Pediatría 03 - 33|consulta|pediatria,niños', R(4.8, 60.0, 10.8, 68.4)),
-    ('Medicina 04 - 26|consulta|medicina interna', R(12.6, 60.0, 18.0, 68.4)),
-    ('Secretaría - Control (Pediatría y Medicina)|administracion|secretaria,turnos', R(4.8, 57.0, 18.0, 60.0)),
-    ('Endocrinología - 22|consulta|endocrinologia,diabetes', R(22.2, 69.6, 31.2, 73.2)),
-    ('Ascensores norte|circulacion|ascensor', R(31.8, 69.6, 34.8, 73.2)),
-    ('Traumatología - 20|consulta|traumatologia,huesos', R(22.2, 60.0, 34.8, 67.8)),
-    ('Secretaría - Control (Endocrinología y Traumatología)|administracion|secretaria,turnos', R(22.2, 57.0, 34.8, 60.0)),
-    ('Baños mujeres|banos|baño,sanitario', R(43.2, 73.5, 47.4, 76.2)),
-    ('Consultorio 2|consulta|consulta externa,consultorio', R(40.2, 70.2, 55.2, 73.2)),
-    ('Gastroenterología - 12|consulta|gastroenterologia,digestivo', R(40.2, 60.0, 55.2, 68.4)),
-    ('Secretaría - Control (Gastroenterología)|administracion|secretaria,turnos', R(40.2, 57.0, 55.2, 60.0)),
+# filas de consultorios de 2,4 m (de sur a norte)
+FILAS = [(57.0, 59.4), (59.4, 61.8), (61.8, 64.2), (64.2, 66.6), (66.6, 69.0)]
+
+
+def columna(x0, x1, nombres, cat='consulta'):
+    """nombres de norte a sur; None = consultorio sin rótulo"""
+    out = []
+    for (y0, y1), n in zip(reversed(FILAS), nombres):
+        n = n or 'Consultorio (sin rótulo)'
+        c = cat if not n.startswith(('Coordinación', 'Preparación')) else 'administracion' if n.startswith('Coord') else 'tratamiento'
+        out.append((f'{n}|{c}|consultorio', R(x0, y0, x1, y1)))
+    return out
+
+
+AREAS = [
+    # --- franja norte: consulta externa (columnas A–F, pasillos internos entre ellas)
+    ('Baños hombres|banos|baño,sanitario', R(0.0, 67.8, 4.2, 71.4)),
+    ('Recreación Infantil|servicios|juegos,niños', R(4.2, 69.0, 8.4, 71.4)),
+    ('Consultorio 35|consulta|consulta externa,consultorio', R(11.4, 69.0, 14.4, 71.4)),
+    *columna(4.8, 9.0, ['Pediatría 04 - 34', 'Pediatría 03 - 33', 'Preparación - 32', 'Pediatría 02 - 31', 'Pediatría 01 - 30']),
+    *columna(12.6, 17.4, ['Dietética - 25', 'Medicina 04 - 26', 'Medicina 03 - 27', 'Medicina 02 - 28', 'Medicina 01 - 29']),
+    *columna(22.2, 27.0, ['Endocrinología - 22', 'Neumología - 21', 'Traumatología - 20', 'Neurocirugía - 19', None]),
+    ('Ascensores y escaleras norte|circulacion|ascensor,escalera', R(30.6, 66.6, 35.4, 71.4)),
+    *columna(30.6, 35.4, ['Tumores Mamarios - 14', 'Tumores Mixtos - 15', 'Tumores de Cabeza y Cuello - 16', None])[:0],
+    ('Tumores Mamarios - 14|consulta|mama', R(30.6, 64.2, 35.4, 66.6)),
+    ('Tumores Mixtos - 15|consulta|tumores', R(30.6, 61.8, 35.4, 64.2)),
+    ('Tumores de Cabeza y Cuello - 16|consulta|cabeza,cuello', R(30.6, 59.4, 35.4, 61.8)),
+    ('Consultorio (sin rótulo)|consulta|consultorio', R(30.6, 57.0, 35.4, 59.4)),
+    ('Consultorio 1|consulta|consultorio', R(39.6, 69.0, 43.2, 72.6)),
+    ('Consultorio (sin rótulo)|consulta|consultorio', R(43.2, 69.0, 46.8, 72.6)),
+    ('Baños mujeres|banos|baño,sanitario', R(43.8, 72.6, 49.2, 76.2)),
+    *columna(39.6, 45.0, ['Coordinación Enfermería - 1', 'Gastroenterología - 12', 'Preconsulta - 11', 'Preconsulta - 10', 'Preconsulta - 9']),
+    ('Consultorio (sin rótulo)|consulta|consultorio', R(48.6, 69.0, 54.0, 72.6)),
+    *columna(48.6, 54.0, ['Ginecología - 4', 'Ginecología - 5', 'Colposcopia - 6', 'Colposcopia - 7', 'Urología']),
+    ('Secretaría - Control (Pediatría y Medicina)|administracion|secretaria,turnos', R(9.0, 57.0, 11.4, 58.8)),
+    ('Secretaría - Control (Especialidades)|administracion|secretaria,turnos', R(27.0, 57.0, 29.4, 58.8)),
+    ('Secretaría - Control (Ginecología)|administracion|secretaria,turnos', R(45.0, 57.0, 47.4, 58.8)),
     # --- ala sur: servicios
-    ('Baño accesible|banos|baño,silla de ruedas', R(30.6, 48.0, 35.4, 54.0)),
-    ('Capilla|servicios|oración,capilla', R(30.6, 42.6, 35.4, 47.4)),
-    ('RPIS|administracion|red pública,rpis', R(30.6, 37.8, 35.4, 42.0)),
-    ('Farmacia|servicios|medicinas,farmacia', R(39.6, 42.6, 55.2, 52.2)),
-    ('Ascensores sur|circulacion|ascensor', R(52.2, 32.4, 55.2, 37.2)),
-    ('Farmacias Económicas|servicios|farmacia economica', R(30.6, 28.8, 39.6, 33.6)),
-    ('Cajas|administracion|pagos,caja,facturación', R(52.2, 22.8, 55.2, 28.8)),
-    ('Dirección|administracion|direccion,gerencia', [(30.6, 9.6), (55.2, 9.6), (55.2, 22.2), (42.0, 22.2), (42.0, 28.2), (30.6, 28.2)]),
+    ('Baño accesible|banos|baño,silla de ruedas', R(30.6, 47.4, 34.8, 54.6)),
+    ('Capilla|servicios|oración,capilla', R(30.6, 42.6, 34.8, 47.4)),
+    ('RPIS|administracion|red pública,rpis', R(30.6, 38.4, 34.8, 42.6)),
+    ('Farmacia|servicios|medicinas,farmacia', R(39.6, 43.2, 55.8, 52.2)),
+    ('Ascensores sur|circulacion|ascensor', R(53.4, 34.2, 55.8, 38.4)),
+    ('Farmacias Económicas|servicios|farmacia economica', R(30.6, 28.2, 34.2, 31.8)),
+    ('Cajas|administracion|pagos,caja,facturación', R(53.4, 21.6, 55.8, 28.2)),
+    ('Dirección|administracion|direccion,gerencia', [(30.6, 9.6), (37.2, 9.6), (37.2, 8.4), (51.6, 8.4), (51.6, 9.6), (55.8, 9.6),
+                                                     (55.8, 21.6), (43.2, 21.6), (43.2, 24.0), (39.6, 24.0), (39.6, 28.2), (30.6, 28.2)]),
 ]
 RUTAS = [
-    [(1.0, 55.8), (56.7, 55.8)],                  # pasillo norte (frente a las secretarías)
-    [(56.7, 0.6), (56.7, 75.0)],                  # corredor este
-    [(2.2, 69.3), (20.1, 69.3)],                  # pasillo de consultorios (fila superior)
-    [(11.7, 55.8), (11.7, 69.3)],                 # entre Pediatría y Medicina
-    [(20.1, 55.8), (20.1, 69.3)],                 # entre bloques
-    [(20.1, 68.7), (37.8, 68.7)],                 # entre Endocrinología y Traumatología
-    [(37.8, 55.8), (37.8, 73.2)],                 # acceso norte
-    [(37.8, 69.3), (56.7, 69.3)],                 # entre Consultorio 2 y Gastroenterología
-    [(37.5, 55.8), (37.5, 35.4)],                 # pasillo Capilla / Farmacia
-    [(30.6, 35.4), (56.7, 35.4)],                 # hall del acceso principal
-    [(47.4, 35.4), (47.4, 25.5), (52.2, 25.5)],   # hall de Cajas y Dirección
+    [(1.0, 55.8), (56.9, 55.8)],                  # pasillo norte (frente a las secretarías)
+    [(56.9, 0.6), (56.9, 75.0)],                  # corredor este
+    [(2.4, 55.8), (2.4, 67.8)],                   # pasillo oeste (baños hombres)
+    [(10.8, 55.8), (10.8, 72.0)],                 # pasillo Pediatría / Medicina
+    [(19.8, 55.8), (19.8, 72.0)],                 # pasillo abierto central
+    [(28.8, 55.8), (28.8, 72.0)],                 # pasillo especialidades / tumores
+    [(37.5, 55.8), (37.5, 72.6)],                 # acceso norte
+    [(46.8, 55.8), (46.8, 69.0)],                 # pasillo Preconsulta / Ginecología
+    [(10.8, 72.0), (37.5, 72.0)],                 # franja de espera norte
+    [(37.5, 72.6), (46.8, 74.4), (56.9, 74.4)],   # vestíbulo norte (baños mujeres)
+    [(37.2, 55.8), (37.2, 35.4)],                 # pasillo Capilla / Farmacia
+    [(30.6, 35.4), (56.9, 35.4)],                 # hall del acceso principal
+    [(50.4, 35.4), (50.4, 22.8), (53.4, 22.8)],   # hall de Cajas y Dirección
 ]
-VERTICALES = [('ASC-A', (33.3, 69.3)), ('ASC-B', (55.2, 35.4))]
-INICIOS = [('Entrada principal', (30.6, 35.4)), ('Entrada norte', (37.8, 73.2))]
-LUCERNARIOS = [R(42.6, 33.6, 46.8, 38.4)]       # tragaluces del hall (referencia, sin muros)
-
+VERTICALES = [('ASC-A', (33.0, 69.0)), ('ASC-B', (54.6, 36.3))]
+INICIOS = [('Entrada principal', (30.6, 35.4)), ('Entrada norte', (37.5, 72.6))]
+LUCERNARIOS = [R(43.8, 32.8, 48.6, 38.0), R(39.9, 24.0, 43.2, 26.0)]       # tragaluces del hall (sin muros)
 
 def cerca(p, a, b):
     dx, dy = b[0] - a[0], b[1] - a[1]

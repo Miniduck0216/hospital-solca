@@ -215,11 +215,11 @@ def previa(D, muros, altura, base):
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d.art3d import Poly3DCollection
     from matplotlib.patches import Polygon
-    fig, ax = plt.subplots(figsize=(9, 6.5))
+    fig, ax = plt.subplots(figsize=(10, 12))
     for a in D['areas']:
         ax.add_patch(Polygon(a['poligono'], fc=COLORES.get(a['cat'], '#ddd'), ec='none'))
         cx = sum(p[0] for p in a['poligono']) / len(a['poligono']); cy = sum(p[1] for p in a['poligono']) / len(a['poligono'])
-        ax.text(cx, cy, a['nombre'], ha='center', va='center', fontsize=9, weight='bold', color='#26303C')
+        ax.text(cx, cy, a['nombre'].replace(' - ', '\n'), ha='center', va='center', fontsize=5, color='#26303C')
     for a, b, e, t in muros:
         if t == 'muro': ax.plot([a[0], b[0]], [a[1], b[1]], color='#4A5562', lw=e * 18, solid_capstyle='butt')
     for r in D['rutas']:
