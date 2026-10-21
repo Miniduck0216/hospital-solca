@@ -60,15 +60,33 @@ doc = ezdxf.new('R2010'); doc.header['$INSUNITS'] = 6
 doc.layers.add('MURO_SOLIDO'); msp = doc.modelspace()
 rb = ['model = Sketchup.active_model', 'ents = model.active_entities',
       'mat = model.materials.add("Muro"); mat.color = "#D9D6CF"',
-      'model.start_operation("Muros reales", true)', 'grupo = ents.add_group; ents = grupo.entities']
+      'grupo = ents.add_group; grupo.name = "Muros reales"; ents = grupo.entities',
+      'def muro(ents, pts)',
+      '  return if pts.uniq.size < 4',
+      '  area = 0.0',
+      '  pts.each_with_index { |a, i| b = pts[(i + 1) % pts.size]; area += a[0] * b[1] - b[0] * a[1] }',
+      '  return if area.abs < 0.01',
+      '  begin',
+      '    f = ents.add_face(pts.map { |x, y| Geom::Point3d.new(x.m, y.m, 0.m) })',
+      '    return unless f',
+      '    f.reverse! if f.normal.z < 0',
+      f'    f.pushpull({H}.m)',
+      '  rescue StandardError => e',
+      '    puts "muro omitido: #{e.message}"',
+      '  end',
+      'end']
 polys = []
+lotes = []
 for x0, y0, x1, y1 in rects:
     p = [M(x0, y0), M(x1, y0), M(x1, y1), M(x0, y1)]
     msp.add_lwpolyline(p, close=True, dxfattribs={'layer': 'MURO_SOLIDO'})
-    pts = ', '.join(f'[{x:.3f}.m, {y:.3f}.m, 0.m]' for x, y in p)
-    rb.append(f'f = ents.add_face([{pts}]); f.pushpull({H}.m) if f')
+    lotes.append(p)
     polys.append(p)
-rb.append('model.commit_operation')
+for i in range(0, len(lotes), 200):
+    rb.append(f'model.start_operation("Muros {i//200+1}", true)')
+    for p in lotes[i:i+200]:
+        rb.append('muro(ents, [' + ', '.join(f'[{x:.4f}, {y:.4f}]' for x, y in p) + '])')
+    rb.append('model.commit_operation')
 doc.saveas(OUT + 'planos/solca-PB-muros.dxf')
 open(OUT + 'salida/solca_pb_muros.rb', 'w').write('\n'.join(rb) + '\n')
 
