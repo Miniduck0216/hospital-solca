@@ -489,7 +489,7 @@ $SKPOLY
   9
 $TDCREATE
  40
-2461334.8938425924
+2461334.8994907406
   9
 $TDUCREATE
  40
@@ -497,7 +497,7 @@ $TDUCREATE
   9
 $TDUPDATE
  40
-2461334.8938425924
+2461334.8994907406
   9
 $TDUUPDATE
  40
@@ -549,7 +549,7 @@ $SPLINESEGS
   9
 $HANDSEED
   5
-10D
+11F
   9
 $SURFTAB1
  70
@@ -929,11 +929,11 @@ $PSTYLEMODE
   9
 $FINGERPRINTGUID
   2
-{D4D887F7-F480-4D30-851C-0C907B8D50E8}
+{C447DC5D-77A7-47E6-A529-9A6709441560}
   9
 $VERSIONGUID
   2
-{1C3479E1-2E95-4662-914E-B6698841AD12}
+{7821EC20-AB55-4370-A55C-7451EBBB0DA8}
   9
 $EXTNAMES
 290
@@ -1549,7 +1549,7 @@ LAYER
 100
 AcDbSymbolTable
  70
-10
+11
   0
 LAYER
   5
@@ -1793,6 +1793,30 @@ Continuous
 347
 21
   0
+LAYER
+  5
+37
+330
+1
+100
+AcDbSymbolTableRecord
+100
+AcDbLayerTableRecord
+  2
+WF_ESPERA
+ 70
+0
+ 62
+7
+  6
+Continuous
+370
+-3
+390
+13
+347
+21
+  0
 ENDTAB
   0
 TABLE
@@ -1893,7 +1917,7 @@ ACAD
   0
 APPID
   5
-10A
+11C
 330
 3
 100
@@ -1907,7 +1931,7 @@ HATCHBACKGROUNDCOLOR
   0
 APPID
   5
-10B
+11D
 330
 3
 100
@@ -2217,7 +2241,7 @@ ENTITIES
   0
 LWPOLYLINE
   5
-37
+38
 330
 17
 100
@@ -2275,11 +2299,11 @@ AcDbPolyline
  20
 76.2
  10
-43.8
+44.4
  20
 76.2
  10
-43.8
+44.4
  20
 72.6
  10
@@ -2297,7 +2321,7 @@ AcDbPolyline
   0
 LWPOLYLINE
   5
-38
+39
 330
 17
 100
@@ -2315,11 +2339,11 @@ AcDbPolyline
  20
 67.8
  10
-4.2
+1.8
  20
 67.8
  10
-4.2
+1.8
  20
 71.4
  10
@@ -2329,7 +2353,7 @@ AcDbPolyline
   0
 TEXT
   5
-39
+3A
 330
 17
 100
@@ -2339,7 +2363,7 @@ WF_NOMBRES
 100
 AcDbText
  10
-2.1
+0.9
  20
 69.6
  30
@@ -2347,9 +2371,9 @@ AcDbText
  40
 0.5
   1
-Baños hombres|banos|baño,sanitario
+Baños mujeres (oeste)|banos|baño,sanitario
  11
-2.1
+0.9
  21
 69.6
  31
@@ -2359,7 +2383,7 @@ AcDbText
   0
 CIRCLE
   5
-3A
+3B
 330
 17
 100
@@ -2369,7 +2393,7 @@ WF_PUERTAS
 100
 AcDbCircle
  10
-2.1
+0.9
  20
 67.8
  30
@@ -2379,7 +2403,7 @@ AcDbCircle
   0
 LINE
   5
-3B
+3C
 330
 17
 100
@@ -2389,7 +2413,7 @@ WF_RUTAS
 100
 AcDbLine
  10
-2.1
+0.9
  20
 67.8
  30
@@ -2403,7 +2427,7 @@ AcDbLine
   0
 LWPOLYLINE
   5
-3C
+3D
 330
 17
 100
@@ -2417,25 +2441,25 @@ AcDbPolyline
  70
 1
  10
-4.2
+1.8
  20
-69.0
+67.8
  10
-8.4
+3.6
  20
-69.0
+67.8
  10
-8.4
+3.6
  20
 71.4
  10
-4.2
+1.8
  20
 71.4
   0
 TEXT
   5
-3D
+3E
 330
 17
 100
@@ -2445,7 +2469,113 @@ WF_NOMBRES
 100
 AcDbText
  10
-6.300000000000001
+2.7
+ 20
+69.6
+ 30
+0.0
+ 40
+0.5
+  1
+Baños hombres (oeste)|banos|baño,sanitario
+ 11
+2.7
+ 21
+69.6
+ 31
+0.0
+100
+AcDbText
+  0
+CIRCLE
+  5
+3F
+330
+17
+100
+AcDbEntity
+  8
+WF_PUERTAS
+100
+AcDbCircle
+ 10
+2.7
+ 20
+67.8
+ 30
+0.0
+ 40
+0.3
+  0
+LINE
+  5
+40
+330
+17
+100
+AcDbEntity
+  8
+WF_RUTAS
+100
+AcDbLine
+ 10
+2.7
+ 20
+67.8
+ 30
+0.0
+ 11
+2.4
+ 21
+67.8
+ 31
+0.0
+  0
+LWPOLYLINE
+  5
+41
+330
+17
+100
+AcDbEntity
+  8
+WF_AREAS
+100
+AcDbPolyline
+ 90
+4
+ 70
+1
+ 10
+3.6
+ 20
+69.0
+ 10
+8.4
+ 20
+69.0
+ 10
+8.4
+ 20
+71.4
+ 10
+3.6
+ 20
+71.4
+  0
+TEXT
+  5
+42
+330
+17
+100
+AcDbEntity
+  8
+WF_NOMBRES
+100
+AcDbText
+ 10
+6.0
  20
 70.2
  30
@@ -2455,7 +2585,7 @@ AcDbText
   1
 Recreación Infantil|servicios|juegos,niños
  11
-6.300000000000001
+6.0
  21
 70.2
  31
@@ -2464,132 +2594,6 @@ Recreación Infantil|servicios|juegos,niños
 AcDbText
   0
 CIRCLE
-  5
-3E
-330
-17
-100
-AcDbEntity
-  8
-WF_PUERTAS
-100
-AcDbCircle
- 10
-8.4
- 20
-70.2
- 30
-0.0
- 40
-0.3
-  0
-LINE
-  5
-3F
-330
-17
-100
-AcDbEntity
-  8
-WF_RUTAS
-100
-AcDbLine
- 10
-8.4
- 20
-70.2
- 30
-0.0
- 11
-10.8
- 21
-70.2
- 31
-0.0
-  0
-LWPOLYLINE
-  5
-40
-330
-17
-100
-AcDbEntity
-  8
-WF_AREAS
-100
-AcDbPolyline
- 90
-4
- 70
-1
- 10
-11.4
- 20
-69.0
- 10
-14.4
- 20
-69.0
- 10
-14.4
- 20
-71.4
- 10
-11.4
- 20
-71.4
-  0
-TEXT
-  5
-41
-330
-17
-100
-AcDbEntity
-  8
-WF_NOMBRES
-100
-AcDbText
- 10
-12.9
- 20
-70.2
- 30
-0.0
- 40
-0.5
-  1
-Consultorio 35|consulta|consulta externa,consultorio
- 11
-12.9
- 21
-70.2
- 31
-0.0
-100
-AcDbText
-  0
-CIRCLE
-  5
-42
-330
-17
-100
-AcDbEntity
-  8
-WF_PUERTAS
-100
-AcDbCircle
- 10
-12.9
- 20
-71.4
- 30
-0.0
- 40
-0.3
-  0
-LINE
   5
 43
 330
@@ -2597,21 +2601,17 @@ LINE
 100
 AcDbEntity
   8
-WF_RUTAS
+WF_PUERTAS
 100
-AcDbLine
+AcDbCircle
  10
-12.9
+8.4
  20
-71.4
+70.2
  30
 0.0
- 11
-12.9
- 21
-72.0
- 31
-0.0
+ 40
+0.3
   0
 LWPOLYLINE
   5
@@ -2629,21 +2629,21 @@ AcDbPolyline
  70
 1
  10
-4.8
- 20
-66.6
- 10
-9.0
- 20
-66.6
- 10
-9.0
+12.0
  20
 69.0
  10
-4.8
+14.4
  20
 69.0
+ 10
+14.4
+ 20
+71.4
+ 10
+12.0
+ 20
+71.4
   0
 TEXT
   5
@@ -2657,19 +2657,19 @@ WF_NOMBRES
 100
 AcDbText
  10
-6.9
+13.2
  20
-67.8
+70.2
  30
 0.0
  40
 0.5
   1
-Pediatría 04 - 34|consulta|consultorio
+Consultorio 35|consulta|consulta externa,consultorio
  11
-6.9
+13.2
  21
-67.8
+70.2
  31
 0.0
 100
@@ -2687,7 +2687,89 @@ WF_PUERTAS
 100
 AcDbCircle
  10
-9.0
+12.0
+ 20
+70.2
+ 30
+0.0
+ 40
+0.3
+  0
+LWPOLYLINE
+  5
+47
+330
+17
+100
+AcDbEntity
+  8
+WF_AREAS
+100
+AcDbPolyline
+ 90
+4
+ 70
+1
+ 10
+4.8
+ 20
+66.6
+ 10
+9.6
+ 20
+66.6
+ 10
+9.6
+ 20
+69.0
+ 10
+4.8
+ 20
+69.0
+  0
+TEXT
+  5
+48
+330
+17
+100
+AcDbEntity
+  8
+WF_NOMBRES
+100
+AcDbText
+ 10
+7.199999999999999
+ 20
+67.8
+ 30
+0.0
+ 40
+0.5
+  1
+Pediatría 04 - 34|consulta|consultorio
+ 11
+7.199999999999999
+ 21
+67.8
+ 31
+0.0
+100
+AcDbText
+  0
+CIRCLE
+  5
+49
+330
+17
+100
+AcDbEntity
+  8
+WF_PUERTAS
+100
+AcDbCircle
+ 10
+9.6
  20
 67.8
  30
@@ -2697,7 +2779,7 @@ AcDbCircle
   0
 LINE
   5
-47
+4A
 330
 17
 100
@@ -2707,13 +2789,13 @@ WF_RUTAS
 100
 AcDbLine
  10
-9.0
+9.6
  20
 67.8
  30
 0.0
  11
-10.8
+11.4
  21
 67.8
  31
@@ -2721,7 +2803,7 @@ AcDbLine
   0
 LWPOLYLINE
   5
-48
+4B
 330
 17
 100
@@ -2739,11 +2821,11 @@ AcDbPolyline
  20
 64.2
  10
-9.0
+9.6
  20
 64.2
  10
-9.0
+9.6
  20
 66.6
  10
@@ -2753,7 +2835,7 @@ AcDbPolyline
   0
 TEXT
   5
-49
+4C
 330
 17
 100
@@ -2763,7 +2845,7 @@ WF_NOMBRES
 100
 AcDbText
  10
-6.9
+7.199999999999999
  20
 65.4
  30
@@ -2773,7 +2855,7 @@ AcDbText
   1
 Pediatría 03 - 33|consulta|consultorio
  11
-6.9
+7.199999999999999
  21
 65.4
  31
@@ -2783,7 +2865,7 @@ AcDbText
   0
 CIRCLE
   5
-4A
+4D
 330
 17
 100
@@ -2793,7 +2875,7 @@ WF_PUERTAS
 100
 AcDbCircle
  10
-9.0
+9.6
  20
 65.4
  30
@@ -2803,7 +2885,7 @@ AcDbCircle
   0
 LINE
   5
-4B
+4E
 330
 17
 100
@@ -2813,13 +2895,13 @@ WF_RUTAS
 100
 AcDbLine
  10
-9.0
+9.6
  20
 65.4
  30
 0.0
  11
-10.8
+11.4
  21
 65.4
  31
@@ -2827,7 +2909,7 @@ AcDbLine
   0
 LWPOLYLINE
   5
-4C
+4F
 330
 17
 100
@@ -2845,11 +2927,11 @@ AcDbPolyline
  20
 61.8
  10
-9.0
+9.6
  20
 61.8
  10
-9.0
+9.6
  20
 64.2
  10
@@ -2859,7 +2941,7 @@ AcDbPolyline
   0
 TEXT
   5
-4D
+50
 330
 17
 100
@@ -2869,7 +2951,7 @@ WF_NOMBRES
 100
 AcDbText
  10
-6.9
+7.199999999999999
  20
 63.0
  30
@@ -2879,7 +2961,7 @@ AcDbText
   1
 Preparación - 32|tratamiento|consultorio
  11
-6.9
+7.199999999999999
  21
 63.0
  31
@@ -2889,7 +2971,7 @@ AcDbText
   0
 CIRCLE
   5
-4E
+51
 330
 17
 100
@@ -2899,7 +2981,7 @@ WF_PUERTAS
 100
 AcDbCircle
  10
-9.0
+9.6
  20
 63.0
  30
@@ -2909,7 +2991,7 @@ AcDbCircle
   0
 LINE
   5
-4F
+52
 330
 17
 100
@@ -2919,13 +3001,13 @@ WF_RUTAS
 100
 AcDbLine
  10
-9.0
+9.6
  20
 63.0
  30
 0.0
  11
-10.8
+11.4
  21
 63.0
  31
@@ -2933,7 +3015,7 @@ AcDbLine
   0
 LWPOLYLINE
   5
-50
+53
 330
 17
 100
@@ -2951,11 +3033,11 @@ AcDbPolyline
  20
 59.4
  10
-9.0
+9.6
  20
 59.4
  10
-9.0
+9.6
  20
 61.8
  10
@@ -2965,7 +3047,7 @@ AcDbPolyline
   0
 TEXT
   5
-51
+54
 330
 17
 100
@@ -2975,7 +3057,7 @@ WF_NOMBRES
 100
 AcDbText
  10
-6.9
+7.199999999999999
  20
 60.599999999999994
  30
@@ -2985,7 +3067,7 @@ AcDbText
   1
 Pediatría 02 - 31|consulta|consultorio
  11
-6.9
+7.199999999999999
  21
 60.599999999999994
  31
@@ -2995,7 +3077,7 @@ AcDbText
   0
 CIRCLE
   5
-52
+55
 330
 17
 100
@@ -3005,7 +3087,7 @@ WF_PUERTAS
 100
 AcDbCircle
  10
-9.0
+9.6
  20
 60.599999999999994
  30
@@ -3015,7 +3097,7 @@ AcDbCircle
   0
 LINE
   5
-53
+56
 330
 17
 100
@@ -3025,13 +3107,13 @@ WF_RUTAS
 100
 AcDbLine
  10
-9.0
+9.6
  20
 60.599999999999994
  30
 0.0
  11
-10.8
+11.4
  21
 60.599999999999994
  31
@@ -3039,7 +3121,7 @@ AcDbLine
   0
 LWPOLYLINE
   5
-54
+57
 330
 17
 100
@@ -3057,11 +3139,11 @@ AcDbPolyline
  20
 57.0
  10
-9.0
+9.6
  20
 57.0
  10
-9.0
+9.6
  20
 59.4
  10
@@ -3071,7 +3153,7 @@ AcDbPolyline
   0
 TEXT
   5
-55
+58
 330
 17
 100
@@ -3081,7 +3163,7 @@ WF_NOMBRES
 100
 AcDbText
  10
-6.9
+7.199999999999999
  20
 58.2
  30
@@ -3091,7 +3173,7 @@ AcDbText
   1
 Pediatría 01 - 30|consulta|consultorio
  11
-6.9
+7.199999999999999
  21
 58.2
  31
@@ -3101,7 +3183,7 @@ AcDbText
   0
 CIRCLE
   5
-56
+59
 330
 17
 100
@@ -3111,9 +3193,9 @@ WF_PUERTAS
 100
 AcDbCircle
  10
-6.9
+9.6
  20
-57.0
+58.2
  30
 0.0
  40
@@ -3121,7 +3203,7 @@ AcDbCircle
   0
 LINE
   5
-57
+5A
 330
 17
 100
@@ -3131,21 +3213,21 @@ WF_RUTAS
 100
 AcDbLine
  10
-6.9
+9.6
  20
-57.0
+58.2
  30
 0.0
  11
-6.8999999999999995
+11.4
  21
-55.8
+58.8
  31
 0.0
   0
 LWPOLYLINE
   5
-58
+5B
 330
 17
 100
@@ -3159,25 +3241,25 @@ AcDbPolyline
  70
 1
  10
-12.6
+13.2
  20
 66.6
  10
-17.4
+18.0
  20
 66.6
  10
-17.4
+18.0
  20
 69.0
  10
-12.6
+13.2
  20
 69.0
   0
 TEXT
   5
-59
+5C
 330
 17
 100
@@ -3187,7 +3269,7 @@ WF_NOMBRES
 100
 AcDbText
  10
-15.0
+15.6
  20
 67.8
  30
@@ -3197,7 +3279,7 @@ AcDbText
   1
 Dietética - 25|consulta|consultorio
  11
-15.0
+15.6
  21
 67.8
  31
@@ -3207,7 +3289,7 @@ AcDbText
   0
 CIRCLE
   5
-5A
+5D
 330
 17
 100
@@ -3217,7 +3299,7 @@ WF_PUERTAS
 100
 AcDbCircle
  10
-12.6
+13.2
  20
 67.8
  30
@@ -3227,7 +3309,7 @@ AcDbCircle
   0
 LINE
   5
-5B
+5E
 330
 17
 100
@@ -3237,13 +3319,13 @@ WF_RUTAS
 100
 AcDbLine
  10
-12.6
+13.2
  20
 67.8
  30
 0.0
  11
-10.8
+11.4
  21
 67.8
  31
@@ -3251,7 +3333,7 @@ AcDbLine
   0
 LWPOLYLINE
   5
-5C
+5F
 330
 17
 100
@@ -3265,25 +3347,25 @@ AcDbPolyline
  70
 1
  10
-12.6
+13.2
  20
 64.2
  10
-17.4
+18.0
  20
 64.2
  10
-17.4
+18.0
  20
 66.6
  10
-12.6
+13.2
  20
 66.6
   0
 TEXT
   5
-5D
+60
 330
 17
 100
@@ -3293,7 +3375,7 @@ WF_NOMBRES
 100
 AcDbText
  10
-15.0
+15.6
  20
 65.4
  30
@@ -3303,7 +3385,7 @@ AcDbText
   1
 Medicina 04 - 26|consulta|consultorio
  11
-15.0
+15.6
  21
 65.4
  31
@@ -3313,7 +3395,7 @@ AcDbText
   0
 CIRCLE
   5
-5E
+61
 330
 17
 100
@@ -3323,7 +3405,7 @@ WF_PUERTAS
 100
 AcDbCircle
  10
-12.6
+13.2
  20
 65.4
  30
@@ -3333,7 +3415,7 @@ AcDbCircle
   0
 LINE
   5
-5F
+62
 330
 17
 100
@@ -3343,13 +3425,13 @@ WF_RUTAS
 100
 AcDbLine
  10
-12.6
+13.2
  20
 65.4
  30
 0.0
  11
-10.8
+11.4
  21
 65.4
  31
@@ -3357,7 +3439,7 @@ AcDbLine
   0
 LWPOLYLINE
   5
-60
+63
 330
 17
 100
@@ -3371,25 +3453,25 @@ AcDbPolyline
  70
 1
  10
-12.6
+13.2
  20
 61.8
  10
-17.4
+18.0
  20
 61.8
  10
-17.4
+18.0
  20
 64.2
  10
-12.6
+13.2
  20
 64.2
   0
 TEXT
   5
-61
+64
 330
 17
 100
@@ -3399,7 +3481,7 @@ WF_NOMBRES
 100
 AcDbText
  10
-15.0
+15.6
  20
 63.0
  30
@@ -3409,7 +3491,7 @@ AcDbText
   1
 Medicina 03 - 27|consulta|consultorio
  11
-15.0
+15.6
  21
 63.0
  31
@@ -3419,7 +3501,7 @@ AcDbText
   0
 CIRCLE
   5
-62
+65
 330
 17
 100
@@ -3429,7 +3511,7 @@ WF_PUERTAS
 100
 AcDbCircle
  10
-12.6
+13.2
  20
 63.0
  30
@@ -3439,7 +3521,7 @@ AcDbCircle
   0
 LINE
   5
-63
+66
 330
 17
 100
@@ -3449,13 +3531,13 @@ WF_RUTAS
 100
 AcDbLine
  10
-12.6
+13.2
  20
 63.0
  30
 0.0
  11
-10.8
+11.4
  21
 63.0
  31
@@ -3463,7 +3545,7 @@ AcDbLine
   0
 LWPOLYLINE
   5
-64
+67
 330
 17
 100
@@ -3477,25 +3559,25 @@ AcDbPolyline
  70
 1
  10
-12.6
+13.2
  20
 59.4
  10
-17.4
+18.0
  20
 59.4
  10
-17.4
+18.0
  20
 61.8
  10
-12.6
+13.2
  20
 61.8
   0
 TEXT
   5
-65
+68
 330
 17
 100
@@ -3505,7 +3587,7 @@ WF_NOMBRES
 100
 AcDbText
  10
-15.0
+15.6
  20
 60.599999999999994
  30
@@ -3515,7 +3597,7 @@ AcDbText
   1
 Medicina 02 - 28|consulta|consultorio
  11
-15.0
+15.6
  21
 60.599999999999994
  31
@@ -3525,7 +3607,7 @@ AcDbText
   0
 CIRCLE
   5
-66
+69
 330
 17
 100
@@ -3535,7 +3617,7 @@ WF_PUERTAS
 100
 AcDbCircle
  10
-12.6
+13.2
  20
 60.599999999999994
  30
@@ -3545,7 +3627,7 @@ AcDbCircle
   0
 LINE
   5
-67
+6A
 330
 17
 100
@@ -3555,13 +3637,13 @@ WF_RUTAS
 100
 AcDbLine
  10
-12.6
+13.2
  20
 60.599999999999994
  30
 0.0
  11
-10.8
+11.4
  21
 60.599999999999994
  31
@@ -3569,7 +3651,7 @@ AcDbLine
   0
 LWPOLYLINE
   5
-68
+6B
 330
 17
 100
@@ -3583,25 +3665,25 @@ AcDbPolyline
  70
 1
  10
-12.6
+13.2
  20
 57.0
  10
-17.4
+18.0
  20
 57.0
  10
-17.4
+18.0
  20
 59.4
  10
-12.6
+13.2
  20
 59.4
   0
 TEXT
   5
-69
+6C
 330
 17
 100
@@ -3611,7 +3693,7 @@ WF_NOMBRES
 100
 AcDbText
  10
-15.0
+15.6
  20
 58.2
  30
@@ -3621,7 +3703,7 @@ AcDbText
   1
 Medicina 01 - 29|consulta|consultorio
  11
-15.0
+15.6
  21
 58.2
  31
@@ -3631,7 +3713,7 @@ AcDbText
   0
 CIRCLE
   5
-6A
+6D
 330
 17
 100
@@ -3641,9 +3723,9 @@ WF_PUERTAS
 100
 AcDbCircle
  10
-15.0
+13.2
  20
-57.0
+58.2
  30
 0.0
  40
@@ -3651,7 +3733,7 @@ AcDbCircle
   0
 LINE
   5
-6B
+6E
 330
 17
 100
@@ -3661,21 +3743,21 @@ WF_RUTAS
 100
 AcDbLine
  10
-15.0
+13.2
  20
-57.0
+58.2
  30
 0.0
  11
-15.000000000000002
+11.4
  21
-55.8
+58.8
  31
 0.0
   0
 LWPOLYLINE
   5
-6C
+6F
 330
 17
 100
@@ -3689,25 +3771,25 @@ AcDbPolyline
  70
 1
  10
-22.2
+22.8
  20
 66.6
  10
-27.0
+27.6
  20
 66.6
  10
-27.0
+27.6
  20
 69.0
  10
-22.2
+22.8
  20
 69.0
   0
 TEXT
   5
-6D
+70
 330
 17
 100
@@ -3717,7 +3799,7 @@ WF_NOMBRES
 100
 AcDbText
  10
-24.6
+25.200000000000003
  20
 67.8
  30
@@ -3727,7 +3809,7 @@ AcDbText
   1
 Endocrinología - 22|consulta|consultorio
  11
-24.6
+25.200000000000003
  21
 67.8
  31
@@ -3737,7 +3819,7 @@ AcDbText
   0
 CIRCLE
   5
-6E
+71
 330
 17
 100
@@ -3747,7 +3829,7 @@ WF_PUERTAS
 100
 AcDbCircle
  10
-27.0
+27.6
  20
 67.8
  30
@@ -3757,7 +3839,7 @@ AcDbCircle
   0
 LINE
   5
-6F
+72
 330
 17
 100
@@ -3767,21 +3849,21 @@ WF_RUTAS
 100
 AcDbLine
  10
-27.0
+27.6
  20
 67.8
  30
 0.0
  11
-28.8
+29.4
  21
-67.8
+66.6
  31
 0.0
   0
 LWPOLYLINE
   5
-70
+73
 330
 17
 100
@@ -3795,25 +3877,25 @@ AcDbPolyline
  70
 1
  10
-22.2
+22.8
  20
 64.2
  10
-27.0
+27.6
  20
 64.2
  10
-27.0
+27.6
  20
 66.6
  10
-22.2
+22.8
  20
 66.6
   0
 TEXT
   5
-71
+74
 330
 17
 100
@@ -3823,7 +3905,7 @@ WF_NOMBRES
 100
 AcDbText
  10
-24.6
+25.200000000000003
  20
 65.4
  30
@@ -3833,7 +3915,7 @@ AcDbText
   1
 Neumología - 21|consulta|consultorio
  11
-24.6
+25.200000000000003
  21
 65.4
  31
@@ -3843,7 +3925,7 @@ AcDbText
   0
 CIRCLE
   5
-72
+75
 330
 17
 100
@@ -3853,7 +3935,7 @@ WF_PUERTAS
 100
 AcDbCircle
  10
-27.0
+27.6
  20
 65.4
  30
@@ -3863,7 +3945,7 @@ AcDbCircle
   0
 LINE
   5
-73
+76
 330
 17
 100
@@ -3873,13 +3955,13 @@ WF_RUTAS
 100
 AcDbLine
  10
-27.0
+27.6
  20
 65.4
  30
 0.0
  11
-28.8
+29.4
  21
 65.4
  31
@@ -3887,7 +3969,7 @@ AcDbLine
   0
 LWPOLYLINE
   5
-74
+77
 330
 17
 100
@@ -3901,25 +3983,25 @@ AcDbPolyline
  70
 1
  10
-22.2
+22.8
  20
 61.8
  10
-27.0
+27.6
  20
 61.8
  10
-27.0
+27.6
  20
 64.2
  10
-22.2
+22.8
  20
 64.2
   0
 TEXT
   5
-75
+78
 330
 17
 100
@@ -3929,7 +4011,7 @@ WF_NOMBRES
 100
 AcDbText
  10
-24.6
+25.200000000000003
  20
 63.0
  30
@@ -3939,7 +4021,7 @@ AcDbText
   1
 Traumatología - 20|consulta|consultorio
  11
-24.6
+25.200000000000003
  21
 63.0
  31
@@ -3949,7 +4031,7 @@ AcDbText
   0
 CIRCLE
   5
-76
+79
 330
 17
 100
@@ -3959,7 +4041,7 @@ WF_PUERTAS
 100
 AcDbCircle
  10
-27.0
+27.6
  20
 63.0
  30
@@ -3969,7 +4051,7 @@ AcDbCircle
   0
 LINE
   5
-77
+7A
 330
 17
 100
@@ -3979,13 +4061,13 @@ WF_RUTAS
 100
 AcDbLine
  10
-27.0
+27.6
  20
 63.0
  30
 0.0
  11
-28.8
+29.4
  21
 63.0
  31
@@ -3993,7 +4075,7 @@ AcDbLine
   0
 LWPOLYLINE
   5
-78
+7B
 330
 17
 100
@@ -4007,25 +4089,25 @@ AcDbPolyline
  70
 1
  10
-22.2
+22.8
  20
 59.4
  10
-27.0
+27.6
  20
 59.4
  10
-27.0
+27.6
  20
 61.8
  10
-22.2
+22.8
  20
 61.8
   0
 TEXT
   5
-79
+7C
 330
 17
 100
@@ -4035,7 +4117,7 @@ WF_NOMBRES
 100
 AcDbText
  10
-24.6
+25.200000000000003
  20
 60.599999999999994
  30
@@ -4045,7 +4127,7 @@ AcDbText
   1
 Neurocirugía - 19|consulta|consultorio
  11
-24.6
+25.200000000000003
  21
 60.599999999999994
  31
@@ -4054,82 +4136,6 @@ Neurocirugía - 19|consulta|consultorio
 AcDbText
   0
 CIRCLE
-  5
-7A
-330
-17
-100
-AcDbEntity
-  8
-WF_PUERTAS
-100
-AcDbCircle
- 10
-27.0
- 20
-60.599999999999994
- 30
-0.0
- 40
-0.3
-  0
-LINE
-  5
-7B
-330
-17
-100
-AcDbEntity
-  8
-WF_RUTAS
-100
-AcDbLine
- 10
-27.0
- 20
-60.599999999999994
- 30
-0.0
- 11
-28.8
- 21
-60.599999999999994
- 31
-0.0
-  0
-LWPOLYLINE
-  5
-7C
-330
-17
-100
-AcDbEntity
-  8
-WF_AREAS
-100
-AcDbPolyline
- 90
-4
- 70
-1
- 10
-22.2
- 20
-57.0
- 10
-27.0
- 20
-57.0
- 10
-27.0
- 20
-59.4
- 10
-22.2
- 20
-59.4
-  0
-TEXT
   5
 7D
 330
@@ -4137,29 +4143,19 @@ TEXT
 100
 AcDbEntity
   8
-WF_NOMBRES
+WF_PUERTAS
 100
-AcDbText
+AcDbCircle
  10
-24.6
+27.6
  20
-58.2
+60.599999999999994
  30
 0.0
  40
-0.5
-  1
-Consultorio (sin rótulo)|consulta|consultorio
- 11
-24.6
- 21
-58.2
- 31
-0.0
-100
-AcDbText
+0.3
   0
-CIRCLE
+LINE
   5
 7E
 330
@@ -4167,19 +4163,23 @@ CIRCLE
 100
 AcDbEntity
   8
-WF_PUERTAS
+WF_RUTAS
 100
-AcDbCircle
+AcDbLine
  10
-24.6
+27.6
  20
-57.0
+60.599999999999994
  30
 0.0
- 40
-0.3
+ 11
+29.4
+ 21
+60.599999999999994
+ 31
+0.0
   0
-LINE
+LWPOLYLINE
   5
 7F
 330
@@ -4187,23 +4187,31 @@ LINE
 100
 AcDbEntity
   8
-WF_RUTAS
+WF_AREAS
 100
-AcDbLine
+AcDbPolyline
+ 90
+4
+ 70
+1
  10
-24.6
+22.8
  20
 57.0
- 30
-0.0
- 11
-24.599999999999998
- 21
-55.8
- 31
-0.0
+ 10
+27.6
+ 20
+57.0
+ 10
+27.6
+ 20
+59.4
+ 10
+22.8
+ 20
+59.4
   0
-LWPOLYLINE
+TEXT
   5
 80
 330
@@ -4211,31 +4219,29 @@ LWPOLYLINE
 100
 AcDbEntity
   8
-WF_AREAS
+WF_NOMBRES
 100
-AcDbPolyline
- 90
-4
- 70
-1
+AcDbText
  10
-30.6
+25.200000000000003
  20
-66.6
- 10
-35.4
- 20
-66.6
- 10
-35.4
- 20
-71.4
- 10
-30.6
- 20
-71.4
+58.2
+ 30
+0.0
+ 40
+0.5
+  1
+Cirugía Laparoscópica - 18|consulta|consultorio
+ 11
+25.200000000000003
+ 21
+58.2
+ 31
+0.0
+100
+AcDbText
   0
-TEXT
+CIRCLE
   5
 81
 330
@@ -4243,29 +4249,19 @@ TEXT
 100
 AcDbEntity
   8
-WF_NOMBRES
+WF_PUERTAS
 100
-AcDbText
+AcDbCircle
  10
-33.0
+27.6
  20
-69.0
+58.2
  30
 0.0
  40
-0.5
-  1
-Ascensores y escaleras norte|circulacion|ascensor,escalera
- 11
-33.0
- 21
-69.0
- 31
-0.0
-100
-AcDbText
+0.3
   0
-CIRCLE
+LINE
   5
 82
 330
@@ -4273,19 +4269,23 @@ CIRCLE
 100
 AcDbEntity
   8
-WF_PUERTAS
+WF_RUTAS
 100
-AcDbCircle
+AcDbLine
  10
-33.0
+27.6
  20
-71.4
+58.2
  30
 0.0
- 40
-0.3
+ 11
+29.4
+ 21
+58.8
+ 31
+0.0
   0
-LINE
+LWPOLYLINE
   5
 83
 330
@@ -4293,23 +4293,31 @@ LINE
 100
 AcDbEntity
   8
-WF_RUTAS
+WF_AREAS
 100
-AcDbLine
+AcDbPolyline
+ 90
+4
+ 70
+1
  10
-33.0
+31.2
  20
-71.4
- 30
-0.0
- 11
-33.0
- 21
-72.0
- 31
-0.0
+66.6
+ 10
+35.4
+ 20
+66.6
+ 10
+35.4
+ 20
+70.8
+ 10
+31.2
+ 20
+70.8
   0
-LWPOLYLINE
+TEXT
   5
 84
 330
@@ -4317,31 +4325,29 @@ LWPOLYLINE
 100
 AcDbEntity
   8
-WF_AREAS
+WF_NOMBRES
 100
-AcDbPolyline
- 90
-4
- 70
-1
+AcDbText
  10
-30.6
+33.3
  20
-64.2
- 10
-35.4
- 20
-64.2
- 10
-35.4
- 20
-66.6
- 10
-30.6
- 20
-66.6
+68.69999999999999
+ 30
+0.0
+ 40
+0.5
+  1
+Escaleras y ascensores norte|circulacion|ascensor,escalera
+ 11
+33.3
+ 21
+68.69999999999999
+ 31
+0.0
+100
+AcDbText
   0
-TEXT
+CIRCLE
   5
 85
 330
@@ -4349,29 +4355,19 @@ TEXT
 100
 AcDbEntity
   8
-WF_NOMBRES
+WF_PUERTAS
 100
-AcDbText
+AcDbCircle
  10
-33.0
+35.4
  20
-65.4
+68.69999999999999
  30
 0.0
  40
-0.5
-  1
-Tumores Mamarios - 14|consulta|mama
- 11
-33.0
- 21
-65.4
- 31
-0.0
-100
-AcDbText
+0.3
   0
-CIRCLE
+LINE
   5
 86
 330
@@ -4379,19 +4375,23 @@ CIRCLE
 100
 AcDbEntity
   8
-WF_PUERTAS
+WF_RUTAS
 100
-AcDbCircle
+AcDbLine
  10
-30.6
+35.4
  20
-65.4
+68.69999999999999
  30
 0.0
- 40
-0.3
+ 11
+37.8
+ 21
+68.69999999999999
+ 31
+0.0
   0
-LINE
+LWPOLYLINE
   5
 87
 330
@@ -4399,23 +4399,31 @@ LINE
 100
 AcDbEntity
   8
-WF_RUTAS
+WF_AREAS
 100
-AcDbLine
+AcDbPolyline
+ 90
+4
+ 70
+1
  10
-30.6
+31.2
  20
-65.4
- 30
-0.0
- 11
-28.8
- 21
-65.4
- 31
-0.0
+64.2
+ 10
+35.4
+ 20
+64.2
+ 10
+35.4
+ 20
+66.6
+ 10
+31.2
+ 20
+66.6
   0
-LWPOLYLINE
+TEXT
   5
 88
 330
@@ -4423,31 +4431,29 @@ LWPOLYLINE
 100
 AcDbEntity
   8
-WF_AREAS
+WF_NOMBRES
 100
-AcDbPolyline
- 90
-4
- 70
-1
+AcDbText
  10
-30.6
+33.3
  20
-61.8
- 10
-35.4
- 20
-61.8
- 10
-35.4
- 20
-64.2
- 10
-30.6
- 20
-64.2
+65.4
+ 30
+0.0
+ 40
+0.5
+  1
+Tumores Mamarios - 14|consulta|consultorio
+ 11
+33.3
+ 21
+65.4
+ 31
+0.0
+100
+AcDbText
   0
-TEXT
+CIRCLE
   5
 89
 330
@@ -4455,29 +4461,19 @@ TEXT
 100
 AcDbEntity
   8
-WF_NOMBRES
+WF_PUERTAS
 100
-AcDbText
+AcDbCircle
  10
-33.0
+31.2
  20
-63.0
+65.4
  30
 0.0
  40
-0.5
-  1
-Tumores Mixtos - 15|consulta|tumores
- 11
-33.0
- 21
-63.0
- 31
-0.0
-100
-AcDbText
+0.3
   0
-CIRCLE
+LINE
   5
 8A
 330
@@ -4485,19 +4481,23 @@ CIRCLE
 100
 AcDbEntity
   8
-WF_PUERTAS
+WF_RUTAS
 100
-AcDbCircle
+AcDbLine
  10
-30.6
+31.2
  20
-63.0
+65.4
  30
 0.0
- 40
-0.3
+ 11
+29.4
+ 21
+65.4
+ 31
+0.0
   0
-LINE
+LWPOLYLINE
   5
 8B
 330
@@ -4505,23 +4505,31 @@ LINE
 100
 AcDbEntity
   8
-WF_RUTAS
+WF_AREAS
 100
-AcDbLine
+AcDbPolyline
+ 90
+4
+ 70
+1
  10
-30.6
+31.2
  20
-63.0
- 30
-0.0
- 11
-28.8
- 21
-63.0
- 31
-0.0
+61.8
+ 10
+35.4
+ 20
+61.8
+ 10
+35.4
+ 20
+64.2
+ 10
+31.2
+ 20
+64.2
   0
-LWPOLYLINE
+TEXT
   5
 8C
 330
@@ -4529,31 +4537,29 @@ LWPOLYLINE
 100
 AcDbEntity
   8
-WF_AREAS
+WF_NOMBRES
 100
-AcDbPolyline
- 90
-4
- 70
-1
+AcDbText
  10
-30.6
+33.3
  20
-59.4
- 10
-35.4
- 20
-59.4
- 10
-35.4
- 20
-61.8
- 10
-30.6
- 20
-61.8
+63.0
+ 30
+0.0
+ 40
+0.5
+  1
+Tumores Mixtos - 15|consulta|consultorio
+ 11
+33.3
+ 21
+63.0
+ 31
+0.0
+100
+AcDbText
   0
-TEXT
+CIRCLE
   5
 8D
 330
@@ -4561,29 +4567,19 @@ TEXT
 100
 AcDbEntity
   8
-WF_NOMBRES
+WF_PUERTAS
 100
-AcDbText
+AcDbCircle
  10
-33.0
+31.2
  20
-60.599999999999994
+63.0
  30
 0.0
  40
-0.5
-  1
-Tumores de Cabeza y Cuello - 16|consulta|cabeza,cuello
- 11
-33.0
- 21
-60.599999999999994
- 31
-0.0
-100
-AcDbText
+0.3
   0
-CIRCLE
+LINE
   5
 8E
 330
@@ -4591,45 +4587,25 @@ CIRCLE
 100
 AcDbEntity
   8
-WF_PUERTAS
-100
-AcDbCircle
- 10
-30.6
- 20
-60.599999999999994
- 30
-0.0
- 40
-0.3
-  0
-LINE
-  5
-8F
-330
-17
-100
-AcDbEntity
-  8
 WF_RUTAS
 100
 AcDbLine
  10
-30.6
+31.2
  20
-60.599999999999994
+63.0
  30
 0.0
  11
-28.8
+29.4
  21
-60.599999999999994
+63.0
  31
 0.0
   0
 LWPOLYLINE
   5
-90
+8F
 330
 17
 100
@@ -4643,25 +4619,25 @@ AcDbPolyline
  70
 1
  10
-30.6
+31.2
  20
-57.0
- 10
-35.4
- 20
-57.0
+59.4
  10
 35.4
  20
 59.4
  10
-30.6
+35.4
  20
-59.4
+61.8
+ 10
+31.2
+ 20
+61.8
   0
 TEXT
   5
-91
+90
 330
 17
 100
@@ -4671,7 +4647,113 @@ WF_NOMBRES
 100
 AcDbText
  10
-33.0
+33.3
+ 20
+60.599999999999994
+ 30
+0.0
+ 40
+0.5
+  1
+Tumores de Cabeza y Cuello - 16|consulta|consultorio
+ 11
+33.3
+ 21
+60.599999999999994
+ 31
+0.0
+100
+AcDbText
+  0
+CIRCLE
+  5
+91
+330
+17
+100
+AcDbEntity
+  8
+WF_PUERTAS
+100
+AcDbCircle
+ 10
+31.2
+ 20
+60.599999999999994
+ 30
+0.0
+ 40
+0.3
+  0
+LINE
+  5
+92
+330
+17
+100
+AcDbEntity
+  8
+WF_RUTAS
+100
+AcDbLine
+ 10
+31.2
+ 20
+60.599999999999994
+ 30
+0.0
+ 11
+29.4
+ 21
+60.599999999999994
+ 31
+0.0
+  0
+LWPOLYLINE
+  5
+93
+330
+17
+100
+AcDbEntity
+  8
+WF_AREAS
+100
+AcDbPolyline
+ 90
+4
+ 70
+1
+ 10
+31.2
+ 20
+57.0
+ 10
+35.4
+ 20
+57.0
+ 10
+35.4
+ 20
+59.4
+ 10
+31.2
+ 20
+59.4
+  0
+TEXT
+  5
+94
+330
+17
+100
+AcDbEntity
+  8
+WF_NOMBRES
+100
+AcDbText
+ 10
+33.3
  20
 58.2
  30
@@ -4679,9 +4761,9 @@ AcDbText
  40
 0.5
   1
-Consultorio (sin rótulo)|consulta|consultorio
+Cirugía Especial - 17|consulta|consultorio
  11
-33.0
+33.3
  21
 58.2
  31
@@ -4691,7 +4773,7 @@ AcDbText
   0
 CIRCLE
   5
-92
+95
 330
 17
 100
@@ -4701,9 +4783,9 @@ WF_PUERTAS
 100
 AcDbCircle
  10
-33.0
+31.2
  20
-57.0
+58.2
  30
 0.0
  40
@@ -4711,7 +4793,7 @@ AcDbCircle
   0
 LINE
   5
-93
+96
 330
 17
 100
@@ -4721,21 +4803,21 @@ WF_RUTAS
 100
 AcDbLine
  10
-33.0
+31.2
  20
-57.0
+58.2
  30
 0.0
  11
-33.0
+29.4
  21
-55.8
+58.8
  31
 0.0
   0
 LWPOLYLINE
   5
-94
+97
 330
 17
 100
@@ -4749,25 +4831,25 @@ AcDbPolyline
  70
 1
  10
-39.6
+40.2
  20
 69.0
  10
-43.2
+43.8
  20
 69.0
  10
-43.2
+43.8
  20
 72.6
  10
-39.6
+40.2
  20
 72.6
   0
 TEXT
   5
-95
+98
 330
 17
 100
@@ -4777,7 +4859,7 @@ WF_NOMBRES
 100
 AcDbText
  10
-41.400000000000006
+42.0
  20
 70.8
  30
@@ -4787,7 +4869,7 @@ AcDbText
   1
 Consultorio 1|consulta|consultorio
  11
-41.400000000000006
+42.0
  21
 70.8
  31
@@ -4796,82 +4878,6 @@ Consultorio 1|consulta|consultorio
 AcDbText
   0
 CIRCLE
-  5
-96
-330
-17
-100
-AcDbEntity
-  8
-WF_PUERTAS
-100
-AcDbCircle
- 10
-41.400000000000006
- 20
-72.6
- 30
-0.0
- 40
-0.3
-  0
-LINE
-  5
-97
-330
-17
-100
-AcDbEntity
-  8
-WF_RUTAS
-100
-AcDbLine
- 10
-41.400000000000006
- 20
-72.6
- 30
-0.0
- 11
-41.259177532597796
- 21
-73.32758274824474
- 31
-0.0
-  0
-LWPOLYLINE
-  5
-98
-330
-17
-100
-AcDbEntity
-  8
-WF_AREAS
-100
-AcDbPolyline
- 90
-4
- 70
-1
- 10
-43.2
- 20
-69.0
- 10
-46.8
- 20
-69.0
- 10
-46.8
- 20
-72.6
- 10
-43.2
- 20
-72.6
-  0
-TEXT
   5
 99
 330
@@ -4879,43 +4885,13 @@ TEXT
 100
 AcDbEntity
   8
-WF_NOMBRES
-100
-AcDbText
- 10
-45.0
- 20
-70.8
- 30
-0.0
- 40
-0.5
-  1
-Consultorio (sin rótulo)|consulta|consultorio
- 11
-45.0
- 21
-70.8
- 31
-0.0
-100
-AcDbText
-  0
-CIRCLE
-  5
-9A
-330
-17
-100
-AcDbEntity
-  8
 WF_PUERTAS
 100
 AcDbCircle
  10
-45.0
+40.2
  20
-72.6
+70.8
  30
 0.0
  40
@@ -4923,7 +4899,7 @@ AcDbCircle
   0
 LINE
   5
-9B
+9A
 330
 17
 100
@@ -4933,21 +4909,21 @@ WF_RUTAS
 100
 AcDbLine
  10
-45.0
+40.2
  20
-72.6
+70.8
  30
 0.0
  11
-44.72918756268806
+37.8
  21
-73.99919759277834
+70.8
  31
 0.0
   0
 LWPOLYLINE
   5
-9C
+9B
 330
 17
 100
@@ -4963,23 +4939,23 @@ AcDbPolyline
  10
 43.8
  20
-72.6
+69.0
  10
-49.2
+46.8
+ 20
+69.0
+ 10
+46.8
  20
 72.6
- 10
-49.2
- 20
-76.2
  10
 43.8
  20
-76.2
+72.6
   0
 TEXT
   5
-9D
+9C
 330
 17
 100
@@ -4989,19 +4965,19 @@ WF_NOMBRES
 100
 AcDbText
  10
-46.5
+45.3
  20
-74.4
+70.8
  30
 0.0
  40
 0.5
   1
-Baños mujeres|banos|baño,sanitario
+Área sin rótulo|servicios|sin rótulo
  11
-46.5
+45.3
  21
-74.4
+70.8
  31
 0.0
 100
@@ -5009,7 +4985,7 @@ AcDbText
   0
 CIRCLE
   5
-9E
+9D
 330
 17
 100
@@ -5019,13 +4995,37 @@ WF_PUERTAS
 100
 AcDbCircle
  10
-49.2
+46.8
  20
-74.4
+70.8
  30
 0.0
  40
 0.3
+  0
+LINE
+  5
+9E
+330
+17
+100
+AcDbEntity
+  8
+WF_RUTAS
+100
+AcDbLine
+ 10
+46.8
+ 20
+70.8
+ 30
+0.0
+ 11
+47.4
+ 21
+70.8
+ 31
+0.0
   0
 LWPOLYLINE
   5
@@ -5043,21 +5043,21 @@ AcDbPolyline
  70
 1
  10
-39.6
+44.4
  20
-66.6
+72.6
  10
-45.0
+49.2
  20
-66.6
+72.6
  10
-45.0
+49.2
  20
-69.0
+74.4
  10
-39.6
+44.4
  20
-69.0
+74.4
   0
 TEXT
   5
@@ -5071,19 +5071,19 @@ WF_NOMBRES
 100
 AcDbText
  10
-42.3
+46.8
  20
-67.8
+73.5
  30
 0.0
  40
 0.5
   1
-Coordinación Enfermería - 1|administracion|consultorio
+Baños mujeres (este)|banos|baño,sanitario
  11
-42.3
+46.8
  21
-67.8
+73.5
  31
 0.0
 100
@@ -5101,41 +5101,17 @@ WF_PUERTAS
 100
 AcDbCircle
  10
-45.0
+49.2
  20
-67.8
+73.5
  30
 0.0
  40
 0.3
   0
-LINE
-  5
-A2
-330
-17
-100
-AcDbEntity
-  8
-WF_RUTAS
-100
-AcDbLine
- 10
-45.0
- 20
-67.8
- 30
-0.0
- 11
-46.8
- 21
-67.8
- 31
-0.0
-  0
 LWPOLYLINE
   5
-A3
+A2
 330
 17
 100
@@ -5149,25 +5125,25 @@ AcDbPolyline
  70
 1
  10
-39.6
+44.4
  20
-64.2
+74.4
  10
-45.0
+49.2
  20
-64.2
+74.4
  10
-45.0
+49.2
  20
-66.6
+76.2
  10
-39.6
+44.4
  20
-66.6
+76.2
   0
 TEXT
   5
-A4
+A3
 330
 17
 100
@@ -5177,7 +5153,219 @@ WF_NOMBRES
 100
 AcDbText
  10
-42.3
+46.8
+ 20
+75.30000000000001
+ 30
+0.0
+ 40
+0.5
+  1
+Baños hombres (este)|banos|baño,sanitario
+ 11
+46.8
+ 21
+75.30000000000001
+ 31
+0.0
+100
+AcDbText
+  0
+CIRCLE
+  5
+A4
+330
+17
+100
+AcDbEntity
+  8
+WF_PUERTAS
+100
+AcDbCircle
+ 10
+49.2
+ 20
+75.30000000000001
+ 30
+0.0
+ 40
+0.3
+  0
+LINE
+  5
+A5
+330
+17
+100
+AcDbEntity
+  8
+WF_RUTAS
+100
+AcDbLine
+ 10
+49.2
+ 20
+75.30000000000001
+ 30
+0.0
+ 11
+49.2
+ 21
+73.5
+ 31
+0.0
+  0
+LWPOLYLINE
+  5
+A6
+330
+17
+100
+AcDbEntity
+  8
+WF_AREAS
+100
+AcDbPolyline
+ 90
+4
+ 70
+1
+ 10
+40.2
+ 20
+66.6
+ 10
+45.6
+ 20
+66.6
+ 10
+45.6
+ 20
+69.0
+ 10
+40.2
+ 20
+69.0
+  0
+TEXT
+  5
+A7
+330
+17
+100
+AcDbEntity
+  8
+WF_NOMBRES
+100
+AcDbText
+ 10
+42.900000000000006
+ 20
+67.8
+ 30
+0.0
+ 40
+0.5
+  1
+Coordinación Enfermería - 1|administracion|consultorio
+ 11
+42.900000000000006
+ 21
+67.8
+ 31
+0.0
+100
+AcDbText
+  0
+CIRCLE
+  5
+A8
+330
+17
+100
+AcDbEntity
+  8
+WF_PUERTAS
+100
+AcDbCircle
+ 10
+45.6
+ 20
+67.8
+ 30
+0.0
+ 40
+0.3
+  0
+LINE
+  5
+A9
+330
+17
+100
+AcDbEntity
+  8
+WF_RUTAS
+100
+AcDbLine
+ 10
+45.6
+ 20
+67.8
+ 30
+0.0
+ 11
+47.4
+ 21
+67.8
+ 31
+0.0
+  0
+LWPOLYLINE
+  5
+AA
+330
+17
+100
+AcDbEntity
+  8
+WF_AREAS
+100
+AcDbPolyline
+ 90
+4
+ 70
+1
+ 10
+40.2
+ 20
+64.2
+ 10
+45.6
+ 20
+64.2
+ 10
+45.6
+ 20
+66.6
+ 10
+40.2
+ 20
+66.6
+  0
+TEXT
+  5
+AB
+330
+17
+100
+AcDbEntity
+  8
+WF_NOMBRES
+100
+AcDbText
+ 10
+42.900000000000006
  20
 65.4
  30
@@ -5187,7 +5375,7 @@ AcDbText
   1
 Gastroenterología - 12|consulta|consultorio
  11
-42.3
+42.900000000000006
  21
 65.4
  31
@@ -5197,7 +5385,7 @@ AcDbText
   0
 CIRCLE
   5
-A5
+AC
 330
 17
 100
@@ -5207,7 +5395,7 @@ WF_PUERTAS
 100
 AcDbCircle
  10
-45.0
+45.6
  20
 65.4
  30
@@ -5217,7 +5405,7 @@ AcDbCircle
   0
 LINE
   5
-A6
+AD
 330
 17
 100
@@ -5227,13 +5415,13 @@ WF_RUTAS
 100
 AcDbLine
  10
-45.0
+45.6
  20
 65.4
  30
 0.0
  11
-46.8
+47.4
  21
 65.4
  31
@@ -5241,7 +5429,7 @@ AcDbLine
   0
 LWPOLYLINE
   5
-A7
+AE
 330
 17
 100
@@ -5255,25 +5443,25 @@ AcDbPolyline
  70
 1
  10
-39.6
+40.2
  20
 61.8
  10
-45.0
+45.6
  20
 61.8
  10
-45.0
+45.6
  20
 64.2
  10
-39.6
+40.2
  20
 64.2
   0
 TEXT
   5
-A8
+AF
 330
 17
 100
@@ -5283,7 +5471,7 @@ WF_NOMBRES
 100
 AcDbText
  10
-42.3
+42.900000000000006
  20
 63.0
  30
@@ -5293,7 +5481,7 @@ AcDbText
   1
 Preconsulta - 11|consulta|consultorio
  11
-42.3
+42.900000000000006
  21
 63.0
  31
@@ -5303,7 +5491,7 @@ AcDbText
   0
 CIRCLE
   5
-A9
+B0
 330
 17
 100
@@ -5313,7 +5501,7 @@ WF_PUERTAS
 100
 AcDbCircle
  10
-45.0
+45.6
  20
 63.0
  30
@@ -5323,7 +5511,7 @@ AcDbCircle
   0
 LINE
   5
-AA
+B1
 330
 17
 100
@@ -5333,13 +5521,13 @@ WF_RUTAS
 100
 AcDbLine
  10
-45.0
+45.6
  20
 63.0
  30
 0.0
  11
-46.8
+47.4
  21
 63.0
  31
@@ -5347,7 +5535,7 @@ AcDbLine
   0
 LWPOLYLINE
   5
-AB
+B2
 330
 17
 100
@@ -5361,25 +5549,25 @@ AcDbPolyline
  70
 1
  10
-39.6
+40.2
  20
 59.4
  10
-45.0
+45.6
  20
 59.4
  10
-45.0
+45.6
  20
 61.8
  10
-39.6
+40.2
  20
 61.8
   0
 TEXT
   5
-AC
+B3
 330
 17
 100
@@ -5389,7 +5577,7 @@ WF_NOMBRES
 100
 AcDbText
  10
-42.3
+42.900000000000006
  20
 60.599999999999994
  30
@@ -5399,7 +5587,7 @@ AcDbText
   1
 Preconsulta - 10|consulta|consultorio
  11
-42.3
+42.900000000000006
  21
 60.599999999999994
  31
@@ -5409,7 +5597,7 @@ AcDbText
   0
 CIRCLE
   5
-AD
+B4
 330
 17
 100
@@ -5419,7 +5607,7 @@ WF_PUERTAS
 100
 AcDbCircle
  10
-45.0
+45.6
  20
 60.599999999999994
  30
@@ -5429,7 +5617,7 @@ AcDbCircle
   0
 LINE
   5
-AE
+B5
 330
 17
 100
@@ -5439,13 +5627,13 @@ WF_RUTAS
 100
 AcDbLine
  10
-45.0
+45.6
  20
 60.599999999999994
  30
 0.0
  11
-46.8
+47.4
  21
 60.599999999999994
  31
@@ -5453,7 +5641,7 @@ AcDbLine
   0
 LWPOLYLINE
   5
-AF
+B6
 330
 17
 100
@@ -5467,25 +5655,25 @@ AcDbPolyline
  70
 1
  10
-39.6
+40.2
  20
 57.0
  10
-45.0
+45.6
  20
 57.0
  10
-45.0
+45.6
  20
 59.4
  10
-39.6
+40.2
  20
 59.4
   0
 TEXT
   5
-B0
+B7
 330
 17
 100
@@ -5495,7 +5683,7 @@ WF_NOMBRES
 100
 AcDbText
  10
-42.3
+42.900000000000006
  20
 58.2
  30
@@ -5505,7 +5693,7 @@ AcDbText
   1
 Preconsulta - 9|consulta|consultorio
  11
-42.3
+42.900000000000006
  21
 58.2
  31
@@ -5515,199 +5703,93 @@ AcDbText
   0
 CIRCLE
   5
-B1
-330
-17
-100
-AcDbEntity
-  8
-WF_PUERTAS
-100
-AcDbCircle
- 10
-42.3
- 20
-57.0
- 30
-0.0
- 40
-0.3
-  0
-LINE
-  5
-B2
-330
-17
-100
-AcDbEntity
-  8
-WF_RUTAS
-100
-AcDbLine
- 10
-42.3
- 20
-57.0
- 30
-0.0
- 11
-42.29999999999999
- 21
-55.8
- 31
-0.0
-  0
-LWPOLYLINE
-  5
-B3
-330
-17
-100
-AcDbEntity
-  8
-WF_AREAS
-100
-AcDbPolyline
- 90
-4
- 70
-1
- 10
-48.6
- 20
-69.0
- 10
-54.0
- 20
-69.0
- 10
-54.0
- 20
-72.6
- 10
-48.6
- 20
-72.6
-  0
-TEXT
-  5
-B4
-330
-17
-100
-AcDbEntity
-  8
-WF_NOMBRES
-100
-AcDbText
- 10
-51.3
- 20
-70.8
- 30
-0.0
- 40
-0.5
-  1
-Consultorio (sin rótulo)|consulta|consultorio
- 11
-51.3
- 21
-70.8
- 31
-0.0
-100
-AcDbText
-  0
-CIRCLE
-  5
-B5
-330
-17
-100
-AcDbEntity
-  8
-WF_PUERTAS
-100
-AcDbCircle
- 10
-51.3
- 20
-72.6
- 30
-0.0
- 40
-0.3
-  0
-LINE
-  5
-B6
-330
-17
-100
-AcDbEntity
-  8
-WF_RUTAS
-100
-AcDbLine
- 10
-51.3
- 20
-72.6
- 30
-0.0
- 11
-51.3
- 21
-74.4
- 31
-0.0
-  0
-LWPOLYLINE
-  5
-B7
-330
-17
-100
-AcDbEntity
-  8
-WF_AREAS
-100
-AcDbPolyline
- 90
-4
- 70
-1
- 10
-48.6
- 20
-66.6
- 10
-54.0
- 20
-66.6
- 10
-54.0
- 20
-69.0
- 10
-48.6
- 20
-69.0
-  0
-TEXT
-  5
 B8
 330
 17
 100
 AcDbEntity
   8
+WF_PUERTAS
+100
+AcDbCircle
+ 10
+45.6
+ 20
+58.2
+ 30
+0.0
+ 40
+0.3
+  0
+LINE
+  5
+B9
+330
+17
+100
+AcDbEntity
+  8
+WF_RUTAS
+100
+AcDbLine
+ 10
+45.6
+ 20
+58.2
+ 30
+0.0
+ 11
+47.4
+ 21
+58.8
+ 31
+0.0
+  0
+LWPOLYLINE
+  5
+BA
+330
+17
+100
+AcDbEntity
+  8
+WF_AREAS
+100
+AcDbPolyline
+ 90
+4
+ 70
+1
+ 10
+49.2
+ 20
+66.6
+ 10
+54.6
+ 20
+66.6
+ 10
+54.6
+ 20
+69.0
+ 10
+49.2
+ 20
+69.0
+  0
+TEXT
+  5
+BB
+330
+17
+100
+AcDbEntity
+  8
 WF_NOMBRES
 100
 AcDbText
  10
-51.3
+51.900000000000006
  20
 67.8
  30
@@ -5717,7 +5799,7 @@ AcDbText
   1
 Ginecología - 4|consulta|consultorio
  11
-51.3
+51.900000000000006
  21
 67.8
  31
@@ -5727,7 +5809,7 @@ AcDbText
   0
 CIRCLE
   5
-B9
+BC
 330
 17
 100
@@ -5737,7 +5819,7 @@ WF_PUERTAS
 100
 AcDbCircle
  10
-48.6
+49.2
  20
 67.8
  30
@@ -5747,7 +5829,7 @@ AcDbCircle
   0
 LINE
   5
-BA
+BD
 330
 17
 100
@@ -5757,13 +5839,13 @@ WF_RUTAS
 100
 AcDbLine
  10
-48.6
+49.2
  20
 67.8
  30
 0.0
  11
-46.8
+47.4
  21
 67.8
  31
@@ -5771,7 +5853,7 @@ AcDbLine
   0
 LWPOLYLINE
   5
-BB
+BE
 330
 17
 100
@@ -5785,25 +5867,25 @@ AcDbPolyline
  70
 1
  10
-48.6
+49.2
  20
 64.2
  10
-54.0
+54.6
  20
 64.2
  10
-54.0
+54.6
  20
 66.6
  10
-48.6
+49.2
  20
 66.6
   0
 TEXT
   5
-BC
+BF
 330
 17
 100
@@ -5813,7 +5895,7 @@ WF_NOMBRES
 100
 AcDbText
  10
-51.3
+51.900000000000006
  20
 65.4
  30
@@ -5823,7 +5905,7 @@ AcDbText
   1
 Ginecología - 5|consulta|consultorio
  11
-51.3
+51.900000000000006
  21
 65.4
  31
@@ -5833,7 +5915,7 @@ AcDbText
   0
 CIRCLE
   5
-BD
+C0
 330
 17
 100
@@ -5843,7 +5925,7 @@ WF_PUERTAS
 100
 AcDbCircle
  10
-48.6
+49.2
  20
 65.4
  30
@@ -5853,7 +5935,7 @@ AcDbCircle
   0
 LINE
   5
-BE
+C1
 330
 17
 100
@@ -5863,13 +5945,13 @@ WF_RUTAS
 100
 AcDbLine
  10
-48.6
+49.2
  20
 65.4
  30
 0.0
  11
-46.8
+47.4
  21
 65.4
  31
@@ -5877,7 +5959,7 @@ AcDbLine
   0
 LWPOLYLINE
   5
-BF
+C2
 330
 17
 100
@@ -5891,25 +5973,25 @@ AcDbPolyline
  70
 1
  10
-48.6
+49.2
  20
 61.8
  10
-54.0
+54.6
  20
 61.8
  10
-54.0
+54.6
  20
 64.2
  10
-48.6
+49.2
  20
 64.2
   0
 TEXT
   5
-C0
+C3
 330
 17
 100
@@ -5919,7 +6001,7 @@ WF_NOMBRES
 100
 AcDbText
  10
-51.3
+51.900000000000006
  20
 63.0
  30
@@ -5929,7 +6011,7 @@ AcDbText
   1
 Colposcopia - 6|consulta|consultorio
  11
-51.3
+51.900000000000006
  21
 63.0
  31
@@ -5939,7 +6021,7 @@ AcDbText
   0
 CIRCLE
   5
-C1
+C4
 330
 17
 100
@@ -5949,7 +6031,7 @@ WF_PUERTAS
 100
 AcDbCircle
  10
-48.6
+49.2
  20
 63.0
  30
@@ -5959,7 +6041,7 @@ AcDbCircle
   0
 LINE
   5
-C2
+C5
 330
 17
 100
@@ -5969,13 +6051,13 @@ WF_RUTAS
 100
 AcDbLine
  10
-48.6
+49.2
  20
 63.0
  30
 0.0
  11
-46.8
+47.4
  21
 63.0
  31
@@ -5983,7 +6065,7 @@ AcDbLine
   0
 LWPOLYLINE
   5
-C3
+C6
 330
 17
 100
@@ -5997,25 +6079,25 @@ AcDbPolyline
  70
 1
  10
-48.6
+49.2
  20
 59.4
  10
-54.0
+54.6
  20
 59.4
  10
-54.0
+54.6
  20
 61.8
  10
-48.6
+49.2
  20
 61.8
   0
 TEXT
   5
-C4
+C7
 330
 17
 100
@@ -6025,7 +6107,7 @@ WF_NOMBRES
 100
 AcDbText
  10
-51.3
+51.900000000000006
  20
 60.599999999999994
  30
@@ -6035,7 +6117,7 @@ AcDbText
   1
 Colposcopia - 7|consulta|consultorio
  11
-51.3
+51.900000000000006
  21
 60.599999999999994
  31
@@ -6045,7 +6127,7 @@ AcDbText
   0
 CIRCLE
   5
-C5
+C8
 330
 17
 100
@@ -6055,7 +6137,7 @@ WF_PUERTAS
 100
 AcDbCircle
  10
-48.6
+49.2
  20
 60.599999999999994
  30
@@ -6065,7 +6147,7 @@ AcDbCircle
   0
 LINE
   5
-C6
+C9
 330
 17
 100
@@ -6075,13 +6157,13 @@ WF_RUTAS
 100
 AcDbLine
  10
-48.6
+49.2
  20
 60.599999999999994
  30
 0.0
  11
-46.8
+47.4
  21
 60.599999999999994
  31
@@ -6089,7 +6171,7 @@ AcDbLine
   0
 LWPOLYLINE
   5
-C7
+CA
 330
 17
 100
@@ -6103,25 +6185,25 @@ AcDbPolyline
  70
 1
  10
-48.6
+49.2
  20
 57.0
  10
-54.0
+54.6
  20
 57.0
  10
-54.0
+54.6
  20
 59.4
  10
-48.6
+49.2
  20
 59.4
   0
 TEXT
   5
-C8
+CB
 330
 17
 100
@@ -6131,7 +6213,7 @@ WF_NOMBRES
 100
 AcDbText
  10
-51.3
+51.900000000000006
  20
 58.2
  30
@@ -6141,7 +6223,7 @@ AcDbText
   1
 Urología|consulta|consultorio
  11
-51.3
+51.900000000000006
  21
 58.2
  31
@@ -6151,7 +6233,7 @@ AcDbText
   0
 CIRCLE
   5
-C9
+CC
 330
 17
 100
@@ -6161,9 +6243,9 @@ WF_PUERTAS
 100
 AcDbCircle
  10
-51.3
+49.2
  20
-57.0
+58.2
  30
 0.0
  40
@@ -6171,7 +6253,7 @@ AcDbCircle
   0
 LINE
   5
-CA
+CD
 330
 17
 100
@@ -6181,21 +6263,21 @@ WF_RUTAS
 100
 AcDbLine
  10
-51.3
+49.2
  20
-57.0
+58.2
  30
 0.0
  11
-51.3
+47.4
  21
-55.8
+58.8
  31
 0.0
   0
 LWPOLYLINE
   5
-CB
+CE
 330
 17
 100
@@ -6209,25 +6291,25 @@ AcDbPolyline
  70
 1
  10
-9.0
+9.6
  20
 57.0
  10
-11.4
+13.2
  20
 57.0
  10
-11.4
+13.2
  20
 58.8
  10
-9.0
+9.6
  20
 58.8
   0
 TEXT
   5
-CC
+CF
 330
 17
 100
@@ -6237,7 +6319,7 @@ WF_NOMBRES
 100
 AcDbText
  10
-10.2
+11.399999999999999
  20
 57.9
  30
@@ -6247,7 +6329,7 @@ AcDbText
   1
 Secretaría - Control (Pediatría y Medicina)|administracion|secretaria,turnos
  11
-10.2
+11.399999999999999
  21
 57.9
  31
@@ -6257,7 +6339,7 @@ AcDbText
   0
 CIRCLE
   5
-CD
+D0
 330
 17
 100
@@ -6267,99 +6349,13 @@ WF_PUERTAS
 100
 AcDbCircle
  10
-11.4
+11.399999999999999
  20
-57.9
+58.8
  30
 0.0
  40
 0.3
-  0
-LINE
-  5
-CE
-330
-17
-100
-AcDbEntity
-  8
-WF_RUTAS
-100
-AcDbLine
- 10
-11.4
- 20
-57.9
- 30
-0.0
- 11
-10.8
- 21
-57.9
- 31
-0.0
-  0
-LWPOLYLINE
-  5
-CF
-330
-17
-100
-AcDbEntity
-  8
-WF_AREAS
-100
-AcDbPolyline
- 90
-4
- 70
-1
- 10
-27.0
- 20
-57.0
- 10
-29.4
- 20
-57.0
- 10
-29.4
- 20
-58.8
- 10
-27.0
- 20
-58.8
-  0
-TEXT
-  5
-D0
-330
-17
-100
-AcDbEntity
-  8
-WF_NOMBRES
-100
-AcDbText
- 10
-28.2
- 20
-57.9
- 30
-0.0
- 40
-0.5
-  1
-Secretaría - Control (Especialidades)|administracion|secretaria,turnos
- 11
-28.2
- 21
-57.9
- 31
-0.0
-100
-AcDbText
   0
 CIRCLE
   5
@@ -6373,9 +6369,9 @@ WF_PUERTAS
 100
 AcDbCircle
  10
-29.4
+11.399999999999999
  20
-57.9
+57.0
  30
 0.0
  40
@@ -6393,15 +6389,15 @@ WF_RUTAS
 100
 AcDbLine
  10
-29.4
+11.399999999999999
  20
-57.9
+57.0
  30
 0.0
  11
-28.8
+11.399999999999999
  21
-57.9
+55.8
  31
 0.0
   0
@@ -6421,19 +6417,19 @@ AcDbPolyline
  70
 1
  10
-45.0
+27.6
  20
 57.0
  10
-47.4
+31.2
  20
 57.0
  10
-47.4
+31.2
  20
 58.8
  10
-45.0
+27.6
  20
 58.8
   0
@@ -6449,7 +6445,7 @@ WF_NOMBRES
 100
 AcDbText
  10
-46.2
+29.4
  20
 57.9
  30
@@ -6457,9 +6453,9 @@ AcDbText
  40
 0.5
   1
-Secretaría - Control (Ginecología)|administracion|secretaria,turnos
+Secretaría - Control (Especialidades y Tumores)|administracion|secretaria,turnos
  11
-46.2
+29.4
  21
 57.9
  31
@@ -6479,103 +6475,17 @@ WF_PUERTAS
 100
 AcDbCircle
  10
-46.2
+29.4
  20
-57.0
+58.8
  30
 0.0
  40
 0.3
   0
-LINE
-  5
-D6
-330
-17
-100
-AcDbEntity
-  8
-WF_RUTAS
-100
-AcDbLine
- 10
-46.2
- 20
-57.0
- 30
-0.0
- 11
-46.8
- 21
-57.0
- 31
-0.0
-  0
-LWPOLYLINE
-  5
-D7
-330
-17
-100
-AcDbEntity
-  8
-WF_AREAS
-100
-AcDbPolyline
- 90
-4
- 70
-1
- 10
-30.6
- 20
-47.4
- 10
-34.8
- 20
-47.4
- 10
-34.8
- 20
-54.6
- 10
-30.6
- 20
-54.6
-  0
-TEXT
-  5
-D8
-330
-17
-100
-AcDbEntity
-  8
-WF_NOMBRES
-100
-AcDbText
- 10
-32.7
- 20
-51.0
- 30
-0.0
- 40
-0.5
-  1
-Baño accesible|banos|baño,silla de ruedas
- 11
-32.7
- 21
-51.0
- 31
-0.0
-100
-AcDbText
-  0
 CIRCLE
   5
-D9
+D6
 330
 17
 100
@@ -6585,9 +6495,9 @@ WF_PUERTAS
 100
 AcDbCircle
  10
-32.7
+29.4
  20
-54.6
+57.0
  30
 0.0
  40
@@ -6595,7 +6505,7 @@ AcDbCircle
   0
 LINE
   5
-DA
+D7
 330
 17
 100
@@ -6605,13 +6515,13 @@ WF_RUTAS
 100
 AcDbLine
  10
-32.7
+29.4
  20
-54.6
+57.0
  30
 0.0
  11
-32.7
+29.4
  21
 55.8
  31
@@ -6619,7 +6529,345 @@ AcDbLine
   0
 LWPOLYLINE
   5
+D8
+330
+17
+100
+AcDbEntity
+  8
+WF_AREAS
+100
+AcDbPolyline
+ 90
+4
+ 70
+1
+ 10
+45.6
+ 20
+57.0
+ 10
+49.2
+ 20
+57.0
+ 10
+49.2
+ 20
+58.8
+ 10
+45.6
+ 20
+58.8
+  0
+TEXT
+  5
+D9
+330
+17
+100
+AcDbEntity
+  8
+WF_NOMBRES
+100
+AcDbText
+ 10
+47.400000000000006
+ 20
+57.9
+ 30
+0.0
+ 40
+0.5
+  1
+Secretaría - Control (Preconsulta y Ginecología)|administracion|secretaria,turnos
+ 11
+47.400000000000006
+ 21
+57.9
+ 31
+0.0
+100
+AcDbText
+  0
+CIRCLE
+  5
+DA
+330
+17
+100
+AcDbEntity
+  8
+WF_PUERTAS
+100
+AcDbCircle
+ 10
+47.400000000000006
+ 20
+58.8
+ 30
+0.0
+ 40
+0.3
+  0
+CIRCLE
+  5
 DB
+330
+17
+100
+AcDbEntity
+  8
+WF_PUERTAS
+100
+AcDbCircle
+ 10
+47.400000000000006
+ 20
+57.0
+ 30
+0.0
+ 40
+0.3
+  0
+LINE
+  5
+DC
+330
+17
+100
+AcDbEntity
+  8
+WF_RUTAS
+100
+AcDbLine
+ 10
+47.400000000000006
+ 20
+57.0
+ 30
+0.0
+ 11
+47.400000000000006
+ 21
+55.8
+ 31
+0.0
+  0
+LWPOLYLINE
+  5
+DD
+330
+17
+100
+AcDbEntity
+  8
+WF_AREAS
+100
+AcDbPolyline
+ 90
+4
+ 70
+1
+ 10
+30.6
+ 20
+47.4
+ 10
+32.7
+ 20
+47.4
+ 10
+32.7
+ 20
+54.6
+ 10
+30.6
+ 20
+54.6
+  0
+TEXT
+  5
+DE
+330
+17
+100
+AcDbEntity
+  8
+WF_NOMBRES
+100
+AcDbText
+ 10
+31.650000000000002
+ 20
+51.0
+ 30
+0.0
+ 40
+0.5
+  1
+Baño accesible hombres|banos|baño,silla de ruedas
+ 11
+31.650000000000002
+ 21
+51.0
+ 31
+0.0
+100
+AcDbText
+  0
+CIRCLE
+  5
+DF
+330
+17
+100
+AcDbEntity
+  8
+WF_PUERTAS
+100
+AcDbCircle
+ 10
+31.650000000000002
+ 20
+54.6
+ 30
+0.0
+ 40
+0.3
+  0
+LINE
+  5
+E0
+330
+17
+100
+AcDbEntity
+  8
+WF_RUTAS
+100
+AcDbLine
+ 10
+31.650000000000002
+ 20
+54.6
+ 30
+0.0
+ 11
+31.650000000000002
+ 21
+55.8
+ 31
+0.0
+  0
+LWPOLYLINE
+  5
+E1
+330
+17
+100
+AcDbEntity
+  8
+WF_AREAS
+100
+AcDbPolyline
+ 90
+4
+ 70
+1
+ 10
+32.7
+ 20
+47.4
+ 10
+34.8
+ 20
+47.4
+ 10
+34.8
+ 20
+54.6
+ 10
+32.7
+ 20
+54.6
+  0
+TEXT
+  5
+E2
+330
+17
+100
+AcDbEntity
+  8
+WF_NOMBRES
+100
+AcDbText
+ 10
+33.75
+ 20
+51.0
+ 30
+0.0
+ 40
+0.5
+  1
+Baño accesible mujeres|banos|baño,silla de ruedas
+ 11
+33.75
+ 21
+51.0
+ 31
+0.0
+100
+AcDbText
+  0
+CIRCLE
+  5
+E3
+330
+17
+100
+AcDbEntity
+  8
+WF_PUERTAS
+100
+AcDbCircle
+ 10
+33.75
+ 20
+54.6
+ 30
+0.0
+ 40
+0.3
+  0
+LINE
+  5
+E4
+330
+17
+100
+AcDbEntity
+  8
+WF_RUTAS
+100
+AcDbLine
+ 10
+33.75
+ 20
+54.6
+ 30
+0.0
+ 11
+33.75
+ 21
+55.8
+ 31
+0.0
+  0
+LWPOLYLINE
+  5
+E5
 330
 17
 100
@@ -6651,7 +6899,7 @@ AcDbPolyline
   0
 TEXT
   5
-DC
+E6
 330
 17
 100
@@ -6681,7 +6929,7 @@ AcDbText
   0
 CIRCLE
   5
-DD
+E7
 330
 17
 100
@@ -6701,7 +6949,7 @@ AcDbCircle
   0
 LINE
   5
-DE
+E8
 330
 17
 100
@@ -6725,7 +6973,7 @@ AcDbLine
   0
 LWPOLYLINE
   5
-DF
+E9
 330
 17
 100
@@ -6757,7 +7005,7 @@ AcDbPolyline
   0
 TEXT
   5
-E0
+EA
 330
 17
 100
@@ -6787,7 +7035,7 @@ AcDbText
   0
 CIRCLE
   5
-E1
+EB
 330
 17
 100
@@ -6807,7 +7055,7 @@ AcDbCircle
   0
 LINE
   5
-E2
+EC
 330
 17
 100
@@ -6831,7 +7079,7 @@ AcDbLine
   0
 LWPOLYLINE
   5
-E3
+ED
 330
 17
 100
@@ -6863,7 +7111,7 @@ AcDbPolyline
   0
 TEXT
   5
-E4
+EE
 330
 17
 100
@@ -6893,7 +7141,7 @@ AcDbText
   0
 CIRCLE
   5
-E5
+EF
 330
 17
 100
@@ -6903,9 +7151,9 @@ WF_PUERTAS
 100
 AcDbCircle
  10
-55.8
- 20
 47.7
+ 20
+43.2
  30
 0.0
  40
@@ -6913,7 +7161,7 @@ AcDbCircle
   0
 LINE
   5
-E6
+F0
 330
 17
 100
@@ -6923,21 +7171,21 @@ WF_RUTAS
 100
 AcDbLine
  10
-55.8
- 20
 47.7
+ 20
+43.2
  30
 0.0
  11
-56.9
- 21
 47.7
+ 21
+40.8
  31
 0.0
   0
 LWPOLYLINE
   5
-E7
+F1
 330
 17
 100
@@ -6953,11 +7201,11 @@ AcDbPolyline
  10
 53.4
  20
-34.2
+34.8
  10
 55.8
  20
-34.2
+34.8
  10
 55.8
  20
@@ -6969,7 +7217,7 @@ AcDbPolyline
   0
 TEXT
   5
-E8
+F2
 330
 17
 100
@@ -6981,7 +7229,7 @@ AcDbText
  10
 54.599999999999994
  20
-36.3
+36.599999999999994
  30
 0.0
  40
@@ -6991,7 +7239,7 @@ Ascensores sur|circulacion|ascensor
  11
 54.599999999999994
  21
-36.3
+36.599999999999994
  31
 0.0
 100
@@ -6999,7 +7247,7 @@ AcDbText
   0
 CIRCLE
   5
-E9
+F3
 330
 17
 100
@@ -7009,9 +7257,9 @@ WF_PUERTAS
 100
 AcDbCircle
  10
-55.8
+53.4
  20
-36.3
+36.599999999999994
  30
 0.0
  40
@@ -7019,7 +7267,7 @@ AcDbCircle
   0
 LINE
   5
-EA
+F4
 330
 17
 100
@@ -7029,13 +7277,13 @@ WF_RUTAS
 100
 AcDbLine
  10
-55.8
+53.4
  20
-36.3
+36.599999999999994
  30
 0.0
  11
-55.8
+53.4
  21
 35.4
  31
@@ -7043,7 +7291,7 @@ AcDbLine
   0
 LWPOLYLINE
   5
-EB
+F5
 330
 17
 100
@@ -7061,21 +7309,21 @@ AcDbPolyline
  20
 28.2
  10
-34.2
+33.6
  20
 28.2
  10
-34.2
+33.6
  20
-31.8
+30.6
  10
 30.6
  20
-31.8
+30.6
   0
 TEXT
   5
-EC
+F6
 330
 17
 100
@@ -7085,9 +7333,9 @@ WF_NOMBRES
 100
 AcDbText
  10
-32.400000000000006
+32.1
  20
-30.0
+29.4
  30
 0.0
  40
@@ -7095,9 +7343,9 @@ AcDbText
   1
 Farmacias Económicas|servicios|farmacia economica
  11
-32.400000000000006
+32.1
  21
-30.0
+29.4
  31
 0.0
 100
@@ -7105,7 +7353,7 @@ AcDbText
   0
 CIRCLE
   5
-ED
+F7
 330
 17
 100
@@ -7115,9 +7363,9 @@ WF_PUERTAS
 100
 AcDbCircle
  10
-32.400000000000006
+33.6
  20
-31.8
+29.4
  30
 0.0
  40
@@ -7125,7 +7373,7 @@ AcDbCircle
   0
 LINE
   5
-EE
+F8
 330
 17
 100
@@ -7135,21 +7383,21 @@ WF_RUTAS
 100
 AcDbLine
  10
-32.400000000000006
+33.6
  20
-31.8
+29.4
  30
 0.0
  11
-32.400000000000006
+35.1
  21
-35.4
+29.4
  31
 0.0
   0
 LWPOLYLINE
   5
-EF
+F9
 330
 17
 100
@@ -7165,11 +7413,11 @@ AcDbPolyline
  10
 53.4
  20
-21.6
+21.0
  10
 55.8
  20
-21.6
+21.0
  10
 55.8
  20
@@ -7181,7 +7429,7 @@ AcDbPolyline
   0
 TEXT
   5
-F0
+FA
 330
 17
 100
@@ -7193,7 +7441,7 @@ AcDbText
  10
 54.599999999999994
  20
-24.9
+24.6
  30
 0.0
  40
@@ -7203,7 +7451,7 @@ Cajas|administracion|pagos,caja,facturación
  11
 54.599999999999994
  21
-24.9
+24.6
  31
 0.0
 100
@@ -7211,7 +7459,7 @@ AcDbText
   0
 CIRCLE
   5
-F1
+FB
 330
 17
 100
@@ -7221,9 +7469,9 @@ WF_PUERTAS
 100
 AcDbCircle
  10
-55.8
+53.4
  20
-24.9
+24.6
  30
 0.0
  40
@@ -7231,7 +7479,7 @@ AcDbCircle
   0
 LINE
   5
-F2
+FC
 330
 17
 100
@@ -7241,21 +7489,21 @@ WF_RUTAS
 100
 AcDbLine
  10
-55.8
+53.4
  20
-24.9
+24.6
  30
 0.0
  11
-56.9
+51.0
  21
-24.9
+24.6
  31
 0.0
   0
 LWPOLYLINE
   5
-F3
+FD
 330
 17
 100
@@ -7295,19 +7543,19 @@ AcDbPolyline
  10
 55.8
  20
-21.6
+21.0
  10
 43.2
  20
-21.6
+21.0
  10
 43.2
  20
-24.0
+23.4
  10
 39.6
  20
-24.0
+23.4
  10
 39.6
  20
@@ -7319,7 +7567,7 @@ AcDbPolyline
   0
 TEXT
   5
-F4
+FE
 330
 17
 100
@@ -7331,7 +7579,7 @@ AcDbText
  10
 43.0
  20
-16.900000000000002
+16.7
  30
 0.0
  40
@@ -7341,7 +7589,7 @@ Dirección|administracion|direccion,gerencia
  11
 43.0
  21
-16.900000000000002
+16.7
  31
 0.0
 100
@@ -7349,7 +7597,7 @@ AcDbText
   0
 CIRCLE
   5
-F5
+FF
 330
 17
 100
@@ -7359,9 +7607,9 @@ WF_PUERTAS
 100
 AcDbCircle
  10
-55.8
+35.1
  20
-15.600000000000001
+28.2
  30
 0.0
  40
@@ -7369,7 +7617,7 @@ AcDbCircle
   0
 LINE
   5
-F6
+100
 330
 17
 100
@@ -7379,21 +7627,227 @@ WF_RUTAS
 100
 AcDbLine
  10
-55.8
+35.1
  20
-15.600000000000001
+28.2
  30
 0.0
  11
-56.9
+35.1
  21
-15.600000000000001
+29.4
  31
 0.0
   0
 LWPOLYLINE
   5
-F7
+101
+330
+17
+100
+AcDbEntity
+  8
+WF_ESPERA
+100
+AcDbPolyline
+ 90
+7
+ 70
+1
+ 10
+10.8
+ 20
+72.6
+ 10
+31.2
+ 20
+72.6
+ 10
+31.2
+ 20
+70.8
+ 10
+31.2
+ 20
+69.0
+ 10
+14.4
+ 20
+69.0
+ 10
+14.4
+ 20
+71.4
+ 10
+10.8
+ 20
+71.4
+  0
+TEXT
+  5
+102
+330
+17
+100
+AcDbEntity
+  8
+WF_ESPERA
+100
+AcDbText
+ 10
+20.571428571428573
+ 20
+70.97142857142858
+ 30
+0.0
+ 40
+0.5
+  1
+Sala de espera norte
+ 11
+20.571428571428573
+ 21
+70.97142857142858
+ 31
+0.0
+100
+AcDbText
+  0
+LWPOLYLINE
+  5
+103
+330
+17
+100
+AcDbEntity
+  8
+WF_ESPERA
+100
+AcDbPolyline
+ 90
+4
+ 70
+1
+ 10
+47.4
+ 20
+69.0
+ 10
+54.6
+ 20
+69.0
+ 10
+54.6
+ 20
+72.6
+ 10
+47.4
+ 20
+72.6
+  0
+TEXT
+  5
+104
+330
+17
+100
+AcDbEntity
+  8
+WF_ESPERA
+100
+AcDbText
+ 10
+51.0
+ 20
+70.8
+ 30
+0.0
+ 40
+0.5
+  1
+Espera noreste
+ 11
+51.0
+ 21
+70.8
+ 31
+0.0
+100
+AcDbText
+  0
+LWPOLYLINE
+  5
+105
+330
+17
+100
+AcDbEntity
+  8
+WF_ESPERA
+100
+AcDbPolyline
+ 90
+6
+ 70
+1
+ 10
+39.6
+ 20
+38.4
+ 10
+49.8
+ 20
+38.4
+ 10
+49.8
+ 20
+39.6
+ 10
+55.8
+ 20
+39.6
+ 10
+55.8
+ 20
+43.2
+ 10
+39.6
+ 20
+43.2
+  0
+TEXT
+  5
+106
+330
+17
+100
+AcDbEntity
+  8
+WF_ESPERA
+100
+AcDbText
+ 10
+48.4
+ 20
+40.4
+ 30
+0.0
+ 40
+0.5
+  1
+Espera de Farmacia
+ 11
+48.4
+ 21
+40.4
+ 31
+0.0
+100
+AcDbText
+  0
+LWPOLYLINE
+  5
+107
 330
 17
 100
@@ -7407,17 +7861,17 @@ AcDbPolyline
  70
 0
  10
-1.0
+2.4
  20
 55.8
  10
-56.9
+56.4
  20
 55.8
   0
 LWPOLYLINE
   5
-F8
+108
 330
 17
 100
@@ -7431,17 +7885,17 @@ AcDbPolyline
  70
 0
  10
-56.9
+56.4
  20
 0.6
  10
-56.9
+56.4
  20
 75.0
   0
 LWPOLYLINE
   5
-F9
+109
 330
 17
 100
@@ -7465,7 +7919,7 @@ AcDbPolyline
   0
 LWPOLYLINE
   5
-FA
+10A
 330
 17
 100
@@ -7479,17 +7933,17 @@ AcDbPolyline
  70
 0
  10
-10.8
+11.4
  20
-55.8
+58.8
  10
-10.8
+11.4
  20
-72.0
+70.2
   0
 LWPOLYLINE
   5
-FB
+10B
 330
 17
 100
@@ -7503,113 +7957,17 @@ AcDbPolyline
  70
 0
  10
-19.8
+8.4
  20
-55.8
+70.2
  10
-19.8
+12.0
  20
-72.0
+70.2
   0
 LWPOLYLINE
   5
-FC
-330
-17
-100
-AcDbEntity
-  8
-WF_RUTAS
-100
-AcDbPolyline
- 90
-2
- 70
-0
- 10
-28.8
- 20
-55.8
- 10
-28.8
- 20
-72.0
-  0
-LWPOLYLINE
-  5
-FD
-330
-17
-100
-AcDbEntity
-  8
-WF_RUTAS
-100
-AcDbPolyline
- 90
-2
- 70
-0
- 10
-37.5
- 20
-55.8
- 10
-37.5
- 20
-72.6
-  0
-LWPOLYLINE
-  5
-FE
-330
-17
-100
-AcDbEntity
-  8
-WF_RUTAS
-100
-AcDbPolyline
- 90
-2
- 70
-0
- 10
-46.8
- 20
-55.8
- 10
-46.8
- 20
-69.0
-  0
-LWPOLYLINE
-  5
-FF
-330
-17
-100
-AcDbEntity
-  8
-WF_RUTAS
-100
-AcDbPolyline
- 90
-2
- 70
-0
- 10
-10.8
- 20
-72.0
- 10
-37.5
- 20
-72.0
-  0
-LWPOLYLINE
-  5
-100
+10C
 330
 17
 100
@@ -7623,21 +7981,117 @@ AcDbPolyline
  70
 0
  10
-37.5
+20.4
  20
-72.6
+55.8
  10
-46.8
+20.4
  20
-74.4
+70.8
  10
-56.9
+31.2
  20
-74.4
+70.8
   0
 LWPOLYLINE
   5
-101
+10D
+330
+17
+100
+AcDbEntity
+  8
+WF_RUTAS
+100
+AcDbPolyline
+ 90
+2
+ 70
+0
+ 10
+29.4
+ 20
+58.8
+ 10
+29.4
+ 20
+66.6
+  0
+LWPOLYLINE
+  5
+10E
+330
+17
+100
+AcDbEntity
+  8
+WF_RUTAS
+100
+AcDbPolyline
+ 90
+2
+ 70
+0
+ 10
+37.8
+ 20
+55.8
+ 10
+37.8
+ 20
+72.6
+  0
+LWPOLYLINE
+  5
+10F
+330
+17
+100
+AcDbEntity
+  8
+WF_RUTAS
+100
+AcDbPolyline
+ 90
+2
+ 70
+0
+ 10
+47.4
+ 20
+58.8
+ 10
+47.4
+ 20
+70.8
+  0
+LWPOLYLINE
+  5
+110
+330
+17
+100
+AcDbEntity
+  8
+WF_RUTAS
+100
+AcDbPolyline
+ 90
+2
+ 70
+0
+ 10
+49.2
+ 20
+73.5
+ 10
+56.4
+ 20
+73.5
+  0
+LWPOLYLINE
+  5
+111
 330
 17
 100
@@ -7661,7 +8115,7 @@ AcDbPolyline
   0
 LWPOLYLINE
   5
-102
+112
 330
 17
 100
@@ -7671,21 +8125,53 @@ WF_RUTAS
 100
 AcDbPolyline
  90
-2
+4
  70
 0
  10
 30.6
  20
+35.8
+ 10
+37.2
+ 20
+35.8
+ 10
+37.2
+ 20
 35.4
  10
-56.9
+56.4
  20
 35.4
   0
 LWPOLYLINE
   5
-103
+113
+330
+17
+100
+AcDbEntity
+  8
+WF_RUTAS
+100
+AcDbPolyline
+ 90
+2
+ 70
+0
+ 10
+47.7
+ 20
+40.8
+ 10
+47.7
+ 20
+35.4
+  0
+LWPOLYLINE
+  5
+114
 330
 17
 100
@@ -7699,21 +8185,45 @@ AcDbPolyline
  70
 0
  10
-50.4
+51.0
  20
 35.4
  10
-50.4
+51.0
  20
-22.8
+19.8
  10
-53.4
+51.0
  20
-22.8
+21.0
   0
 LWPOLYLINE
   5
-104
+115
+330
+17
+100
+AcDbEntity
+  8
+WF_RUTAS
+100
+AcDbPolyline
+ 90
+2
+ 70
+0
+ 10
+35.1
+ 20
+35.4
+ 10
+35.1
+ 20
+29.4
+  0
+LWPOLYLINE
+  5
+116
 330
 17
 100
@@ -7729,23 +8239,23 @@ AcDbPolyline
  10
 43.8
  20
-32.8
+33.0
  10
 48.6
  20
-32.8
+33.0
  10
 48.6
  20
-38.0
+38.4
  10
 43.8
  20
-38.0
+38.4
   0
 LWPOLYLINE
   5
-105
+117
 330
 17
 100
@@ -7759,25 +8269,25 @@ AcDbPolyline
  70
 1
  10
-39.9
+39.6
  20
-24.0
+23.4
  10
 43.2
  20
-24.0
+23.4
  10
 43.2
  20
-26.0
+26.4
  10
-39.9
+39.6
  20
-26.0
+26.4
   0
 TEXT
   5
-106
+118
 330
 17
 100
@@ -7787,9 +8297,9 @@ WF_VERTICAL
 100
 AcDbText
  10
-33.0
+33.3
  20
-69.0
+68.7
  30
 0.0
  40
@@ -7797,9 +8307,9 @@ AcDbText
   1
 ASC-A
  11
-33.0
+33.3
  21
-69.0
+68.7
  31
 0.0
 100
@@ -7807,7 +8317,7 @@ AcDbText
   0
 TEXT
   5
-107
+119
 330
 17
 100
@@ -7819,7 +8329,7 @@ AcDbText
  10
 54.6
  20
-36.3
+36.6
  30
 0.0
  40
@@ -7829,7 +8339,7 @@ ASC-B
  11
 54.6
  21
-36.3
+36.6
  31
 0.0
 100
@@ -7837,7 +8347,7 @@ AcDbText
   0
 TEXT
   5
-108
+11A
 330
 17
 100
@@ -7849,7 +8359,7 @@ AcDbText
  10
 30.6
  20
-35.4
+35.8
  30
 0.0
  40
@@ -7859,7 +8369,7 @@ Entrada principal
  11
 30.6
  21
-35.4
+35.8
  31
 0.0
 100
@@ -7867,7 +8377,7 @@ AcDbText
   0
 TEXT
   5
-109
+11B
 330
 17
 100
@@ -7877,7 +8387,7 @@ WF_INICIO
 100
 AcDbText
  10
-37.5
+37.8
  20
 72.6
  30
@@ -7887,7 +8397,7 @@ AcDbText
   1
 Entrada norte
  11
-37.5
+37.8
  21
 72.6
  31
@@ -8885,7 +9395,7 @@ CREATED_BY_EZDXF
   3
 WRITTEN_BY_EZDXF
 350
-10C
+11E
   0
 DICTIONARYVAR
   5
@@ -8897,11 +9407,11 @@ DictionaryVariables
 280
 0
   1
-1.4.4 @ 2026-10-21T02:27:08.121032+00:00
+1.4.4 @ 2026-10-21T02:35:16.980966+00:00
   0
 DICTIONARYVAR
   5
-10C
+11E
 330
 2D
 100
@@ -8909,7 +9419,7 @@ DictionaryVariables
 280
 0
   1
-1.4.4 @ 2026-10-21T02:27:08.131013+00:00
+1.4.4 @ 2026-10-21T02:35:16.994953+00:00
   0
 ENDSEC
   0
