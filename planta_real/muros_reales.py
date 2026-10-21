@@ -12,14 +12,21 @@ S = 24.5; H = 3.0
 OUT = '/home/claude/hospital-solca/planta_real/'
 
 page = fitz.open(PDF)[0]
+# Rótulos: trazos vectoriales de letras. Se excluyen los que caen dentro de una palabra
+# y los segmentos menores de 12 pt (≈0,5 m), que son trazos de letras o detalles, no muros.
+words = [fitz.Rect(w[:4]) for w in page.get_text('words')]
+def dentro(x, y, r): return r.x0 - 2 <= x <= r.x1 + 2 and r.y0 - 2 <= y <= r.y1 + 2
 segs = []
 for d in page.get_drawings():
     if round(d.get('width') or 0, 2) != 0.72: continue
     if tuple(round(v, 2) for v in (d.get('color') or ())) != (0.0, 0.0, 0.0): continue
     for it in d['items']:
-        if it[0] == 'l':
-            a, b = it[1], it[2]
-            segs.append((a.x, a.y, b.x, b.y))
+        if it[0] != 'l': continue
+        a, b = it[1], it[2]
+        mx, my = (a.x + b.x) / 2, (a.y + b.y) / 2
+        if any(dentro(a.x, a.y, r) or dentro(b.x, b.y, r) or dentro(mx, my, r) for r in words): continue
+        if math.hypot(b.x - a.x, b.y - a.y) < 12: continue
+        segs.append((a.x, a.y, b.x, b.y))
 xs = [v for s in segs for v in (s[0], s[2])]; ys = [v for s in segs for v in (s[1], s[3])]
 X0, YMAX = min(xs), max(ys)
 def M(x, y): return ((x - X0) / S, (YMAX - y) / S)
