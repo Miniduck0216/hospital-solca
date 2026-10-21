@@ -9,6 +9,7 @@ import { useStore } from '../store.js'
 import { vivo } from '../lib/vivo.js'
 
 const CX = H.ancho / 2, CY = H.largo / 2
+const SUELO_MODELO = new Set(['Césped', 'Asfalto', 'Vereda', 'Pintura vial'])
 // plano (x, y, z arriba) → escena (X, Y arriba, Z): X = x − CX, Y = z, Z = CY − y
 const PLANO_A_ESCENA = new THREE.Matrix4().set(1, 0, 0, -CX, 0, 0, 1, 0, 0, -1, 0, CY, 0, 0, 0, 1)
 
@@ -194,6 +195,7 @@ function construirParte(prims) {
     const malla = new THREE.Mesh(a.geometria(), mat)
     malla.applyMatrix4(PLANO_A_ESCENA)
     malla.castShadow = !mat.transparent; malla.receiveShadow = true
+    malla.userData.mat = m
     grupo.add(malla)
   }
   return { grupo, materiales }
@@ -206,6 +208,8 @@ export function ModeloSK() {
     const out = {}
     for (const [k, prims] of Object.entries(M.partes)) out[k] = construirParte(prims)
     for (const t of M.textos) out[t.parte]?.grupo.add(texto(t))
+    // el suelo del entorno lo pone el mapa real (SueloMapa): se ocultan lote, calles y veredas del modelo
+    out.exterior?.grupo.children.forEach((m) => { if (SUELO_MODELO.has(m.userData.mat)) m.visible = false })
     return out
   }, [])
   useEffect(() => { gl.localClippingEnabled = true }, [gl])
@@ -238,7 +242,7 @@ export function ModeloSK() {
       {/* terreno lejano para que no termine el mundo en el borde del lote */}
       <mesh rotation-x={-Math.PI / 2} position-y={-0.82} receiveShadow>
         <planeGeometry args={[1600, 1600]} />
-        <meshStandardMaterial color="#7FAE63" />
+        <meshStandardMaterial color="#E4E2DD" />
       </mesh>
     </group>
   )

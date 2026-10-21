@@ -1,8 +1,8 @@
 // Georreferenciación del plano interior de SOLCA sobre la huella real del edificio en OpenStreetMap
 // (way 396030970, «Solca», building=hospital). Ajuste de similitud (rotación, escala y traslación)
 // que maximiza la superposición de polígonos (IoU ≈ 0.87). Datos © OpenStreetMap contributors (ODbL).
-const ROT = -0.3752457891787809                 // rotación del plano (rad); -21.5° ≈ ángulo del norte del modelo
-const ESC = 0.8948551836579328        // metros geográficos por metro del plano
+export const ROT = -0.3752457891787809                 // rotación del plano (rad); -21.5° ≈ ángulo del norte del modelo
+export const ESC = 0.8948551836579328        // metros geográficos por metro del plano
 const CP = [81.6222, 69.6667]     // centro del plano (m)
 const CO = [-7.1850, -1.3390]     // centro de la huella OSM en metros ENU locales
 const LAT0 = -0.1366, LON0 = -78.4689

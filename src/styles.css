@@ -51,3 +51,4 @@ ol { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap:
 .cambio-modo { display: inline-flex; background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 4px; gap: 2px; }
 .cambio-modo button { border: 0; background: transparent; border-radius: 999px; padding: 7px 16px; font-weight: 600; font-size: .85rem; color: var(--muted); }
 .cambio-modo button[aria-selected="true"] { background: var(--ink); color: #fff; }
+.atribucion-3d { position: absolute; right: 6px; bottom: 4px; z-index: 3; font-size: 10px; color: #3d4752; background: rgba(255,255,255,.75); border-radius: 6px; padding: 1px 6px; pointer-events: none; }
