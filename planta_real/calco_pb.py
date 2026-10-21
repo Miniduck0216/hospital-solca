@@ -10,11 +10,11 @@ import math, sys
 import numpy as np
 import ezdxf
 
-ANCHO, FONDO = 58.0, 76.0
-# esquinas del rectángulo de referencia en la imagen (px) → plano (m), y hacia el norte de la imagen
-IMG = [(345, 215), (852, 220), (812, 757), (151, 750)]
+ANCHO, FONDO = 58.0, 72.0
+# esquinas del rectángulo de referencia en la imagen (px) → plano (m), y hacia el norte de la imagen.
+# Ancho 58 m: con esa escala el edificio completo (ala + bloque gris) mide ≈131 m, como la huella de OSM (≈135 m).
+IMG = [(472, 340), (1072, 316), (1105, 1070), (498, 1085)]
 PLA = [(0, FONDO), (ANCHO, FONDO), (ANCHO, 0), (0, 0)]
-
 
 def homografia(src, dst):
     A = []
@@ -33,33 +33,43 @@ def P(p):
 
 
 # ---- calco en píxeles de la captura
-CONTORNO = [(345, 215), (852, 220), (812, 757), (757, 757), (762, 665), (490, 645), (528, 488), (560, 430), (585, 322), (310, 312)]
+CONTORNO = [(472, 348), (800, 328), (925, 283), (1072, 283), (1105, 1070), (1060, 1072), (1055, 975), (815, 985), (810, 790), (800, 512), (478, 520)]
 AREAS = [  # nombre|categoria|sinónimos, polígono en px
-    ('Consultorios 1 - 35|consulta|consulta externa,consultorio', [(382, 222), (505, 225), (485, 300), (360, 298)]),
-    ('Neumología - 21|consulta|pulmón,neumologia', [(520, 232), (614, 236), (608, 306), (516, 303)]),
-    ('Ginecología - 4|consulta|ginecologia,colposcopia', [(690, 234), (735, 234), (778, 234), (815, 236), (810, 316), (680, 314)]),
-    ('Baños hombres|banos|baño,sanitario', [(345, 218), (380, 219), (377, 246), (342, 245)]),
-    ('Baños mujeres|banos|baño,sanitario', [(738, 222), (778, 222), (777, 240), (736, 240)]),
-    ('Baño accesible|banos|baño,silla de ruedas', [(592, 322), (628, 322), (622, 346), (586, 346)]),
-    ('Ascensores norte|circulacion|ascensor', [(624, 238), (654, 239), (652, 262), (621, 261)]),
-    ('Capilla|servicios|oración,capilla', [(580, 347), (622, 347), (611, 395), (569, 394)]),
-    ('RPIS|administracion|red pública,rpis', [(569, 396), (611, 397), (604, 424), (561, 422)]),
-    ('Farmacia|servicios|medicinas,farmacia', [(665, 338), (830, 342), (826, 400), (660, 397)]),
-    ('Ascensores sur|circulacion|ascensor', [(790, 430), (823, 431), (821, 458), (788, 457)]),
-    ('Farmacias Económicas|servicios|farmacia economica', [(515, 458), (603, 460), (598, 486), (510, 485)]),
-    ('Cajas|administracion|pagos,caja,facturación', [(765, 500), (810, 503), (806, 548), (762, 546)]),
-    ('Dirección|administracion|direccion,gerencia', [(528, 490), (632, 493), (668, 550), (760, 551), (797, 560), (797, 660), (490, 642)]),
+    ('Baños hombres|banos|baño,sanitario', [(474, 350), (512, 348), (513, 383), (475, 385)]),
+    ('Consultorio 35|consulta|consulta externa,consultorio', [(560, 342), (655, 338), (655, 372), (560, 375)]),
+    ('Pediatría 03 - 33|consulta|pediatria,niños', [(520, 380), (572, 378), (575, 470), (524, 472)]),
+    ('Medicina 04 - 26|consulta|medicina interna', [(600, 378), (658, 376), (660, 470), (603, 472)]),
+    ('Secretaría - Control (Pediatría y Medicina)|administracion|secretaria,turnos', [(524, 474), (660, 472), (660, 492), (525, 494)]),
+    ('Endocrinología - 22|consulta|endocrinologia,diabetes', [(690, 340), (795, 332), (797, 375), (690, 380)]),
+    ('Ascensores norte|circulacion|ascensor', [(802, 345), (842, 343), (843, 382), (802, 384)]),
+    ('Traumatología - 20|consulta|traumatologia,huesos', [(708, 386), (838, 386), (840, 463), (710, 463)]),
+    ('Secretaría - Control (Endocrinología y Traumatología)|administracion|secretaria,turnos', [(710, 466), (840, 466), (840, 488), (710, 490)]),
+    ('Baños mujeres|banos|baño,sanitario', [(927, 286), (978, 286), (978, 306), (927, 306)]),
+    ('Consultorio 2|consulta|consulta externa,consultorio', [(888, 320), (1035, 318), (1035, 358), (888, 360)]),
+    ('Gastroenterología - 12|consulta|gastroenterologia,digestivo', [(888, 362), (1035, 360), (1035, 455), (888, 457)]),
+    ('Secretaría - Control (Gastroenterología)|administracion|secretaria,turnos', [(890, 459), (1035, 457), (1035, 482), (890, 485)]),
+    ('Baño accesible|banos|baño,silla de ruedas', [(799, 514), (842, 512), (843, 580), (800, 582)]),
+    ('Capilla|servicios|oración,capilla', [(800, 585), (845, 584), (846, 640), (801, 642)]),
+    ('RPIS|administracion|red pública,rpis', [(801, 645), (846, 644), (847, 680), (802, 682)]),
+    ('Farmacia|servicios|medicinas,farmacia', [(893, 530), (1068, 528), (1070, 630), (895, 632)]),
+    ('Ascensores sur|circulacion|ascensor', [(1045, 675), (1075, 675), (1076, 715), (1046, 715)]),
+    ('Farmacias Económicas|servicios|farmacia economica', [(806, 742), (900, 742), (902, 790), (808, 792)]),
+    ('Cajas|administracion|pagos,caja,facturación', [(1045, 775), (1078, 775), (1080, 845), (1046, 845)]),
+    ('Dirección|administracion|direccion,gerencia', [(815, 795), (902, 795), (945, 852), (1080, 850), (1080, 970), (815, 980)]),
 ]
 RUTAS = [
-    [(330, 309), (585, 318), (645, 320), (845, 326)],      # pasillo norte (frente a consultorios)
-    [(645, 320), (645, 440)],                               # pasillo entre Capilla y Farmacia
-    [(572, 444), (645, 440), (825, 440)],                   # hall (acceso lateral → ascensores sur)
-    [(845, 326), (825, 440), (822, 750)],                   # corredor este hasta el extremo sur
-    [(675, 232), (672, 320)],                               # acceso norte
+    [(490, 507), (845, 500), (1085, 495)],                  # pasillo norte, frente a las secretarías
+    [(518, 377), (690, 378)],                               # pasillo de consultorios (fila superior)
+    [(588, 377), (588, 505)], [(685, 378), (685, 505)],     # pasillos entre bloques de consultorios
+    [(862, 323), (862, 505)],                               # acceso norte
+    [(965, 360), (965, 495)],                               # pasillo de Gastroenterología
+    [(870, 505), (870, 700)],                               # pasillo Capilla / Farmacia
+    [(824, 712), (870, 700), (1040, 700), (1085, 700)],     # hall del acceso principal
+    [(1085, 495), (1085, 1060)],                            # corredor este
+    [(950, 700), (990, 800), (1040, 810)],                  # hall de Cajas y Dirección
 ]
-VERTICALES = [('ASC-A', (636, 262)), ('ASC-B', (805, 440))]
-INICIOS = [('Entrada principal', (572, 444)), ('Entrada norte', (675, 232))]
-
+VERTICALES = [('ASC-A', (822, 364)), ('ASC-B', (1058, 695))]
+INICIOS = [('Entrada principal', (824, 712)), ('Entrada norte', (862, 323))]
 
 def cerca_en_segmento(p, a, b):
     ax, ay = a; bx, by = b; dx, dy = bx - ax, by - ay
