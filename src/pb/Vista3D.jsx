@@ -49,11 +49,11 @@ function SueloMapa({ centro }) {
       // el estilo claro del mapa casi no se distingue en 3D: se triplica la distancia al blanco
       // (las calles siguen blancas; el fondo, las manzanas y los edificios se oscurecen)
       const img = ctx.getImageData(0, 0, PX, PX)
-      const px = img.data
-      for (let i = 0; i < px.length; i += 4) {
-        px[i] = Math.max(0, 255 - (255 - px[i]) * 3.2) * 0.96
-        px[i + 1] = Math.max(0, 255 - (255 - px[i + 1]) * 3.2) * 0.98
-        px[i + 2] = Math.max(0, 255 - (255 - px[i + 2]) * 3.2) * 0.95
+      const q = img.data
+      for (let i = 0; i < q.length; i += 4) {
+        q[i] = Math.max(0, 255 - (255 - q[i]) * 3.2) * 0.96
+        q[i + 1] = Math.max(0, 255 - (255 - q[i + 1]) * 3.2) * 0.98
+        q[i + 2] = Math.max(0, 255 - (255 - q[i + 2]) * 3.2) * 0.95
       }
       ctx.putImageData(img, 0, 0)
       window.__sueloCanvas = cv
