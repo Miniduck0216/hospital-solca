@@ -23,10 +23,20 @@ H_DINTEL_VENTANA = 2.40
 # Aberturas del pasillo central que el plano deja sin dibujar. No son muros: solo indican dónde termina
 # el interior. Entre el Bloque A (y = 78,8) y Farmacia (y = 72,5) el pasillo central queda abierto al
 # este por 6,3 m; el cierre sigue la línea de fachada de ambos (x = 57,65).
-CIERRES = [((57.65, 72.3), (57.65, 79.0))]
+CIERRES = [
+    # El pasillo que rodea el Bloque A por el sur y la Sala de Espera del este llegan hasta el borde del
+    # dibujo (x = 81,76, límite de la zona del plano); el plano no dibuja muro ahí.
+    ((77.3, 104.25), (81.76, 104.25)), ((81.76, 72.6), (81.76, 104.25)), ((80.39, 72.6), (81.76, 72.6))]
+# Fuera del edificio aunque queden cerca de un cierre: más allá del borde este del dibujo y la franja al
+# este de Farmacia.
+EXTERIOR_FORZADO = [box(81.77, -50, 300, 300), box(80.42, -50, 81.77, 72.58), box(77.3, 104.27, 81.77, 300)]
 # Límites entre ambientes sin muro en el plano (no se modelan como muro): el frente oeste de Farmacia
 # hacia el pasillo central.
 SEPARADORES = [((57.65, 53.3), (57.65, 72.3)),
+               # pasillo central / pasillo sur del Bloque A
+               ((57.65, 72.3), (57.65, 79.0)),
+               # boca sur del pasillo interior del Bloque A
+               ((64.9, 80.6), (70.1, 80.6)),
                # vestíbulo de la Puerta 1 / Información -> pasillo central
                ((51.0, 53.35), (57.8, 53.35)),
                # boca del hall de cajas (entre la esquina de Dirección y la columna de x = 70)
@@ -42,7 +52,7 @@ ZONAS = [(box(52.95, 33.75, 57.55, 37.25), 'SECRETARÍA'),
 # Nombre del ambiente que contiene el punto (el pasillo central que va del hall norte a Dirección).
 NOMBRES = {(54.3, 70.0): 'PASILLO CENTRAL', (55.0, 44.0): 'HALL PUERTA 1 / INFORMACIÓN',
            (73.0, 35.0): 'HALL DE CAJAS', (73.0, 49.0): 'HALL DE ASCENSORES', (50.0, 30.0): 'DIRECCIÓN',
-           (70.6, 95.4): 'ASEO', (73.5, 96.6): 'ATENCIÓN CITOLOGÍA'}
+           (70.6, 95.4): 'ASEO', (79.5, 88.0): 'SALA DE ESPERA BLOQUE A', (73.5, 96.6): 'ATENCIÓN CITOLOGÍA'}
 # Ambientes sin rótulo propio cuyo punto interior cae en la caja: nombre por zona.
 NOMBRES_ZONA = [(box(64.5, 27.3, 74.0, 29.1), 'GESTIÓN PRIVADOS')]
 # Escalera exterior de la Puerta 4 (al aire libre, bajo su propia cubierta): no es ambiente ni lleva losa;
@@ -715,7 +725,7 @@ class Modelo:
         mur = self.muros_raw.buffer(0.06)
         cols = unary_union(self.columnas).buffer(0.05)
         vid = unary_union(self.vidrios).buffer(0.1) if self.vidrios else Polygon()
-        segs = [s for s in self._segmentos({'PA', 'TA', 'P0 - Paredes'}) if s.length > 0.5]
+        segs = [s for s in self._segmentos({'PA', 'TA', 'NO', 'P0 - Paredes'}) if s.length > 0.5]
         out = []
         for s in segs:
             fuera = s.difference(mur).difference(cols).difference(vid).difference(self.cubierto_franjas)
@@ -755,6 +765,12 @@ class Modelo:
             self.escritorios
         if self.puerta_ascensor:
             extra.append(self.puerta_ascensor['rect'])
+        # las ventanillas de atención cierran el vano del muro donde están
+        for b in self.bloques:
+            if b['nombre'].startswith('Ventanilla'):
+                lin = [LineString(self.Lp(g[1])) for g in b['geo'] if not g[2] and len(g[1]) >= 2]
+                if lin:
+                    extra.append(box(*unary_union(lin).bounds).buffer(0.03, join_style=2))
         for pg in extra:
             for p in lista_polis(pg):
                 cv2.fillPoly(img, [np.array([px(lz, q) for q in p.exterior.coords], np.int32)], 255)
@@ -776,6 +792,12 @@ class Modelo:
         e2, _ = ndimage.label(~cerrado)
         ext = e2 == e2[0, 0]
         ext = ndimage.binary_dilation(ext, structure=np.ones((3, 3), bool), iterations=k)[pad:-pad, pad:-pad] & ~ocup
+        for zona in EXTERIOR_FORZADO:
+            zf = np.zeros((lz.h, lz.w), np.uint8)
+            q = zona.intersection(box(0, 0, lz.w * M.RES, lz.h * M.RES))
+            if not q.is_empty:
+                cv2.fillPoly(zf, [np.array([px(lz, c) for c in q.exterior.coords], np.int32)], 1)
+            ext = ext | ((zf > 0) & ~ocup)
         self.mascara_exterior = ext
         # vanos sin bloque de puerta (hasta 1,2 m) también separan ambientes: se engruesan muros, columnas,
         # vidrios y foso; puertas y tabiques se engruesan poco para no borrar baños pequeños
