@@ -25,8 +25,10 @@ function SueloMapa({ centro }) {
       map = new maplibregl.Map({ container: div, style: 'https://tiles.openfreemap.org/styles/positron', center: c, zoom, bearing: rumbo(),
         interactive: false, attributionControl: false, pixelRatio: 1, preserveDrawingBuffer: true, fadeDuration: 0 })
     } catch { div.remove(); return }
-    map.once('idle', () => {
-      if (!vivo) return
+    let hecho = false
+    const copiar = () => {
+      if (!vivo || hecho) return
+      hecho = true
       const cv = document.createElement('canvas')
       cv.width = cv.height = PX
       cv.getContext('2d').drawImage(map.getCanvas(), 0, 0, PX, PX)
@@ -35,9 +37,12 @@ function SueloMapa({ centro }) {
       t.anisotropy = 8
       setTex(t)
       map.remove(); div.remove()
-    })
+    }
+    map.once('idle', copiar)
+    // si la pestaña está en segundo plano 'idle' puede tardar: se copia lo que haya cuando el estilo y las teselas cargaron
+    const espera = setInterval(() => { if (map.loaded() && map.areTilesLoaded?.()) { clearInterval(espera); map.triggerRepaint(); map.once('render', copiar) } }, 1500)
     map.on('error', () => {})
-    return () => { vivo = false; try { map.remove() } catch { /* listo */ } div.remove() }
+    return () => { vivo = false; clearInterval(espera); try { map.remove() } catch { /* listo */ } div.remove() }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   return (
