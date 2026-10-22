@@ -36,10 +36,13 @@ class Modelo:
         self._columnas()
         self._ventanas()
         self._puertas()
+        self._gradas()
+        self._nucleo_hall()
+        self._tabiques()
         self._muros()
         self._ambientes()
         self._mobiliario()
-        self._gradas()
+        self._nombres()
 
     # --- utilidades
     def L(self, p):                       # mm del DXF -> m locales
@@ -142,6 +145,95 @@ class Modelo:
             p['dir'], p['nrm'] = d, nrm
             p['rect'] = Polygon([tuple(a + nrm * t0), tuple(b + nrm * t0), tuple(b + nrm * t1), tuple(a + nrm * t1)])
 
+
+    # --- hall norte (capa Rebars): fachadas de vidrio, foso del ascensor con su puerta
+    def _segmentos(self, capas):
+        out = []
+        for c, t, p, _ in self.planos:
+            if c not in capas:
+                continue
+            pts = self.Lp(p)
+            for i in range(len(pts) - 1):
+                if math.dist(pts[i], pts[i + 1]) > 0.02:
+                    out.append(LineString([pts[i], pts[i + 1]]))
+        return out
+
+    def _nucleo_hall(self):
+        self.vidrios, self.foso, self.puerta_ascensor = [], [], None
+        nucleo = unary_union([LineString(l.coords).envelope.buffer(0.35) for tr in self.tramos for l in tr]) \
+            if self.tramos else Polygon()
+        # foso: polilínea de la capa Rebars con caja de 2 a 4 m por lado
+        caja = None
+        for c, t, p, _ in self.planos:
+            if c == 'Rebars' and len(p) >= 8:
+                q = LineString(self.Lp(p)).envelope
+                x0, y0, x1, y1 = q.bounds
+                if 2 < x1 - x0 < 4.2 and 2 < y1 - y0 < 4.2:
+                    caja = q if caja is None or q.area > caja.area else caja
+        if caja is not None:
+            anillo = caja.difference(caja.buffer(-0.15, join_style=2))
+            # puerta del ascensor en el lado que mira al hall
+            hall = next(((self.L((x, y))) for c, t, x, y, h, ap in self.textos if t.strip() == 'HALL'), None)
+            x0, y0, x1, y1 = caja.bounds
+            lados = {'E': (x1, (y0 + y1) / 2), 'O': (x0, (y0 + y1) / 2), 'N': ((x0 + x1) / 2, y1), 'S': ((x0 + x1) / 2, y0)}
+            lado = min(lados, key=lambda k: math.dist(lados[k], hall)) if hall else 'E'
+            cx, cy = lados[lado]
+            if lado in 'EO':
+                hueco = box(cx - 0.2, cy - 0.5, cx + 0.2, cy + 0.5)
+                a, b = (cx, cy - 0.5), (cx, cy + 0.5)
+            else:
+                hueco = box(cx - 0.5, cy - 0.2, cx + 0.5, cy + 0.2)
+                a, b = (cx - 0.5, cy), (cx + 0.5, cy)
+            self.foso = lista_polis(anillo.difference(hueco))
+            # líneas de la cabina dentro del foso no son gradas
+            self.tramos = [tr for tr in self.tramos if not caja.contains(unary_union(tr).centroid)]
+            self.puerta_ascensor = dict(a=a, b=b, rect=hueco.intersection(anillo).envelope)
+            nucleo = nucleo.union(caja.buffer(0.3))
+        # vidrios: tramos largos y ortogonales de la capa Rebars fuera del núcleo de escalera/ascensor
+        segs = [s for s in self._segmentos({'Rebars'}) if s.length >= 1.5 and
+                (abs(s.coords[0][0] - s.coords[-1][0]) < 0.02 or abs(s.coords[0][1] - s.coords[-1][1]) < 0.02)
+                and not nucleo.contains(s.centroid)]
+        if segs:
+            # cada frente de vidrio se une de punta a punta (los huecos son puertas corredizas)
+            frentes = {}
+            for s_ in segs:
+                (xa, ya), (xb, yb) = s_.coords[0], s_.coords[-1]
+                horiz = abs(ya - yb) < 0.02
+                clave = ('h', round(ya / 0.3)) if horiz else ('v', round(xa / 0.3))
+                frentes.setdefault(clave, []).append(s_)
+            segs = []
+            for (o, _), lst in frentes.items():
+                if o == 'h':
+                    y = float(np.mean([l.coords[0][1] for l in lst]))
+                    xs = [c[0] for l in lst for c in l.coords]
+                    segs.append(LineString([(min(xs), y), (max(xs), y)]))
+                else:
+                    x = float(np.mean([l.coords[0][0] for l in lst]))
+                    ys = [c[1] for l in lst for c in l.coords]
+                    segs.append(LineString([(x, min(ys)), (x, max(ys))]))
+            segs = [s_ for s_ in segs if s_.length >= 3.0]
+            v = unary_union([s.buffer(0.05, cap_style=2) for s in segs]) if segs else Polygon()
+            v = v.difference(self.muros_raw.buffer(0.02)).difference(unary_union(self.columnas).buffer(0.02))
+            self.vidrios = [p for p in lista_polis(v) if p.area > 0.08 and min_ancho(p) < 0.4]
+
+    # --- tabiques dibujados con una sola línea (divisiones livianas, cubículos de baño)
+    def _tabiques(self):
+        mur = self.muros_raw.buffer(0.06)
+        cols = unary_union(self.columnas).buffer(0.05)
+        vid = unary_union(self.vidrios).buffer(0.1) if self.vidrios else Polygon()
+        segs = [s for s in self._segmentos({'PA', 'TA', 'P0 - Paredes'}) if s.length > 0.5]
+        out = []
+        for s in segs:
+            fuera = s.difference(mur).difference(cols).difference(vid)
+            for g in getattr(fuera, 'geoms', [fuera]):
+                if g.is_empty or g.geom_type != 'LineString' or g.length < 0.5:
+                    continue
+                out.append(g)
+        self.tabiques = []
+        for g in unary_union(out).geoms if out and unary_union(out).geom_type == 'MultiLineString' else out:
+            if g.length >= 0.5:
+                self.tabiques.append(dict(linea=g, poligono=g.buffer(0.025, cap_style=2, join_style=2)))
+
     # --- muros finales: sin columnas ni ventanas (que se modelan aparte)
     def _muros(self):
         m = self.muros_raw.difference(unary_union(self.columnas))
@@ -159,20 +251,36 @@ class Modelo:
                     cv2.fillPoly(img, [np.array([px(lz, q) for q in h.coords], np.int32)], 0)
         for p in self.puertas:
             cv2.fillPoly(img, [np.array([px(lz, q) for q in p['rect'].exterior.coords], np.int32)], 255)
+        extra = self.vidrios + self.foso + [t['poligono'] for t in self.tabiques]
+        if self.puerta_ascensor:
+            extra.append(self.puerta_ascensor['rect'])
+        for pg in extra:
+            for p in lista_polis(pg):
+                cv2.fillPoly(img, [np.array([px(lz, q) for q in p.exterior.coords], np.int32)], 255)
         # cerrar pequeñas fugas
         ocup = ndimage.binary_dilation(img > 0, iterations=3)
-        # exterior: se cierran las aberturas de fachada (entradas sin puerta) de hasta ~5 m
+        # exterior: se cierran las aberturas de fachada (entradas sin puerta) de hasta ~5 m; el borde de las
+        # cubiertas (capa AY) también cierra: lo que está bajo techo es interior
+        bajo_techo = lz.dibujar([p for c, _, p, _ in self.planos if c == 'AY'], 3)
         k = 130
         pad = k + 20
-        oc2 = np.pad(ocup, pad)
+        oc2 = np.pad(ocup | bajo_techo, pad)
         cerrado = ndimage.binary_dilation(oc2, structure=np.ones((3, 3), bool), iterations=k)
         e2, _ = ndimage.label(~cerrado)
         ext = e2 == e2[0, 0]
         ext = ndimage.binary_dilation(ext, structure=np.ones((3, 3), bool), iterations=k)[pad:-pad, pad:-pad] & ~ocup
         self.mascara_exterior = ext
-        # vanos sin bloque de puerta (hasta 1,2 m) también separan ambientes
+        # vanos sin bloque de puerta (hasta 1,2 m) también separan ambientes: se engruesan muros, columnas,
+        # vidrios y foso; puertas y tabiques se engruesan poco para no borrar baños pequeños
         cuad = np.ones((3, 3), bool)
-        ocup_sep = ndimage.binary_dilation(img > 0, structure=cuad, iterations=30)
+        duro = np.zeros_like(img)
+        for pg in [self.muros_raw] + self.columnas + self.vidrios + self.foso:
+            for p in lista_polis(pg):
+                cv2.fillPoly(duro, [np.array([px(lz, q) for q in p.exterior.coords], np.int32)], 255)
+                for h in p.interiors:
+                    cv2.fillPoly(duro, [np.array([px(lz, q) for q in h.coords], np.int32)], 0)
+        ocup_sep = ndimage.binary_dilation(duro > 0, structure=cuad, iterations=30) | \
+            ndimage.binary_dilation(img > 0, iterations=4)
         etiq, n = ndimage.label(~ocup_sep & ~ext)
         bordes = set()
         tam = ndimage.sum(np.ones_like(etiq), etiq, index=np.arange(1, n + 1))
@@ -181,36 +289,78 @@ class Modelo:
         for k in range(1, n + 1):
             if k in bordes or tam[k - 1] * M.RES ** 2 < 0.3:
                 continue
-            masc = ndimage.binary_dilation(etiq == k, structure=cuad, iterations=30) & ~ocup
+            masc = ndimage.binary_dilation(etiq == k, structure=cuad, iterations=30) & ~ocup & ~ext
             masc = ndimage.binary_dilation(masc, iterations=3)
             polis = M.contornos_a_poligonos(masc, lz, 0.03)
-            if not polis:
-                continue
-            pg = max(polis, key=lambda g: g.area)
-            dentro = [t for t in textos if pg.contains(Point(t[1], t[2]))]
-            nombre = unir_nombres(dentro)
-            self.ambientes.append(dict(poligono=pg, nombre=nombre, area=pg.area))
-        # huella del edificio: muros cerrados con 2,6 m y sin huecos interiores; los ambientes se recortan a ella
-        cerr = unary_union([self.muros_raw] + self.columnas).buffer(2.6, join_style=2).buffer(-2.6, join_style=2)
-        self.huella = unary_union([Polygon(p.exterior) for p in lista_polis(cerr) if p.area > 20])
+            for pg in polis:
+                if pg.area < 1.0:
+                    continue
+                dentro = [t for t in textos if pg.contains(Point(t[1], t[2]))]
+                nombre = unir_nombres(dentro)
+                self.ambientes.append(dict(poligono=pg, nombre=nombre, area=pg.area))
+        # segunda pasada: espacios pequeños que la separación gruesa borró (baños con mamparas, nichos)
+        cubierto = np.zeros_like(img)
         for a in self.ambientes:
-            a['poligono'] = max(lista_polis(a['poligono'].intersection(self.huella)) or [a['poligono']],
-                                key=lambda g: g.area)
-            a['area'] = a['poligono'].area
+            cv2.fillPoly(cubierto, [np.array([px(lz, q) for q in a['poligono'].exterior.coords], np.int32)], 255)
+        resto = ~ocup & ~ext & ~ndimage.binary_dilation(cubierto > 0, iterations=4)
+        resto = ndimage.binary_opening(resto, iterations=8)
+        et2, n2 = ndimage.label(resto)
+        for k2 in range(1, n2 + 1):
+            comp = et2 == k2
+            if comp.sum() * M.RES ** 2 < 1.5:
+                continue
+            for pg in M.contornos_a_poligonos(ndimage.binary_dilation(comp, iterations=8) & ~ocup, lz, 0.03):
+                if pg.area >= 1.5:
+                    dentro = [t for t in textos if pg.contains(Point(t[1], t[2]))]
+                    self.ambientes.append(dict(poligono=pg, nombre=unir_nombres(dentro), area=pg.area))
+        # dos consultorios numerados en un mismo ambiente: el tabique que los separa no está en el DXF
+        nuevos = []
+        for a in self.ambientes:
+            dentro = [t for t in textos if a['poligono'].contains(Point(t[1], t[2])) and
+                      re.fullmatch(r'CONSULTORIO - \d\d', t[0])]
+            if len(dentro) == 2:
+                (n1, x1, y1), (n2, x2, y2) = dentro
+                mx, my = (x1 + x2) / 2, (y1 + y2) / 2
+                dx, dy = x2 - x1, y2 - y1
+                lado = Polygon([(mx - dy * 50, my + dx * 50), (mx + dy * 50, my - dx * 50),
+                                (mx + dy * 50 + dx * 50, my - dx * 50 + dy * 50),
+                                (mx - dy * 50 + dx * 50, my + dx * 50 + dy * 50)])
+                pg = a['poligono']
+                linea = LineString([(mx - dy * 50, my + dx * 50), (mx + dy * 50, my - dx * 50)]).intersection(pg)
+                for nom, parte in ((n2, pg.intersection(lado)), (n1, pg.difference(lado))):
+                    parte = max(lista_polis(parte), key=lambda g: g.area)
+                    nuevos.append(dict(poligono=parte, nombre=nom, area=parte.area))
+                if not linea.is_empty:
+                    self.tabiques.append(dict(linea=linea, poligono=linea.buffer(0.05, cap_style=2)))
+            else:
+                nuevos.append(a)
+        self.ambientes = nuevos
+        # huella del edificio (losa): ambientes, muros y columnas, sin huecos interiores
+        todo = unary_union([a['poligono'] for a in self.ambientes] + [self.muros_raw] + self.columnas)
+        todo = todo.buffer(0.3, join_style=2).buffer(-0.3, join_style=2)
+        self.huella = unary_union([Polygon(p.exterior) for p in lista_polis(todo) if p.area > 5])
         self.ambientes = [a for a in self.ambientes if a['area'] > 0.8]
 
     def _etiquetas(self):
         fuera = {'ZONAS'}
         out = []
-        for c, t, x, y, h in self.textos:
+        for c, t, x, y, h, ap in self.textos:
             if c in fuera:
                 continue
+            lineas = [l for l in t.split('\n') if l.strip()]
             t = ' '.join(t.split())
-            if not t or re.fullmatch(r'[sS]|N = 0.00|\d\d|24 ESCALONES.*', t):
+            if not t or re.fullmatch(r'[sS]|N = 0.00|24 ESCALONES.*', t):
                 continue
+            if re.fullmatch(r'\d\d', t):
+                t = ('CONSULTORIO - ' if int(t) >= 10 else 'MÓDULO ') + t
             X, Y = self.L((x, y))
-            # el punto de inserción de MTEXT es la esquina superior izquierda: centro aprox.
-            out.append((t, X + len(t) * h / 1000 * 0.3, Y - h / 1000 * 0.5))
+            hm = h / 1000
+            ancho = max(len(l) for l in lineas) * hm * 0.62
+            alto = len(lineas) * hm * 1.35
+            col, fila = (ap - 1) % 3, (ap - 1) // 3          # 0 izq/arriba, 1 centro, 2 der/abajo
+            cx = X + ancho * (0.5 - 0.5 * col)
+            cy = Y - alto * (0.5 - 0.5 * fila)
+            out.append((t, cx, cy))
         # quitar duplicados exactos
         vistos, res = set(), []
         for t in out:
@@ -219,6 +369,29 @@ class Modelo:
                 vistos.add(k)
                 res.append(t)
         return res
+
+
+    # --- nombres finales: baños sin rótulo y espacios abiertos con varios rótulos
+    def _nombres(self):
+        san = [mu['poligono'].centroid for mu in self.muebles if mu['cat'] == 'sanitario']
+        for a in self.ambientes:
+            pg = a['poligono']
+            if not a['nombre']:
+                if any(pg.contains(c) for c in san):
+                    a['nombre'] = 'SS.HH.'
+                elif any(pg.intersection(unary_union(tr).convex_hull).area > 0.5 for tr in self.tramos):
+                    a['nombre'] = 'ESCALERA'
+                continue
+            partes = a['nombre'].split(' / ')
+            bloque = [x for x in partes if x.startswith('BLOQUE')]
+            if bloque:
+                otras = [x for x in partes if not x.startswith('BLOQUE')]
+                a['nombre'] = ' / '.join(['PASILLO ' + bloque[0]] + otras)
+                continue
+            if len(partes) > 2:
+                pref = [x for x in partes if 'ESPERA' in x or 'HALL' in x or 'FARMACIA' in x or 'LABORATORIO' in x]
+                otras = [x for x in partes if x not in pref and not x.startswith('BLOQUE')]
+                a['nombre'] = ' / '.join((pref + otras)[:2])
 
     # --- mobiliario: bloques y capas de muebles
     def _mobiliario(self):
@@ -264,15 +437,8 @@ class Modelo:
 
     # --- gradas: líneas de huella paralelas (capa GR y escalera del núcleo)
     def _gradas(self):
-        segs = []
-        for c, t, p, _ in self.planos:
-            if c != 'GR':
-                continue
-            pts = self.Lp(p)
-            for i in range(len(pts) - 1):
-                s = LineString([pts[i], pts[i + 1]])
-                if s.length > 0.6:
-                    segs.append(s)
+        segs = [s for s in self._segmentos({'GR'}) if s.length > 0.6]
+        segs += [s for s in self._segmentos({'Rebars'}) if 0.8 < s.length < 1.7]
         self.tramos = []
         usados = set()
         for i, s in enumerate(segs):
@@ -285,9 +451,17 @@ class Modelo:
                         abs(o.length - s.length) < 0.3 and o.distance(s) < 4.0:
                     grupo.append(j)
             if len(grupo) >= 4:
-                usados.update(grupo)
                 lineas = [segs[k] for k in grupo]
-                self.tramos.append(lineas)
+                # huellas reales: espaciado regular de 0,22 a 0,40 m y al menos 1 m de avance
+                (xa, ya), (xb, yb) = s.coords[0], s.coords[-1]
+                u = np.array([xb - xa, yb - ya]) / max(s.length, 1e-9)
+                nrm = np.array([-u[1], u[0]])
+                off = sorted(float(np.dot(np.array(l.centroid.coords[0]), nrm)) for l in lineas)
+                pasos = np.diff(off)
+                pasos = pasos[pasos > 0.05]
+                if len(pasos) >= 3 and 0.22 <= float(np.median(pasos)) <= 0.40 and off[-1] - off[0] >= 1.0:
+                    usados.update(grupo)
+                    self.tramos.append(lineas)
 
 
 def circulo(a, b, c):

@@ -1,0 +1,28 @@
+<!doctype html><html><body style="margin:0;background:#f4f3ef">
+<script type="module">
+import * as THREE from './three.module.js';
+const q = new URLSearchParams(location.search);
+const meta = await (await fetch('meta.json')).json();
+const pos = new Float32Array(await (await fetch('pos.bin')).arrayBuffer());
+const col = new Uint8Array(await (await fetch('col.bin')).arrayBuffer());
+const cls = new Uint8Array(await (await fetch('cls.bin')).arrayBuffer());
+const ocultar = (q.get('ocultar')||'IfcSpace').split(',').map(n=>meta.clases[n]).filter(v=>v!==undefined);
+const corte = parseFloat(q.get('corte')||'99');
+const P=[],C=[];
+for(let i=0;i<pos.length/9;i++){ if(ocultar.includes(cls[i*3])) continue;
+  const zmax=Math.max(pos[i*9+2],pos[i*9+5],pos[i*9+8]);
+  let a=[pos[i*9],pos[i*9+1],pos[i*9+2],pos[i*9+3],pos[i*9+4],pos[i*9+5],pos[i*9+6],pos[i*9+7],pos[i*9+8]];
+  if(zmax>corte){ for(const j of [2,5,8]) a[j]=Math.min(a[j],corte); }
+  P.push(...a); for(let j=0;j<9;j++) C.push(col[i*9+j]/255); }
+const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));
+g.setAttribute('color',new THREE.Float32BufferAttribute(C,3)); g.computeVertexNormals();
+const scene=new THREE.Scene(); scene.background=new THREE.Color(0xf4f3ef);
+scene.add(new THREE.Mesh(g,new THREE.MeshLambertMaterial({vertexColors:true,side:THREE.DoubleSide})));
+scene.add(new THREE.HemisphereLight(0xffffff,0x888877,1.6));
+const sol=new THREE.DirectionalLight(0xffffff,1.6); sol.position.set(-30,-50,80); scene.add(sol);
+const W=+q.get('w')||1400,H=+q.get('h')||1000;
+const cam=new THREE.PerspectiveCamera(+q.get('fov')||35,W/H,0.1,2000); cam.up.set(0,0,1);
+const [cx,cy,cz,tx,ty,tz]=q.get('cam').split(',').map(Number); cam.position.set(cx,cy,cz); cam.lookAt(tx,ty,tz);
+const r=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true}); r.setSize(W,H); document.body.appendChild(r.domElement);
+r.render(scene,cam); document.title='listo';
+</script></body></html>

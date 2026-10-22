@@ -204,6 +204,26 @@ def escribir(m, salida):
         vid = max(lista_polis(vid), key=lambda g: g.area) if not vid.is_empty else pg
         el = E.elemento('IfcWindow', 'Ventana', [E.extrusion(vid, H_ANTEPECHO, H_DINTEL_VENTANA - H_ANTEPECHO)],
                         vidrio, 'WINDOW')
+    # vidrios del hall (fachada de vidrio con puertas corredizas): vidrio hasta 3,0 m y banda superior
+    for pg in getattr(m, 'vidrios', []):
+        E.elemento('IfcWindow', 'Fachada de vidrio', [E.extrusion(pg, 0, 3.0)], vidrio, 'WINDOW')
+        E.elemento('IfcWall', 'Banda sobre vidrio', [E.extrusion(pg, 3.0, ALTURA - 3.0)], gris, 'STANDARD')
+    # foso del ascensor y su puerta
+    metal = E.estilo('Puerta de ascensor', (0.70, 0.72, 0.74))
+    for pg in getattr(m, 'foso', []):
+        E.elemento('IfcWall', 'Foso de ascensor', [E.extrusion(pg, 0, ALTURA)], hormigon, 'SHEAR')
+    pa = getattr(m, 'puerta_ascensor', None)
+    if pa:
+        E.elemento('IfcWall', 'Dintel de ascensor', [E.extrusion(pa['rect'], H_PUERTA, ALTURA - H_PUERTA)],
+                   hormigon, 'STANDARD')
+        el = E.elemento('IfcDoor', 'Puerta de ascensor', [E.extrusion(pa['rect'].buffer(-0.05), 0, H_PUERTA)],
+                        metal, 'DOOR')
+    # tabiques livianos: 2,0 m en baños (cubículos), altura completa en el resto
+    san = [mu['poligono'] for mu in m.muebles if mu['cat'] == 'sanitario']
+    for t in getattr(m, 'tabiques', []):
+        alto = 2.0 if any(t['linea'].distance(q) < 1.0 for q in san) else ALTURA
+        for q in lista_polis(t['poligono']):
+            E.elemento('IfcWall', 'Tabique', [E.extrusion(q, 0, alto)], gris, 'PARTITIONING')
     # columnas
     for pg in m.columnas:
         E.elemento('IfcColumn', 'Columna', [E.extrusion(pg, 0, ALTURA)], hormigon, 'COLUMN')

@@ -17,3 +17,6 @@ if __name__ == '__main__':
     cuenta, n_let = escribir(m, os.path.join(sal, 'solca_pb.ifc'))
     dibujar(m, os.path.join(sal, 'solca_pb_planta.png'), dpi=110, ancho=18)
     print(cuenta, 'letreros', n_let, 'ambientes', len(m.ambientes))
+    if '--pickle' in sys.argv:
+        import pickle
+        pickle.dump(m, open('/tmp/modelo.pkl', 'wb'))

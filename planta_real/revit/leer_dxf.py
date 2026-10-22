@@ -64,7 +64,8 @@ def cargar(ruta=DXF):
                                 rot=e.dxf.get('rotation', 0.0), sx=e.dxf.get('xscale', 1.0),
                                 sy=e.dxf.get('yscale', 1.0), capa=e.dxf.layer, geo=geo))
         elif t == 'MTEXT':
-            textos.append((e.dxf.layer, e.plain_text(), e.dxf.insert.x, e.dxf.insert.y, e.dxf.char_height))
+            textos.append((e.dxf.layer, e.plain_text(), e.dxf.insert.x, e.dxf.insert.y, e.dxf.char_height,
+                           e.dxf.get('attachment_point', 1)))
         elif t == 'HATCH':
             continue
         else:
