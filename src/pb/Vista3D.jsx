@@ -45,7 +45,7 @@ function SueloMapa({ centro }) {
       const cv = document.createElement('canvas')
       cv.width = cv.height = PX
       const ctx = cv.getContext('2d')
-      ctx.filter = 'brightness(0.78) contrast(1.5) saturate(1.2)'   // el estilo claro del mapa se ve lavado con la luz 3D (primero oscurecer, luego contrastar)
+      ctx.filter = 'brightness(0.86) contrast(1.6) saturate(1.3)'   // el estilo claro del mapa se ve lavado con la luz 3D (primero oscurecer, luego contrastar)
       ctx.drawImage(map.getCanvas(), 0, 0, PX, PX)
       window.__sueloCanvas = cv
       const t = new THREE.CanvasTexture(cv)
@@ -62,7 +62,7 @@ function SueloMapa({ centro }) {
   return (
     <mesh rotation-x={-Math.PI / 2} position={[centro[0], -0.22, -centro[1]]} receiveShadow>
       <planeGeometry args={[LADO, LADO]} />
-      {tex ? <meshStandardMaterial map={tex} roughness={1} /> : <meshStandardMaterial color="#D9DFE5" roughness={1} />}
+      {tex ? <meshBasicMaterial map={tex} toneMapped={false} /> : <meshBasicMaterial color="#D9DFE5" toneMapped={false} />}
     </mesh>
   )
 }
