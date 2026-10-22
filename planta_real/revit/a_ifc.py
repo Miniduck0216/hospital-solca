@@ -22,6 +22,48 @@ from modelo import ALTURA, H_PUERTA, H_ANTEPECHO, H_DINTEL_VENTANA, lista_polis 
 AZUL_SOLCA = (0.04, 0.36, 0.65)
 
 
+TOL = 0.003   # m: Revit no acepta tramos más cortos que ~1,2 mm; se usa un margen
+
+
+def limpiar(pg):
+    """Polígono válido (sin autointersección); si queda en varias piezas, la mayor."""
+    from shapely import make_valid
+    g = make_valid(pg) if not pg.is_valid else pg
+    piezas = lista_polis(g)
+    if not piezas:
+        return pg.convex_hull
+    g = max(piezas, key=lambda q: q.area).simplify(TOL * 0.6, preserve_topology=True)
+    if not g.is_valid:
+        g = max(lista_polis(make_valid(g)) or [g.convex_hull], key=lambda q: q.area)
+    return g
+
+
+def anillo_limpio(anillo):
+    """Puntos del anillo sin repetir el cierre, sin tramos < TOL y sin vértices colineales; None si no es simple."""
+    from shapely.geometry import LinearRing
+    pts = [(round(x, 4), round(y, 4)) for x, y in anillo.coords[:-1]]
+    out = []
+    for p in pts:
+        if not out or math.dist(out[-1], p) >= TOL:
+            out.append(p)
+    while len(out) > 3 and math.dist(out[0], out[-1]) < TOL:
+        out.pop()
+    # quitar colineales
+    cambio = True
+    while cambio and len(out) > 3:
+        cambio = False
+        for i in range(len(out)):
+            a, b, c = out[i - 1], out[i], out[(i + 1) % len(out)]
+            cr = (b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0])
+            if abs(cr) < 1e-7:
+                out.pop(i)
+                cambio = True
+                break
+    if len(out) < 3 or not LinearRing(out).is_simple:
+        return None
+    return out
+
+
 class Escritor:
     def __init__(self):
         f = self.f = ifcopenshell.api.run('project.create_file', version='IFC4')
@@ -50,17 +92,18 @@ class Escritor:
             f.createIfcCartesianPoint((0.0, 0.0, 0.0)), None, None))
 
     def perfil(self, pg):
+        """Perfil limpio para Revit: polígono válido, sin autointersecciones ni tramos menores de 3 mm."""
         f = self.f
+        pg = limpiar(pg)
 
-        def poli(anillo):
-            pts = [(round(x, 4), round(y, 4)) for x, y in anillo.coords]
-            if pts[0] != pts[-1]:
-                pts.append(pts[0])
+        def poli(pts):
+            pts = list(pts) + [pts[0]]
             return f.createIfcPolyline([f.createIfcCartesianPoint(p) for p in pts])
-        if pg.interiors:
-            return f.createIfcArbitraryProfileDefWithVoids('AREA', None, poli(pg.exterior),
-                                                          [poli(h) for h in pg.interiors])
-        return f.createIfcArbitraryClosedProfileDef('AREA', None, poli(pg.exterior))
+        ext = anillo_limpio(pg.exterior) or anillo_limpio(pg.convex_hull.exterior)
+        huecos = [h for h in (anillo_limpio(i) for i in pg.interiors) if h]
+        if huecos:
+            return f.createIfcArbitraryProfileDefWithVoids('AREA', None, poli(ext), [poli(h) for h in huecos])
+        return f.createIfcArbitraryClosedProfileDef('AREA', None, poli(ext))
 
     def extrusion(self, pg, z0, alto, origen=(0, 0), eje=(0, 0, 1), ref=(1, 0, 0)):
         f = self.f
@@ -228,9 +271,11 @@ def escribir(m, salida):
     for pg in m.columnas:
         E.elemento('IfcColumn', 'Columna', [E.extrusion(pg, 0, ALTURA)], hormigon, 'COLUMN')
     # ambientes
-    for a in m.ambientes:
-        E.elemento('IfcSpace', a['nombre'] or 'Ambiente', [E.extrusion(a['poligono'], 0, 2.70)], espacio, 'SPACE',
-                   props={'Area_m2': round(a['area'], 2)})
+    for i, a in enumerate(sorted(m.ambientes, key=lambda a: (-round(a['poligono'].centroid.y), a['poligono'].centroid.x))):
+        el = E.elemento('IfcSpace', f'PB-{i + 1:03d}', [E.extrusion(a['poligono'], 0, 2.70)], espacio, 'SPACE',
+                        props={'Area_m2': round(a['area'], 2), 'Ambiente': a['nombre'] or 'Sin nombre'})
+        if el is not None:
+            el.LongName = a['nombre'] or 'Sin nombre'
     # sanitarios y mobiliario
     for mu in m.muebles:
         pg = max(lista_polis(mu['poligono']), key=lambda g: g.area)
