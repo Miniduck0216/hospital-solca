@@ -18,6 +18,16 @@ H_PUERTA = 2.10
 H_ANTEPECHO = 0.90
 H_DINTEL_VENTANA = 2.40
 
+# Aberturas del pasillo central que el plano deja sin dibujar. No son muros: solo indican dónde termina
+# el interior. Entre el Bloque A (y = 78,8) y Farmacia (y = 72,5) el pasillo central queda abierto al
+# este por 6,3 m; el cierre sigue la línea de fachada de ambos (x = 57,65).
+CIERRES = [((57.65, 72.3), (57.65, 79.0))]
+# Límites entre ambientes sin muro en el plano (no se modelan como muro): el frente oeste de Farmacia
+# hacia el pasillo central.
+SEPARADORES = [((57.65, 53.3), (57.65, 72.3))]
+# Nombre del ambiente que contiene el punto (el pasillo central que va del hall norte a Dirección).
+NOMBRES = {(54.3, 70.0): 'PASILLO CENTRAL'}
+
 
 def lista_polis(g):
     if g.is_empty:
@@ -359,6 +369,8 @@ class Modelo:
                     cv2.fillPoly(img, [np.array([px(lz, q) for q in h.coords], np.int32)], 0)
         for p in self.puertas:
             cv2.fillPoly(img, [np.array([px(lz, q) for q in p['rect'].exterior.coords], np.int32)], 255)
+        for a, b in SEPARADORES:
+            cv2.line(img, px(lz, a), px(lz, b), 255, 3)
         extra = self.vidrios + self.foso + [t['poligono'] for t in self.tabiques]
         if self.puerta_ascensor:
             extra.append(self.puerta_ascensor['rect'])
@@ -370,6 +382,12 @@ class Modelo:
         # exterior: se cierran las aberturas de fachada (entradas sin puerta) de hasta ~5 m; el borde de las
         # cubiertas (capa AY) también cierra: lo que está bajo techo es interior
         bajo_techo = lz.dibujar([p for c, _, p, _ in self.planos if c == 'AY'], 3)
+        cierres = np.zeros_like(bajo_techo)
+        for a, b in CIERRES:
+            cv2.line(cierres.view(np.uint8), px(lz, a), px(lz, b), 1, 5)
+        cierres = cierres.astype(bool)
+        bajo_techo |= cierres
+        ocup = ocup | cierres
         k = 130
         pad = k + 20
         oc2 = np.pad(ocup | bajo_techo, pad)
@@ -516,6 +534,10 @@ class Modelo:
         san = [mu['poligono'].centroid for mu in self.muebles if mu['cat'] == 'sanitario']
         for a in self.ambientes:
             pg = a['poligono']
+            fijo = next((n for q, n in NOMBRES.items() if pg.contains(Point(q))), None)
+            if fijo:
+                a['nombre'] = fijo
+                continue
             if not a['nombre']:
                 if any(pg.contains(c) for c in san):
                     a['nombre'] = 'SS.HH.'
