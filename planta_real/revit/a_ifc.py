@@ -17,7 +17,8 @@ from matplotlib.textpath import TextPath
 from matplotlib.font_manager import FontProperties
 
 sys.path.insert(0, __import__('os').path.dirname(__import__('os').path.abspath(__file__)))
-from modelo import ALTURA, H_PUERTA, H_ANTEPECHO, H_DINTEL_VENTANA, H_PARAPETO, lista_polis  # noqa: E402
+from modelo import ALTURA, H_PUERTA, H_ANTEPECHO, H_DINTEL_VENTANA, H_PARAPETO, lista_polis, min_ancho  # noqa: E402
+from categorias import CATEGORIAS, categoria  # noqa: E402
 
 AZUL_SOLCA = (0.04, 0.36, 0.65)
 
@@ -83,6 +84,7 @@ class Escritor:
         for o in (sitio, edif, self.piso):
             o.ObjectPlacement = self.lugar()
         self.estilos = {}
+        self.materiales = {}
         self.cuenta = {}
 
     # --- geometría
@@ -113,13 +115,19 @@ class Escritor:
         return f.createIfcExtrudedAreaSolid(self.perfil(pg), pos, f.createIfcDirection((0.0, 0.0, 1.0)), float(alto))
 
     def estilo(self, nombre, rgb, transp=0.0):
+        """Estilo de superficie y material IFC del mismo nombre (Revit toma el color del material)."""
         if nombre not in self.estilos:
-            st = ifcopenshell.api.run('style.add_style', self.f, name=nombre)
-            ifcopenshell.api.run('style.add_surface_style', self.f, style=st, ifc_class='IfcSurfaceStyleShading',
-                                 attributes={'SurfaceColour': {'Name': None, 'Red': rgb[0], 'Green': rgb[1],
-                                                               'Blue': rgb[2]},
-                                             'Transparency': transp})
+            f = self.f
+            st = ifcopenshell.api.run('style.add_style', f, name=nombre)
+            col = {'Name': None, 'Red': rgb[0], 'Green': rgb[1], 'Blue': rgb[2]}
+            ifcopenshell.api.run('style.add_surface_style', f, style=st, ifc_class='IfcSurfaceStyleRendering',
+                                 attributes={'SurfaceColour': col, 'Transparency': transp,
+                                             'DiffuseColour': dict(col),
+                                             'ReflectanceMethod': 'NOTDEFINED'})
+            mat = ifcopenshell.api.run('material.add_material', f, name=nombre, category=nombre)
+            ifcopenshell.api.run('style.assign_material_style', f, material=mat, style=st, context=self.body)
             self.estilos[nombre] = st
+            self.materiales[nombre] = mat
         return self.estilos[nombre]
 
     def elemento(self, clase, nombre, solidos, estilo, tipo=None, props=None):
@@ -131,6 +139,9 @@ class Escritor:
         rep = f.createIfcShapeRepresentation(self.body, 'Body', 'SweptSolid', solidos)
         el.Representation = f.createIfcProductDefinitionShape(None, None, [rep])
         ifcopenshell.api.run('style.assign_representation_styles', f, shape_representation=rep, styles=[estilo])
+        mat = self.materiales.get(estilo.Name)
+        if mat is not None:
+            ifcopenshell.api.run('material.assign_material', f, products=[el], material=mat)
         if clase == 'IfcSpace':
             ifcopenshell.api.run('aggregate.assign_object', f, relating_object=self.piso, products=[el])
         else:
@@ -176,51 +187,85 @@ def texto_poligonos(texto, alto):
     return lista_polis(g), (maxx - minx) * esc
 
 
+def nombre_letrero(nom):
+    """Texto del letrero: sin rótulos dobles repetidos y sin el número de bloque."""
+    partes = [x for x in nom.split(' / ') if not x.startswith('BLOQUE')]
+    t = ' / '.join(partes[:2])
+    return t if len(t) <= 34 else partes[0][:34]
+
+
 def letreros(m):
-    """Un letrero por ambiente con nombre propio, sobre la cara exterior del dintel de su puerta."""
+    """Un letrero por ambiente con nombre: sobre el dintel de su puerta si la tiene; si es un espacio abierto
+    (hall, pasillo, espera, zona sin puerta) un letrero colgante del techo en su centro."""
     out = []
     for a in m.ambientes:
         nom = a['nombre']
-        if not nom or ' / ' in nom or a['area'] > 45 or nom.startswith('BLOQUE'):
+        if not nom or nom.startswith('BLOQUE'):
             continue
+        texto = nombre_letrero(nom)
         pg = a['poligono']
         cands = []
-        for p in m.puertas:
-            mid = (np.array(p['a']) + np.array(p['b'])) / 2
-            d = pg.exterior.distance(Point(tuple(mid)))
-            if d < 0.45:
-                cands.append((d, p, mid))
-        if not cands:
-            continue
-        _, p, mid = min(cands, key=lambda c: c[0])
-        nrm = p['nrm']
-        lado_amb = 1 if pg.contains(Point(tuple(mid + nrm * 0.5))) else -1
-        n_out = -lado_amb * nrm                       # hacia el pasillo
-        cara = p['t1'] if lado_amb < 0 else p['t0']   # cara del dintel del lado del pasillo
-        base = mid + nrm * cara + n_out * 0.001
-        out.append(dict(nombre=nom, base=base, n_out=n_out))
+        if a['area'] <= 45 and ' / ' not in nom:
+            for p in m.puertas:
+                mid = (np.array(p['a']) + np.array(p['b'])) / 2
+                d = pg.exterior.distance(Point(tuple(mid)))
+                if d < 0.45:
+                    cands.append((d, p, mid))
+        if cands:
+            _, p, mid = min(cands, key=lambda c: c[0])
+            nrm = p['nrm']
+            lado_amb = 1 if pg.contains(Point(tuple(mid + nrm * 0.5))) else -1
+            n_out = -lado_amb * nrm                       # hacia el pasillo
+            cara = p['t1'] if lado_amb < 0 else p['t0']   # cara del dintel del lado del pasillo
+            base = mid + nrm * cara + n_out * 0.001
+            out.append(dict(nombre=texto, base=base, n_out=n_out, colgante=False))
+        elif a['area'] >= 3:
+            # colgante: en el punto más interior del ambiente, paralelo a su lado largo
+            from shapely.ops import polylabel
+            c = polylabel(pg, tolerance=0.05) if pg.is_valid else pg.representative_point()
+            r = list(pg.minimum_rotated_rectangle.exterior.coords)
+            l1, l2 = math.dist(r[0], r[1]), math.dist(r[1], r[2])
+            u = np.array(r[1]) - np.array(r[0]) if l1 >= l2 else np.array(r[2]) - np.array(r[1])
+            u = u / np.linalg.norm(u)
+            n_out = np.array([-u[1], u[0]])
+            out.append(dict(nombre=texto, base=np.array([c.x, c.y]), n_out=n_out, colgante=True))
     return out
 
 
 def escribir(m, salida):
     E = Escritor()
-    gris = E.estilo('Muro', (0.92, 0.91, 0.88))
-    hormigon = E.estilo('Columna', (0.74, 0.74, 0.72))
-    piso = E.estilo('Piso', (0.80, 0.80, 0.78))
-    vidrio = E.estilo('Vidrio', (0.62, 0.80, 0.92), 0.6)
-    madera = E.estilo('Puerta', (0.72, 0.55, 0.38))
-    loza = E.estilo('Loza sanitaria', (0.97, 0.97, 0.97))
-    mueble = E.estilo('Mueble', (0.55, 0.62, 0.70))
-    meson = E.estilo('Mesón', (0.86, 0.84, 0.80))
-    espacio = E.estilo('Ambiente', (0.96, 0.94, 0.88), 0.95)
-    techo = E.estilo('Visera', (0.88, 0.88, 0.86))
-    placa = E.estilo('Letrero', AZUL_SOLCA)
-    letra = E.estilo('Letra', (1.0, 1.0, 1.0))
-    grada = E.estilo('Grada', (0.82, 0.80, 0.76))
+    gris = E.estilo('SOLCA Muro', (0.95, 0.94, 0.90))
+    tabique_e = E.estilo('SOLCA Tabique', (0.90, 0.93, 0.96))
+    hormigon = E.estilo('SOLCA Columna', (0.68, 0.68, 0.66))
+    piso = E.estilo('SOLCA Losa', (0.62, 0.62, 0.60))
+    vidrio = E.estilo('SOLCA Vidrio', (0.55, 0.78, 0.92), 0.6)
+    madera = E.estilo('SOLCA Puerta madera', (0.60, 0.40, 0.23))
+    roja = E.estilo('SOLCA Puerta de ducto', (0.75, 0.16, 0.12))
+    marco = E.estilo('SOLCA Marco de puerta', (0.32, 0.33, 0.36))
+    manija = E.estilo('SOLCA Manija', (0.82, 0.82, 0.84))
+    loza = E.estilo('SOLCA Loza sanitaria', (0.98, 0.98, 0.98))
+    escritorio = E.estilo('SOLCA Escritorio', (0.74, 0.56, 0.36))
+    meson = E.estilo('SOLCA Mostrador', (0.93, 0.91, 0.86))
+    silla_e = E.estilo('SOLCA Silla', (0.10, 0.27, 0.50))
+    camilla_e = E.estilo('SOLCA Camilla', (0.20, 0.55, 0.55))
+    panel = E.estilo('SOLCA Panel divisorio', (0.70, 0.82, 0.88), 0.3)
+    tope = E.estilo('SOLCA Tope', (0.25, 0.25, 0.25))
+    espacio = E.estilo('SOLCA Ambiente', (0.96, 0.94, 0.88), 0.95)
+    techo = E.estilo('SOLCA Visera', (0.86, 0.86, 0.84))
+    placa = E.estilo('SOLCA Letrero', AZUL_SOLCA)
+    letra = E.estilo('SOLCA Letra', (1.0, 1.0, 1.0))
+    grada = E.estilo('SOLCA Grada', (0.78, 0.76, 0.72))
+    pisos = {k: E.estilo('SOLCA Piso ' + v[0], v[1]) for k, v in CATEGORIAS.items()}
 
     # losa de piso
     for q in trozos(m.huella, 12.0):
         E.elemento('IfcSlab', 'Losa de piso', [E.extrusion(q, -0.20, 0.20)], piso, 'FLOOR')
+    # acabado de piso de cada ambiente con el color de su categoría (1 cm)
+    for a in m.ambientes:
+        cat = categoria(a['nombre'])
+        for q in trozos(a['poligono'], 12.0):
+            E.elemento('IfcCovering', 'Piso ' + (a['nombre'] or 'ambiente'), [E.extrusion(q, 0, 0.01)],
+                       pisos[cat], 'FLOORING')
     # muros
     for i, pg in enumerate(m.muros):
         for q in trozos(pg):
@@ -242,12 +287,40 @@ def escribir(m, salida):
                               tuple(b + nrm * (c + 0.02)), tuple(mitad + d * 0.005 + nrm * (c + 0.02))])]
         else:
             hojas = [hoja]
-        nombre_p = 'Puerta de ducto' if p['tipo'].startswith('P-DUC') else \
-            ('Puerta doble' if p['doble'] else 'Puerta')
-        el = E.elemento('IfcDoor', nombre_p, [E.extrusion(h, 0, H_PUERTA) for h in hojas], madera, 'DOOR')
+        ducto = p['tipo'].startswith('P-DUC')
+        nombre_p = 'Puerta de ducto' if ducto else ('Puerta doble' if p['doble'] else 'Puerta')
+        # hojas entre las jambas del marco (5 cm a cada lado), 1 cm sobre el piso
+        def hoja_entre(p0, p1):
+            return Polygon([tuple(p0 + nrm * (c - 0.02)), tuple(p1 + nrm * (c - 0.02)),
+                            tuple(p1 + nrm * (c + 0.02)), tuple(p0 + nrm * (c + 0.02))])
+        if p['doble']:
+            mitad = (a + b) / 2
+            hojas = [hoja_entre(a + d * 0.05, mitad - d * 0.005), hoja_entre(mitad + d * 0.005, b - d * 0.05)]
+        else:
+            hojas = [hoja_entre(a + d * 0.05, b - d * 0.05)]
+        el = E.elemento('IfcDoor', nombre_p, [E.extrusion(h, 0.01, H_PUERTA - 0.06) for h in hojas],
+                        roja if ducto else madera, 'DOOR')
         if el is not None:
             el.OverallHeight = H_PUERTA
             el.OverallWidth = float(round(p['ancho'], 3))
+        # marco: jambas y cabezal de 5 cm
+        t0, t1 = p['t0'] - 0.01, p['t1'] + 0.01
+        def tira(p0, p1):
+            return Polygon([tuple(p0 + nrm * t0), tuple(p1 + nrm * t0), tuple(p1 + nrm * t1), tuple(p0 + nrm * t1)])
+        sol = [E.extrusion(tira(a, a + d * 0.05), 0, H_PUERTA), E.extrusion(tira(b - d * 0.05, b), 0, H_PUERTA),
+               E.extrusion(tira(a, b), H_PUERTA - 0.05, 0.05)]
+        E.elemento('IfcMember', 'Marco de puerta', sol, marco, 'MULLION')
+        # manijas a 1,0 m, en el lado opuesto a la bisagra, en ambas caras
+        sol = []
+        for (hinge, libre_) in ([(a, b)] if not p['doble'] else [((a + b) / 2 - d * 0.01, a), ((a + b) / 2 + d * 0.01, b)]):
+            dd = (libre_ - hinge) / max(np.linalg.norm(libre_ - hinge), 1e-9)
+            pm = libre_ - dd * 0.12 if not p['doble'] else hinge + dd * 0.12
+            for lado in (c - 0.02 - 0.05, c + 0.02):
+                q = Polygon([tuple(pm - dd * 0.07 + nrm * lado), tuple(pm + dd * 0.07 + nrm * lado),
+                             tuple(pm + dd * 0.07 + nrm * (lado + 0.05)), tuple(pm - dd * 0.07 + nrm * (lado + 0.05))])
+                sol.append(E.extrusion(q, 0.98, 0.04))
+        if not ducto:
+            E.elemento('IfcFurnishingElement', 'Manija', sol, manija, None)
     # ventanas: antepecho + vidrio + dintel
     for pg in m.ventanas:
         E.elemento('IfcWall', 'Antepecho', [E.extrusion(pg, 0, H_ANTEPECHO)], gris, 'STANDARD')
@@ -290,7 +363,7 @@ def escribir(m, salida):
     for t in getattr(m, 'tabiques', []):
         alto = 2.0 if any(t['linea'].distance(q) < 1.0 for q in san) else ALTURA
         for q in lista_polis(t['poligono']):
-            E.elemento('IfcWall', 'Tabique', [E.extrusion(q, 0, alto)], gris, 'PARTITIONING')
+            E.elemento('IfcWall', 'Tabique', [E.extrusion(q, 0, alto)], tabique_e, 'PARTITIONING')
     # columnas
     for pg in m.columnas:
         E.elemento('IfcColumn', 'Columna', [E.extrusion(pg, 0, ALTURA)], hormigon, 'COLUMN')
@@ -307,8 +380,20 @@ def escribir(m, salida):
             E.elemento('IfcSanitaryTerminal', mu['nombre'], [E.extrusion(pg, 0, mu['altura'])], loza, 'NOTDEFINED')
         else:
             z0 = mu.get('z0', 0.0)
-            est = meson if mu['nombre'] in ('Mesón', 'Mesón lateral', 'Mostrador', 'Repisa de ventanilla') else mueble
-            E.elemento('IfcFurniture', mu['nombre'], [E.extrusion(pg, z0, mu['altura'] - z0)], est, 'NOTDEFINED')
+            nom = mu['nombre']
+            if nom in ('Mesón', 'Mesón lateral', 'Mostrador', 'Repisa de ventanilla'):
+                est = meson
+            elif nom.startswith('Silla') or nom.startswith('Respaldo de silla') or nom == 'Otomán':
+                est = silla_e
+            elif nom.startswith('Camilla') or nom.startswith('Respaldo de camilla'):
+                est = camilla_e
+            elif nom in ('Panel divisorio', 'Separador de caja'):
+                est = panel
+            elif nom == 'Tope de puerta':
+                est = tope
+            else:
+                est = escritorio
+            E.elemento('IfcFurniture', nom, [E.extrusion(pg, z0, mu['altura'] - z0)], est, 'NOTDEFINED')
     # escaleras: cada huella es un bloque macizo hasta su altura; descansos como losa de 0,15 m
     for esc in getattr(m, 'escaleras', []):
         sol = [E.extrusion(q.buffer(0), 0, z) for q, z in esc['pasos'] if q.area > 0.01]
@@ -327,19 +412,43 @@ def escribir(m, salida):
         org = L['base'] - derecha * (w / 2)
         eje = (float(n_out[0]), float(n_out[1]), 0.0)
         ref = (float(derecha[0]), float(derecha[1]), 0.0)
-        z0 = H_PUERTA + 0.12
-        # el perfil vive en el plano (derecha, arriba); la extrusión sale hacia el pasillo
-        sol_placa = E.extrusion(box(0, 0, w, 0.16), 0, 0.02, origen=(0, 0), eje=eje, ref=ref)
-        sol_placa.Position.Location.Coordinates = (float(org[0]), float(org[1]), float(z0))
+        if not L['colgante']:
+            z0 = H_PUERTA + 0.12
+            caras = [(org, n_out, eje, ref)]
+            alto_p, dy = 0.16, 0.045
+            espesor = 0.02
+            sol_placa = E.extrusion(box(0, 0, w, alto_p), 0, espesor, origen=(0, 0), eje=eje, ref=ref)
+            sol_placa.Position.Location.Coordinates = (float(org[0]), float(org[1]), float(z0))
+        else:
+            # colgante: placa más grande a 2,45 m con texto en ambas caras y dos tensores al techo
+            letras, ancho = texto_poligonos(L['nombre'], 0.13)
+            w = max(ancho + 0.3, 0.9)
+            alto_p, dy = 0.30, 0.085
+            espesor = 0.03
+            z0 = 2.45
+            org = L['base'] - derecha * (w / 2) - n_out * (espesor / 2)
+            sol_placa = E.extrusion(box(0, 0, w, alto_p), 0, espesor, origen=(0, 0), eje=eje, ref=ref)
+            sol_placa.Position.Location.Coordinates = (float(org[0]), float(org[1]), float(z0))
+            # texto en ambas caras: delante (mira a +n_out) y detrás (mira a -n_out)
+            n_b, der_b = -n_out, -derecha
+            caras = [(L['base'] - derecha * (w / 2) - n_out * (espesor / 2), n_out, eje, ref),
+                     (L['base'] + derecha * (w / 2) + n_out * (espesor / 2), n_b,
+                      (float(n_b[0]), float(n_b[1]), 0.0), (float(der_b[0]), float(der_b[1]), 0.0))]
+            tens = []
+            for k in (0.15, w - 0.15):
+                pt = L['base'] - derecha * (w / 2) + derecha * k
+                tens.append(E.extrusion(Point(*pt).buffer(0.008, 8), z0 + alto_p, ALTURA - z0 - alto_p))
+            E.elemento('IfcFurnishingElement', 'Tensor de letrero', tens, marco, None)
         E.elemento('IfcFurnishingElement', 'Letrero ' + L['nombre'], [sol_placa], placa, None,
                    props={'Texto': L['nombre']})
         sol_l = []
-        for g in letras:
-            g = affinity.translate(g, 0.08, 0.045)
-            s = E.extrusion(g, 0, 0.004, eje=eje, ref=ref)
-            o2 = org + n_out * 0.02
-            s.Position.Location.Coordinates = (float(o2[0]), float(o2[1]), float(z0))
-            sol_l.append(s)
+        for (o_c, n_c, eje_c, ref_c) in caras:
+            for g in letras:
+                g = affinity.translate(g, (w - ancho) / 2 if L['colgante'] else 0.08, dy)
+                s_ = E.extrusion(g, 0, 0.004, eje=eje_c, ref=ref_c)
+                o2 = o_c + n_c * espesor
+                s_.Position.Location.Coordinates = (float(o2[0]), float(o2[1]), float(z0))
+                sol_l.append(s_)
         E.elemento('IfcFurnishingElement', 'Texto ' + L['nombre'], sol_l, letra, None)
         n_let += 1
     E.f.write(salida)

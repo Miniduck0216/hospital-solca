@@ -453,6 +453,17 @@ class Modelo:
         self._muebles_de_linea()
         self._muro_entre_tramos()
         # tabiques de una sola línea fuera del edificio (bordes de jardinera, remates): no son tabiques
+        # contorno de un mueble de lavamanos dibujado con líneas de muro: es un mesón, no un tabique
+        lavs = [mu['poligono'] for mu in self.muebles if mu['nombre'].startswith('Lavamanos')]
+        quedan = []
+        for t in self.tabiques:
+            env = t['poligono'].minimum_rotated_rectangle
+            if env.area < 2.5 and any(env.buffer(0.05).contains(l.centroid) for l in lavs) and \
+                    not any(t['poligono'].intersects(q) for q in self.muros):
+                self.muebles.append(dict(nombre='Mesón', poligono=env, altura=0.85, cat='mueble'))
+            else:
+                quedan.append(t)
+        self.tabiques = quedan
         vistos, mb = set(), []
         for mu in self.muebles:
             k = (mu['nombre'], tuple(round(v, 2) for v in mu['poligono'].bounds))
