@@ -7,6 +7,7 @@ import { resolve } from 'node:path'
 export default defineConfig({
   base: '/hospital-solca/',
   plugins: [react()],
+  define: { __VERSION__: JSON.stringify(String(Date.now())) },   // evita que el navegador use datos viejos del plano
   json: { stringify: true },          // el modelo 3D del prototipo es grande: JSON.parse es más rápido que un objeto literal
   build: {
     chunkSizeWarningLimit: 9000,

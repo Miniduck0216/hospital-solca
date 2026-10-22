@@ -31,7 +31,9 @@ function SueloMapa({ centro }) {
       hecho = true
       const cv = document.createElement('canvas')
       cv.width = cv.height = PX
-      cv.getContext('2d').drawImage(map.getCanvas(), 0, 0, PX, PX)
+      const ctx = cv.getContext('2d')
+      ctx.filter = 'contrast(1.9) brightness(0.9) saturate(1.3)'   // el estilo claro del mapa se ve lavado con la luz 3D
+      ctx.drawImage(map.getCanvas(), 0, 0, PX, PX)
       const t = new THREE.CanvasTexture(cv)
       t.colorSpace = THREE.SRGBColorSpace
       t.anisotropy = 8
@@ -48,13 +50,13 @@ function SueloMapa({ centro }) {
   return (
     <mesh rotation-x={-Math.PI / 2} position={[centro[0], -0.22, -centro[1]]} receiveShadow>
       <planeGeometry args={[LADO, LADO]} />
-      {tex ? <meshStandardMaterial map={tex} roughness={1} /> : <meshStandardMaterial color="#E4E8EC" roughness={1} />}
+      {tex ? <meshStandardMaterial map={tex} roughness={1} /> : <meshStandardMaterial color="#D9DFE5" roughness={1} />}
     </mesh>
   )
 }
 
 function Edificio({ corte, letreros }) {
-  const { scene } = useGLTF(`${BASE}pb/solca_pb.glb`)
+  const { scene } = useGLTF(`${BASE}pb/solca_pb.glb?v=${__VERSION__}`)
   const { gl } = useThree()
   const plano = useMemo(() => new THREE.Plane(new THREE.Vector3(0, -1, 0), 99), [])
   useEffect(() => { gl.localClippingEnabled = true }, [gl])
@@ -174,4 +176,4 @@ export function Vista3D({ d, ruta, destino }) {
   )
 }
 
-useGLTF.preload?.(`${BASE}pb/solca_pb.glb`)
+useGLTF.preload?.(`${BASE}pb/solca_pb.glb?v=${__VERSION__}`)

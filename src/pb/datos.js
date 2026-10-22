@@ -2,7 +2,7 @@
 export const BASE = import.meta.env.BASE_URL
 
 export async function cargarDatos() {
-  const r = await fetch(`${BASE}pb/datos.json`)
+  const r = await fetch(`${BASE}pb/datos.json?v=${__VERSION__}`)
   if (!r.ok) throw new Error('No se pudo cargar el plano')
   const d = await r.json()
   const bin = atob(d.nav.celdas)
