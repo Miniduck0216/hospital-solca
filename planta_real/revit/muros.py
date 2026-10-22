@@ -12,7 +12,7 @@ from shapely.geometry import Polygon, MultiPolygon
 from shapely.ops import unary_union
 
 RES = 0.02          # m por píxel
-CAPAS_MURO = {'PA', 'TA', 'VE', 'P0 - Paredes', 'COL'}
+CAPAS_MURO = {'PA', 'VE', 'P0 - Paredes', 'COL'}   # TA y NO se tratan por franjas (detalles.py)
 RADIO_MURO = 0.30   # m: más angosto que esto es muro; más ancho es ambiente
 
 

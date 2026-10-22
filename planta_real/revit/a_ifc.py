@@ -17,7 +17,7 @@ from matplotlib.textpath import TextPath
 from matplotlib.font_manager import FontProperties
 
 sys.path.insert(0, __import__('os').path.dirname(__import__('os').path.abspath(__file__)))
-from modelo import ALTURA, H_PUERTA, H_ANTEPECHO, H_DINTEL_VENTANA, lista_polis  # noqa: E402
+from modelo import ALTURA, H_PUERTA, H_ANTEPECHO, H_DINTEL_VENTANA, H_PARAPETO, lista_polis  # noqa: E402
 
 AZUL_SOLCA = (0.04, 0.36, 0.65)
 
@@ -212,7 +212,8 @@ def escribir(m, salida):
     loza = E.estilo('Loza sanitaria', (0.97, 0.97, 0.97))
     mueble = E.estilo('Mueble', (0.55, 0.62, 0.70))
     meson = E.estilo('Mesón', (0.86, 0.84, 0.80))
-    espacio = E.estilo('Ambiente', (0.55, 0.75, 0.95), 0.85)
+    espacio = E.estilo('Ambiente', (0.96, 0.94, 0.88), 0.95)
+    techo = E.estilo('Visera', (0.88, 0.88, 0.86))
     placa = E.estilo('Letrero', AZUL_SOLCA)
     letra = E.estilo('Letra', (1.0, 1.0, 1.0))
     grada = E.estilo('Grada', (0.82, 0.80, 0.76))
@@ -233,8 +234,17 @@ def escribir(m, salida):
         c = (p['t0'] + p['t1']) / 2
         hoja = Polygon([tuple(a + nrm * (c - 0.02)), tuple(b + nrm * (c - 0.02)),
                         tuple(b + nrm * (c + 0.02)), tuple(a + nrm * (c + 0.02))])
-        el = E.elemento('IfcDoor', 'Puerta doble' if p['doble'] else 'Puerta',
-                        [E.extrusion(hoja, 0, H_PUERTA)], madera, 'DOOR')
+        if p['doble']:
+            mitad = (a + b) / 2
+            hojas = [Polygon([tuple(a + nrm * (c - 0.02)), tuple(mitad - d * 0.005 + nrm * (c - 0.02)),
+                              tuple(mitad - d * 0.005 + nrm * (c + 0.02)), tuple(a + nrm * (c + 0.02))]),
+                     Polygon([tuple(mitad + d * 0.005 + nrm * (c - 0.02)), tuple(b + nrm * (c - 0.02)),
+                              tuple(b + nrm * (c + 0.02)), tuple(mitad + d * 0.005 + nrm * (c + 0.02))])]
+        else:
+            hojas = [hoja]
+        nombre_p = 'Puerta de ducto' if p['tipo'].startswith('P-DUC') else \
+            ('Puerta doble' if p['doble'] else 'Puerta')
+        el = E.elemento('IfcDoor', nombre_p, [E.extrusion(h, 0, H_PUERTA) for h in hojas], madera, 'DOOR')
         if el is not None:
             el.OverallHeight = H_PUERTA
             el.OverallWidth = float(round(p['ancho'], 3))
@@ -247,6 +257,20 @@ def escribir(m, salida):
         vid = max(lista_polis(vid), key=lambda g: g.area) if not vid.is_empty else pg
         el = E.elemento('IfcWindow', 'Ventana', [E.extrusion(vid, H_ANTEPECHO, H_DINTEL_VENTANA - H_ANTEPECHO)],
                         vidrio, 'WINDOW')
+    # ventanillas de atención: antepecho 1,0 m, vidrio hasta 2,1 m y dintel
+    for pg in getattr(m, 'ventanillas', []):
+        E.elemento('IfcWall', 'Antepecho de ventanilla', [E.extrusion(pg, 0, 1.0)], gris, 'STANDARD')
+        E.elemento('IfcWall', 'Dintel de ventanilla', [E.extrusion(pg, H_PUERTA, ALTURA - H_PUERTA)], gris, 'STANDARD')
+        vid = pg.buffer(-0.02, join_style=2)
+        vid = max(lista_polis(vid), key=lambda g: g.area) if not vid.is_empty else pg
+        E.elemento('IfcWindow', 'Ventanilla de atención', [E.extrusion(vid, 1.0, H_PUERTA - 1.0)], vidrio, 'WINDOW')
+    # parapetos de la escalera exterior
+    for pg in getattr(m, 'parapetos', []):
+        E.elemento('IfcWall', 'Parapeto', [E.extrusion(pg, 0, H_PARAPETO)], gris, 'PARAPET')
+    # viseras: losa en voladizo a la altura del techo
+    for pg in getattr(m, 'viseras', []):
+        for q in trozos(pg, 12.0):
+            E.elemento('IfcSlab', 'Visera', [E.extrusion(q, ALTURA - 0.20, 0.20)], techo, 'ROOF')
     # vidrios del hall (fachada de vidrio con puertas corredizas): vidrio hasta 3,0 m y banda superior
     for pg in getattr(m, 'vidrios', []):
         E.elemento('IfcWindow', 'Fachada de vidrio', [E.extrusion(pg, 0, 3.0)], vidrio, 'WINDOW')
@@ -281,10 +305,10 @@ def escribir(m, salida):
         pg = max(lista_polis(mu['poligono']), key=lambda g: g.area)
         if mu['cat'] == 'sanitario':
             E.elemento('IfcSanitaryTerminal', mu['nombre'], [E.extrusion(pg, 0, mu['altura'])], loza, 'NOTDEFINED')
-        elif mu['nombre'] == 'Mesón':
-            E.elemento('IfcFurniture', mu['nombre'], [E.extrusion(pg, 0, mu['altura'])], meson, 'NOTDEFINED')
         else:
-            E.elemento('IfcFurniture', mu['nombre'], [E.extrusion(pg, 0, mu['altura'])], mueble, 'NOTDEFINED')
+            z0 = mu.get('z0', 0.0)
+            est = meson if mu['nombre'] in ('Mesón', 'Mesón lateral', 'Mostrador', 'Repisa de ventanilla') else mueble
+            E.elemento('IfcFurniture', mu['nombre'], [E.extrusion(pg, z0, mu['altura'] - z0)], est, 'NOTDEFINED')
     # escaleras: cada huella es un bloque macizo hasta su altura; descansos como losa de 0,15 m
     for esc in getattr(m, 'escaleras', []):
         sol = [E.extrusion(q.buffer(0), 0, z) for q, z in esc['pasos'] if q.area > 0.01]

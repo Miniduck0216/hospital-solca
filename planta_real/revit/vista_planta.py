@@ -10,7 +10,7 @@ def dibujar(m, salida, ventana=None, dpi=70, ancho=16):
     random.seed(3)
     for a in m.ambientes:
         pg = a['poligono']; x, y = pg.exterior.xy
-        ax.fill(x, y, color=(random.uniform(.75, .95), random.uniform(.8, .95), random.uniform(.85, 1)), lw=0)
+        ax.fill(x, y, color=(random.uniform(.93, .98), random.uniform(.90, .95), random.uniform(.80, .88)), lw=0)
         c = pg.representative_point()
         if xa < c.x < xb and ya < c.y < yb:
             ax.text(c.x, c.y, a['nombre'].replace(' / ', '\n'), fontsize=5, ha='center', va='center')
@@ -26,6 +26,10 @@ def dibujar(m, salida, ventana=None, dpi=70, ancho=16):
     for pg in getattr(m, 'vidrios', []): poly(pg, color='#0cc', lw=0)
     for pg in m.ventanas: poly(pg, color='#39f', lw=0)
     for p in m.puertas: poly(p['rect'], color='#f90', lw=0)
+    for pg in getattr(m, 'ventanillas', []): poly(pg, color='#06c', lw=0)
+    for pg in getattr(m, 'parapetos', []): poly(pg, color='#888', lw=0)
+    for pg in getattr(m, 'viseras', []):
+        x, y = pg.exterior.xy; ax.plot(x, y, color='#c80', lw=0.8, ls='--')
     for mu in m.muebles: poly(mu['poligono'], color='#2a2' if mu['cat'] == 'mueble' else '#a6f', lw=0)
     for tr in m.tramos:
         ax.add_collection(LineCollection([list(s.coords) for s in tr], colors='c', linewidths=0.8))
