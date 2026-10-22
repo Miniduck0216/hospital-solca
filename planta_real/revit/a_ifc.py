@@ -240,22 +240,11 @@ def escribir(m, salida):
             E.elemento('IfcFurniture', mu['nombre'], [E.extrusion(pg, 0, mu['altura'])], meson, 'NOTDEFINED')
         else:
             E.elemento('IfcFurniture', mu['nombre'], [E.extrusion(pg, 0, mu['altura'])], mueble, 'NOTDEFINED')
-    # gradas: huellas de 0,16 m de contrahuella entre líneas consecutivas
-    for tramo in m.tramos:
-        ln = tramo
-        dx, dy = np.subtract(ln[0].coords[-1], ln[0].coords[0])
-        u = np.array([dx, dy]) / math.hypot(dx, dy)
-        nrm = np.array([-u[1], u[0]])
-        orden = sorted(ln, key=lambda s: float(np.dot(np.array(s.centroid.coords[0]), nrm)))
-        sol = []
-        for i in range(len(orden) - 1):
-            s0, s1 = orden[i], orden[i + 1]
-            p0 = np.array(s0.coords[0]); p1 = np.array(s0.coords[-1])
-            off = float(np.dot(np.array(s1.centroid.coords[0]) - np.array(s0.centroid.coords[0]), nrm))
-            if off <= 0.05 or off > 0.6:
-                continue
-            q = Polygon([tuple(p0), tuple(p1), tuple(p1 + nrm * off), tuple(p0 + nrm * off)]).buffer(0)
-            sol.append(E.extrusion(q, 0, 0.16 * (i + 1)))
+    # escaleras: cada huella es un bloque macizo hasta su altura; descansos como losa de 0,15 m
+    for esc in getattr(m, 'escaleras', []):
+        sol = [E.extrusion(q.buffer(0), 0, z) for q, z in esc['pasos'] if q.area > 0.01]
+        sol += [E.extrusion(q.buffer(0), max(z - 0.15, 0), 0.15 if z > 0.15 else z) for q, z in esc['descansos']
+                if q.area > 0.05]
         if sol:
             E.elemento('IfcStair', 'Escalera', sol, grada, 'NOTDEFINED')
     # letreros

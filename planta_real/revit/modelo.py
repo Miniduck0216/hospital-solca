@@ -39,6 +39,7 @@ class Modelo:
         self._gradas()
         self._nucleo_hall()
         self._tabiques()
+        self._escaleras()
         self._muros()
         self._ambientes()
         self._mobiliario()
@@ -94,8 +95,7 @@ class Modelo:
             if not es_puerta:
                 continue
             arcos = [g[1] for g in b['geo'] if g[3] == 'ARC']
-            hojas = [g[1] for g in b['geo'] if g[3] != 'ARC']
-            hoja_pts = [self.L(q) for h in hojas for q in h]
+            hojas = [self.Lp(g[1]) for g in b['geo'] if g[3] != 'ARC' and len(g[1]) >= 2]
             segs = []
             for a in arcos:
                 pa = self.Lp(a)
@@ -108,8 +108,13 @@ class Modelo:
                 r = math.dist((cx, cy), p0)
                 if r < 0.4 or r > 1.6:
                     continue
-                d0 = min((math.dist(p0, q) for q in hoja_pts), default=9)
-                d1 = min((math.dist(p1, q) for q in hoja_pts), default=9)
+                # la hoja (abierta) es la polilínea cuyo largo mayor se parece al radio del arco
+                def largo(h):
+                    xs = [q[0] for q in h]; ys = [q[1] for q in h]
+                    return max(max(xs) - min(xs), max(ys) - min(ys))
+                hoja = min(hojas, key=lambda h: abs(largo(h) - r)) if hojas else []
+                d0 = min((math.dist(p0, q) for q in hoja), default=9)
+                d1 = min((math.dist(p1, q) for q in hoja), default=9)
                 cerrado = p0 if d0 > d1 else p1
                 segs.append(((cx, cy), cerrado, r))
             if not segs:
@@ -172,11 +177,21 @@ class Modelo:
                     caja = q if caja is None or q.area > caja.area else caja
         if caja is not None:
             anillo = caja.difference(caja.buffer(-0.15, join_style=2))
-            # puerta del ascensor en el lado que mira al hall
-            hall = next(((self.L((x, y))) for c, t, x, y, h, ap in self.textos if t.strip() == 'HALL'), None)
+            # puerta del ascensor: en el lado donde está el mecanismo de puerta de la cabina
+            # (tramos ortogonales de 0,8 a 1,6 m dentro del foso; los lados de la cabina se compensan)
             x0, y0, x1, y1 = caja.bounds
+            cxm, cym = (x0 + x1) / 2, (y0 + y1) / 2
+            dentro = [s_ for s_ in self._segmentos({'Rebars'}) if caja.buffer(-0.05).contains(s_) and
+                      0.8 <= s_.length <= 1.6 and (abs(s_.coords[0][0] - s_.coords[-1][0]) < 0.02 or
+                                                    abs(s_.coords[0][1] - s_.coords[-1][1]) < 0.02)]
+            if dentro:
+                dx = sum((s_.centroid.x - cxm) * s_.length for s_ in dentro) / (x1 - x0)
+                dy = sum((s_.centroid.y - cym) * s_.length for s_ in dentro) / (y1 - y0)
+                lado = ('E' if dx > 0 else 'O') if abs(dx) > abs(dy) else ('N' if dy > 0 else 'S')
+            else:
+                lado = 'S'
+            self.lado_puerta_ascensor = lado
             lados = {'E': (x1, (y0 + y1) / 2), 'O': (x0, (y0 + y1) / 2), 'N': ((x0 + x1) / 2, y1), 'S': ((x0 + x1) / 2, y0)}
-            lado = min(lados, key=lambda k: math.dist(lados[k], hall)) if hall else 'E'
             cx, cy = lados[lado]
             if lado in 'EO':
                 hueco = box(cx - 0.2, cy - 0.5, cx + 0.2, cy + 0.5)
@@ -193,6 +208,46 @@ class Modelo:
         segs = [s for s in self._segmentos({'Rebars'}) if s.length >= 1.5 and
                 (abs(s.coords[0][0] - s.coords[-1][0]) < 0.02 or abs(s.coords[0][1] - s.coords[-1][1]) < 0.02)
                 and not nucleo.contains(s.centroid)]
+        # tabiques de la capa Rebars: dos líneas paralelas separadas 0,13–0,30 m (el vidrio va a <= 0,12 m)
+        self.tabiques_rebars = []
+        en_par = set()
+        largos = [s_ for s_ in segs if s_.length >= 3.0]
+
+        def alineado_con_vidrio(l):
+            (xa, ya), (xb, yb) = l.coords[0], l.coords[-1]
+            for g in largos:
+                (ga, gb), (gc, gd) = g.coords[0], g.coords[-1]
+                if abs(ya - yb) < 0.02 and abs(gb - gd) < 0.02 and abs(ya - gb) < 0.3 and g is not l and \
+                        g.length > l.length + 1.0:
+                    return True
+                if abs(xa - xb) < 0.02 and abs(ga - gc) < 0.02 and abs(xa - ga) < 0.3 and g is not l and \
+                        g.length > l.length + 1.0:
+                    return True
+            return False
+        for i, a in enumerate(segs):
+            if alineado_con_vidrio(a):
+                continue
+            for j in range(i + 1, len(segs)):
+                b2 = segs[j]
+                if alineado_con_vidrio(b2):
+                    continue
+                d = a.distance(b2)
+                if 0.13 <= d <= 0.30 and abs(a.length - b2.length) < 0.5 and \
+                        a.buffer(d + 0.02, cap_style=2).intersection(b2).length > 0.7 * min(a.length, b2.length):
+                    en_par.update((i, j))
+                    pg = unary_union([a, b2]).minimum_rotated_rectangle.difference(self.muros_raw)
+                    self.tabiques_rebars += [q for q in lista_polis(pg) if q.area > 0.05]
+        # el tabique se arma con las polilíneas completas a las que pertenecen las líneas en par
+        # (incluye remates y retornos): franja entre ambas polilíneas
+        if en_par:
+            pares_seg = [segs[k] for k in en_par]
+            polis_rb = [LineString(self.Lp(p)) for c, t, p, _ in self.planos if c == 'Rebars' and len(p) >= 2]
+            madres = [pl for pl in polis_rb if any(pl.buffer(0.01).contains(sg) for sg in pares_seg)]
+            if madres:
+                franja = unary_union([pl.buffer(0.11, cap_style=2, join_style=2) for pl in madres])
+                franja = franja.buffer(-0.095, join_style=2).difference(self.muros_raw)
+                self.tabiques_rebars = [q for q in lista_polis(franja) if q.area > 0.05]
+        segs = [s_ for k, s_ in enumerate(segs) if k not in en_par]
         if segs:
             # cada frente de vidrio se une de punta a punta (los huecos son puertas corredizas)
             frentes = {}
@@ -211,10 +266,62 @@ class Modelo:
                     x = float(np.mean([l.coords[0][0] for l in lst]))
                     ys = [c[1] for l in lst for c in l.coords]
                     segs.append(LineString([(x, min(ys)), (x, max(ys))]))
+            cortos = [s_ for s_ in segs if s_.length < 3.0]
             segs = [s_ for s_ in segs if s_.length >= 3.0]
             v = unary_union([s.buffer(0.05, cap_style=2) for s in segs]) if segs else Polygon()
             v = v.difference(self.muros_raw.buffer(0.02)).difference(unary_union(self.columnas).buffer(0.02))
             self.vidrios = [p for p in lista_polis(v) if p.area > 0.08 and min_ancho(p) < 0.4]
+
+
+    # --- escaleras: tramos encadenados desde la puerta de acceso, con descansos en las esquinas
+    def _escaleras(self):
+        tramos = []
+        for lineas in self.tramos:
+            (xa, ya), (xb, yb) = lineas[0].coords[0], lineas[0].coords[-1]
+            u = np.array([xb - xa, yb - ya]); u = u / np.linalg.norm(u)
+            nrm = np.array([-u[1], u[0]])
+            orden = sorted(lineas, key=lambda l: float(np.dot(np.array(l.centroid.coords[0]), nrm)))
+            tramos.append(dict(lineas=orden, nrm=nrm))
+        mids = [Point(*((np.array(p['a']) + np.array(p['b'])) / 2)) for p in self.puertas]
+        libres = list(range(len(tramos)))
+        self.escaleras = []
+        while libres:
+            # arranque: el extremo de tramo más cercano a una puerta
+            mejor = None
+            for i in libres:
+                for lado in (0, -1):
+                    d = min((tramos[i]['lineas'][lado].distance(mp) for mp in mids), default=99)
+                    if mejor is None or d < mejor[0]:
+                        mejor = (d, i, lado)
+            _, i, lado = mejor
+            cadena = []
+            entrada = lado
+            while True:
+                libres.remove(i)
+                ls = tramos[i]['lineas'] if entrada == 0 else tramos[i]['lineas'][::-1]
+                cadena.append(ls)
+                fin = ls[-1]
+                sig = None
+                for j in libres:
+                    for l2 in (0, -1):
+                        d = tramos[j]['lineas'][l2].distance(fin)
+                        if d < 1.8 and (sig is None or d < sig[0]):
+                            sig = (d, j, l2)
+                if sig is None:
+                    break
+                _, i, entrada = sig
+            n_pasos = sum(len(ls) - 1 for ls in cadena) + (len(cadena) - 1)
+            riser = min(0.18, ALTURA / (max(n_pasos, 1) + 1))
+            pasos, descansos, k = [], [], 0
+            for t_i, ls in enumerate(cadena):
+                for a, b in zip(ls[:-1], ls[1:]):
+                    k += 1
+                    pasos.append((unary_union([a, b]).minimum_rotated_rectangle, k * riser))
+                if t_i < len(cadena) - 1:
+                    k += 1
+                    q = unary_union([ls[-1], cadena[t_i + 1][0]]).minimum_rotated_rectangle
+                    descansos.append((q, k * riser))
+            self.escaleras.append(dict(pasos=pasos, descansos=descansos, riser=riser))
 
     # --- tabiques dibujados con una sola línea (divisiones livianas, cubículos de baño)
     def _tabiques(self):
@@ -229,7 +336,8 @@ class Modelo:
                 if g.is_empty or g.geom_type != 'LineString' or g.length < 0.5:
                     continue
                 out.append(g)
-        self.tabiques = []
+        self.tabiques = [dict(linea=LineString(list(q.minimum_rotated_rectangle.exterior.coords)[:2]), poligono=q)
+                         for q in getattr(self, 'tabiques_rebars', [])]
         for g in unary_union(out).geoms if out and unary_union(out).geom_type == 'MultiLineString' else out:
             if g.length >= 0.5:
                 self.tabiques.append(dict(linea=g, poligono=g.buffer(0.025, cap_style=2, join_style=2)))
@@ -286,18 +394,35 @@ class Modelo:
         tam = ndimage.sum(np.ones_like(etiq), etiq, index=np.arange(1, n + 1))
         self.ambientes = []
         textos = self._etiquetas()
-        for k in range(1, n + 1):
-            if k in bordes or tam[k - 1] * M.RES ** 2 < 0.3:
+        # cada punto libre pertenece a un solo ambiente: el de la semilla más cercana (a 4 cm por píxel)
+        validas = np.zeros(n + 1, bool)
+        validas[1:] = tam * M.RES ** 2 >= 0.3
+        semillas = np.where(validas[etiq], etiq, 0).astype(np.int32)
+        libre = ~ocup & ~ext
+        f = 2
+        H2, W2 = (lz.h // f) * f, (lz.w // f) * f
+        sem2 = semillas[:H2:f, :W2:f]
+        _, (ii, jj) = ndimage.distance_transform_edt(sem2 == 0, return_indices=True)
+        cercana = sem2[ii, jj]
+        del ii, jj
+        asig = np.zeros_like(semillas)
+        asig[:H2, :W2] = np.repeat(np.repeat(cercana, f, axis=0), f, axis=1)
+        asig = np.where(libre, asig, 0)
+        for k in np.unique(semillas[semillas > 0]):
+            region = asig == k
+            et3, n3 = ndimage.label(region)
+            if n3 == 0:
                 continue
-            masc = ndimage.binary_dilation(etiq == k, structure=cuad, iterations=30) & ~ocup & ~ext
-            masc = ndimage.binary_dilation(masc, iterations=3)
-            polis = M.contornos_a_poligonos(masc, lz, 0.03)
-            for pg in polis:
+            propias = np.unique(et3[(semillas == k) & region])
+            propias = propias[propias > 0]
+            masc = np.isin(et3, propias)
+            otros = (asig > 0) & (asig != k)
+            masc = ndimage.binary_dilation(masc, iterations=3) & ~otros
+            for pg in M.contornos_a_poligonos(masc, lz, 0.03):
                 if pg.area < 1.0:
                     continue
                 dentro = [t for t in textos if pg.contains(Point(t[1], t[2]))]
-                nombre = unir_nombres(dentro)
-                self.ambientes.append(dict(poligono=pg, nombre=nombre, area=pg.area))
+                self.ambientes.append(dict(poligono=pg, nombre=unir_nombres(dentro), area=pg.area))
         # segunda pasada: espacios pequeños que la separación gruesa borró (baños con mamparas, nichos)
         cubierto = np.zeros_like(img)
         for a in self.ambientes:
@@ -335,6 +460,21 @@ class Modelo:
             else:
                 nuevos.append(a)
         self.ambientes = nuevos
+        # un ambiente no cruza sus puertas: se corta en cada vano y se queda la pieza mayor; sin astillas
+        limpios = []
+        rects = [p['rect'] for p in self.puertas]
+        for a in self.ambientes:
+            pg = a['poligono']
+            for r in rects:
+                if pg.intersects(r):
+                    piezas = lista_polis(pg.difference(r.buffer(0.03, join_style=2)))
+                    if piezas:
+                        pg = max(piezas, key=lambda g: g.area)
+            if pg.area < 3 and min_ancho(pg) < 0.5:
+                continue
+            a['poligono'], a['area'] = pg, pg.area
+            limpios.append(a)
+        self.ambientes = limpios
         # huella del edificio (losa): ambientes, muros y columnas, sin huecos interiores
         todo = unary_union([a['poligono'] for a in self.ambientes] + [self.muros_raw] + self.columnas)
         todo = todo.buffer(0.3, join_style=2).buffer(-0.3, join_style=2)
@@ -396,10 +536,10 @@ class Modelo:
     # --- mobiliario: bloques y capas de muebles
     def _mobiliario(self):
         alturas = {'AS-14': ('Inodoro', 0.40, 'sanitario'), 'INOD': ('Inodoro', 0.40, 'sanitario'),
-                   'AS-03': ('Lavamanos', 0.85, 'sanitario'), 'S1': ('Lavamanos', 0.85, 'sanitario'),
+                   'AS-03': ('Lavamanos', 0.85, 'sanitario'), 'S1': ('Silla', 0.90, 'mueble'),
                    'AS-07': ('Lavamanos doble', 0.85, 'sanitario'), 'AS-28': ('Urinario', 0.60, 'sanitario'),
                    'AS-08': ('Desagüe de piso', 0.03, 'sanitario'), 'AS-21': ('Plato de ducha', 0.05, 'sanitario'),
-                   '_U32': ('Asiento', 0.45, 'mueble'), '_U40': ('Asiento', 0.45, 'mueble'),
+                   '_U32': ('Lavamanos', 0.85, 'sanitario'), '_U40': ('Lavamanos', 0.85, 'sanitario'),
                    'otoman': ('Otomán', 0.45, 'mueble'), 'Ventanilla': ('Ventanilla de atención', 1.05, 'mueble')}
         self.muebles = []
         for b in self.bloques:
@@ -423,6 +563,12 @@ class Modelo:
                 continue
             self.muebles.append(dict(nombre=nom, poligono=pg.convex_hull if pg.geom_type != 'Polygon' else pg,
                                      altura=h, cat=cat))
+        # mesones dibujados como polilínea cerrada (mueble de lavamanos, recepción)
+        for c, t, p, cerrada in self.planos:
+            if c in ('P0 - Mobiliario', 'MU') and len(p) >= 4:
+                q = Polygon(self.Lp(p)).buffer(0)
+                if 0.25 < q.area < 12 and min_ancho(q) > 0.3:
+                    self.muebles.append(dict(nombre='Mesón', poligono=q, altura=0.90, cat='mueble'))
         # mesones y muebles fijos dibujados en capas
         tr = [p for c, _, p, _ in self.planos if c in ('MU', 'P0 - Mobiliario', 'PDF_P0 - Mobiliario', 'NO')]
         lineas = self.lz.dibujar(tr, 1)
@@ -446,11 +592,19 @@ class Modelo:
                 continue
             ang = angulo(s)
             grupo = [i]
+            (xa, ya), (xb, yb) = s.coords[0], s.coords[-1]
+            u = np.array([xb - xa, yb - ya]) / max(s.length, 1e-9)
+            def intervalo(l):
+                ts = [float(np.dot(np.array(c), u)) for c in l.coords]
+                return min(ts), max(ts)
+            i0, i1 = intervalo(s)
             for j, o in enumerate(segs):
                 if j != i and j not in usados and abs(((angulo(o) - ang + 90) % 180) - 90) < 3 and \
                         abs(o.length - s.length) < 0.3 and o.distance(s) < 4.0:
-                    grupo.append(j)
-            if len(grupo) >= 4:
+                    j0, j1 = intervalo(o)
+                    if min(i1, j1) - max(i0, j0) > 0.6 * min(i1 - i0, j1 - j0):   # misma fila de huellas
+                        grupo.append(j)
+            if len(grupo) >= 3:
                 lineas = [segs[k] for k in grupo]
                 # huellas reales: espaciado regular de 0,22 a 0,40 m y al menos 1 m de avance
                 (xa, ya), (xb, yb) = s.coords[0], s.coords[-1]
@@ -459,7 +613,7 @@ class Modelo:
                 off = sorted(float(np.dot(np.array(l.centroid.coords[0]), nrm)) for l in lineas)
                 pasos = np.diff(off)
                 pasos = pasos[pasos > 0.05]
-                if len(pasos) >= 3 and 0.22 <= float(np.median(pasos)) <= 0.40 and off[-1] - off[0] >= 1.0:
+                if len(pasos) >= 2 and 0.22 <= float(np.median(pasos)) <= 0.40 and off[-1] - off[0] >= 0.55:
                     usados.update(grupo)
                     self.tramos.append(lineas)
 

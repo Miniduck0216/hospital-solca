@@ -20,6 +20,10 @@ def dibujar(m, salida, ventana=None, dpi=70, ancho=16):
             x, y = h.xy; ax.fill(x, y, color='w', lw=0)
     for pg in m.muros: poly(pg, color='#222', lw=0)
     for pg in m.columnas: poly(pg, color='#b03', lw=0)
+    for t in getattr(m, 'tabiques', []):
+        for q in (t['poligono'].geoms if hasattr(t['poligono'], 'geoms') else [t['poligono']]): poly(q, color='#555', lw=0)
+    for pg in getattr(m, 'foso', []): poly(pg, color='#70a', lw=0)
+    for pg in getattr(m, 'vidrios', []): poly(pg, color='#0cc', lw=0)
     for pg in m.ventanas: poly(pg, color='#39f', lw=0)
     for p in m.puertas: poly(p['rect'], color='#f90', lw=0)
     for mu in m.muebles: poly(mu['poligono'], color='#2a2' if mu['cat'] == 'mueble' else '#a6f', lw=0)
