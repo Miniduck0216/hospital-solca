@@ -45,7 +45,7 @@ function SueloMapa({ centro }) {
       const cv = document.createElement('canvas')
       cv.width = cv.height = PX
       const ctx = cv.getContext('2d')
-      ctx.filter = 'contrast(1.9) brightness(0.9) saturate(1.3)'   // el estilo claro del mapa se ve lavado con la luz 3D
+      ctx.filter = 'brightness(0.78) contrast(1.5) saturate(1.2)'   // el estilo claro del mapa se ve lavado con la luz 3D (primero oscurecer, luego contrastar)
       ctx.drawImage(map.getCanvas(), 0, 0, PX, PX)
       window.__sueloCanvas = cv
       const t = new THREE.CanvasTexture(cv)
