@@ -26,8 +26,21 @@ function SueloMapa({ centro }) {
         interactive: false, attributionControl: false, pixelRatio: 1, preserveDrawingBuffer: true, fadeDuration: 0 })
     } catch { div.remove(); return }
     let hecho = false
+    let intentos = 0
     const copiar = () => {
       if (!vivo || hecho) return
+      // ¿ya hay calles dibujadas? (si el lienzo es liso todavía no llegaron las teselas)
+      const prueba = document.createElement('canvas')
+      prueba.width = prueba.height = 64
+      const pc = prueba.getContext('2d', { willReadFrequently: true })
+      pc.drawImage(map.getCanvas(), 0, 0, 64, 64)
+      const px = pc.getImageData(0, 0, 64, 64).data
+      let s1 = 0, s2 = 0
+      for (let i = 0; i < px.length; i += 4) { const v = px[i] + px[i + 1] + px[i + 2]; s1 += v; s2 += v * v }
+      const n = px.length / 4
+      const desv = Math.sqrt(Math.max(0, s2 / n - (s1 / n) ** 2))
+      console.info('[suelo 3D] intento', intentos, 'variación', desv.toFixed(1))
+      if (desv < 4 && intentos++ < 8) { setTimeout(() => { map.triggerRepaint(); map.once('idle', copiar) }, 1200); return }
       hecho = true
       const cv = document.createElement('canvas')
       cv.width = cv.height = PX
@@ -41,10 +54,8 @@ function SueloMapa({ centro }) {
       map.remove(); div.remove()
     }
     map.once('idle', copiar)
-    // si la pestaña está en segundo plano 'idle' puede tardar: se copia lo que haya cuando el estilo y las teselas cargaron
-    const espera = setInterval(() => { if (map.loaded() && map.areTilesLoaded?.()) { clearInterval(espera); map.triggerRepaint(); map.once('render', copiar) } }, 1500)
     map.on('error', () => {})
-    return () => { vivo = false; clearInterval(espera); try { map.remove() } catch { /* listo */ } div.remove() }
+    return () => { vivo = false; try { map.remove() } catch { /* listo */ } div.remove() }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   return (
