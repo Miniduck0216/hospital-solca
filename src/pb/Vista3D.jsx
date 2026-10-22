@@ -45,8 +45,17 @@ function SueloMapa({ centro }) {
       const cv = document.createElement('canvas')
       cv.width = cv.height = PX
       const ctx = cv.getContext('2d')
-      ctx.filter = 'brightness(0.86) contrast(1.6) saturate(1.3)'   // el estilo claro del mapa se ve lavado con la luz 3D (primero oscurecer, luego contrastar)
       ctx.drawImage(map.getCanvas(), 0, 0, PX, PX)
+      // el estilo claro del mapa casi no se distingue en 3D: se triplica la distancia al blanco
+      // (las calles siguen blancas; el fondo, las manzanas y los edificios se oscurecen)
+      const img = ctx.getImageData(0, 0, PX, PX)
+      const px = img.data
+      for (let i = 0; i < px.length; i += 4) {
+        px[i] = Math.max(0, 255 - (255 - px[i]) * 3.2) * 0.96
+        px[i + 1] = Math.max(0, 255 - (255 - px[i + 1]) * 3.2) * 0.98
+        px[i + 2] = Math.max(0, 255 - (255 - px[i + 2]) * 3.2) * 0.95
+      }
+      ctx.putImageData(img, 0, 0)
       window.__sueloCanvas = cv
       const t = new THREE.CanvasTexture(cv)
       t.colorSpace = THREE.SRGBColorSpace
