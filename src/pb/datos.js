@@ -9,6 +9,15 @@ export async function cargarDatos() {
   const celdas = new Uint8Array(bin.length)
   for (let i = 0; i < bin.length; i++) celdas[i] = bin.charCodeAt(i)
   d.nav.celdas = celdas
+  const bin2 = atob(d.nav.cuarto)
+  const cuarto = new Uint8Array(bin2.length)
+  for (let i = 0; i < bin2.length; i++) cuarto[i] = bin2.charCodeAt(i)
+  d.nav.cuarto = cuarto
+  // ambientes de paso (las rutas pueden cruzarlos sin recargo)
+  d.nav.paso = new Uint8Array(d.ambientes.length + 1)
+  d.nav.paso[0] = 1
+  d.ambientes.forEach((a, k) => { d.nav.paso[k + 1] = ['circulacion', 'espera'].includes(a.cat) || !a.nombre ? 1 : 0 })
+  d.nav.indice = Object.fromEntries(d.ambientes.map((a, k) => [a.id, k + 1]))
   return d
 }
 

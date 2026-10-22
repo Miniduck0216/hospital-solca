@@ -252,7 +252,14 @@ def exportar(m):
             a['dest'] = [r2(x0 + ix * RES), r2(y0 + iy * RES)]
         else:
             a['dest'] = None
-    nav = dict(x0=x0, y0=y0, res=RES, w=W, h=H, celdas=base64.b64encode(celdas.tobytes()).decode())
+    # ambiente de cada celda (índice + 1 en la lista de ambientes): las rutas evitan cruzar cuartos ajenos
+    cuarto = np.zeros((H, W), np.uint8)
+    ordenados = sorted(m.ambientes, key=lambda a: -a['area'])
+    for k in sorted(range(len(ordenados)), key=lambda k: -ordenados[k]['area']):
+        msk = ras([ordenados[k]['poligono'].buffer(0.15)])
+        cuarto[msk] = k + 1
+    nav = dict(x0=x0, y0=y0, res=RES, w=W, h=H, celdas=base64.b64encode(celdas.tobytes()).decode(),
+               cuarto=base64.b64encode(cuarto.tobytes()).decode())
 
     # ------------------------------------------------ exterior: parqueaderos (OpenStreetMap / prototipo)
     parqueos = [

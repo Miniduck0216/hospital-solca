@@ -68,9 +68,10 @@ function visible(nav, a, b) {
   }
 }
 
-export function buscarRuta(d, desde, hasta) {
+export function buscarRuta(d, desde, hasta, idsPropios = []) {
   const nav = d.nav
-  const { w, h, celdas, res } = nav
+  const { w, h, celdas, res, cuarto, paso } = nav
+  const propios = new Set(idsPropios.map((id) => nav.indice[id]).filter(Boolean))
   const ini = libreMasCercana(nav, ...celda(nav, desde[0], desde[1]))
   const fin = libreMasCercana(nav, ...celda(nav, hasta[0], hasta[1]))
   if (!ini || !fin) return null
@@ -97,7 +98,9 @@ export function buscarRuta(d, desde, hasta) {
       const cj = celdas[j]
       if (!cj || cerrado[j]) continue
       if (ddx && ddy && (!celdas[y * w + nx] || !celdas[ny * w + x])) continue
-      const ng = g[i] + c * (1 + (cj - 1) * 0.45)
+      const q = cuarto[j]
+      const ajeno = q && !paso[q] && !propios.has(q) ? 40 : 1     // cruzar un cuarto ajeno cuesta 40 veces más
+      const ng = g[i] + c * (1 + (cj - 1) * 0.45) * ajeno
       if (ng < g[j]) { g[j] = ng; de[j] = i; mo.push(j, ng + hx(j)) }
     }
   }

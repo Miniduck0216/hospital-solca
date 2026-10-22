@@ -160,7 +160,7 @@ export default function App() {
 
   const ruta = useMemo(() => {
     if (!d || !origen || !destino || origen.id === destino.id) return null
-    const r = buscarRuta(d, [origen.x, origen.y], [destino.x, destino.y])
+    const r = buscarRuta(d, [origen.x, origen.y], [destino.x, destino.y], [origen.id, destino.id])
     return r ? { ...r, pasos: indicaciones(d, r, origen, destino) } : null
   }, [d, origen, destino])
 
