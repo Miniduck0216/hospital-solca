@@ -56,7 +56,6 @@ function SueloMapa({ centro }) {
         q[i + 2] = Math.max(0, 255 - (255 - q[i + 2]) * 3.2) * 0.95
       }
       ctx.putImageData(img, 0, 0)
-      window.__sueloCanvas = cv
       const t = new THREE.CanvasTexture(cv)
       t.colorSpace = THREE.SRGBColorSpace
       t.anisotropy = 8
@@ -71,7 +70,7 @@ function SueloMapa({ centro }) {
   return (
     <mesh rotation-x={-Math.PI / 2} position={[centro[0], -0.22, -centro[1]]} receiveShadow>
       <planeGeometry args={[LADO, LADO]} />
-      {tex ? <meshBasicMaterial map={tex} toneMapped={false} /> : <meshBasicMaterial color="#D9DFE5" toneMapped={false} />}
+      {tex ? <meshBasicMaterial key="mapa" map={tex} toneMapped={false} /> : <meshBasicMaterial key="liso" color="#D3DAD0" toneMapped={false} />}
     </mesh>
   )
 }
