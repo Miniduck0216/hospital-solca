@@ -3,19 +3,23 @@ import QRCode from 'qrcode'
 import { cargarDatos, usarGeo, CATS, ICONO_LUGAR, plano, dentro } from './datos.js'
 import { buscarRuta, indicaciones } from './ruta.js'
 import { Mapa } from './Mapa.jsx'
+import { Hoja } from './Hoja.jsx'
 import { Icono, Insignia } from '../ui/mapa2d/Iconos.jsx'
 
 const Vista3D = lazy(() => import('./Vista3D.jsx').then((m) => ({ default: m.Vista3D })))
 
 // categorías de la barra (atajos de búsqueda)
 const CHIPS = [
-  { id: 'banos', nombre: 'Baños', cat: 'banos' },
-  { id: 'consulta', nombre: 'Consultorios', cat: 'consulta' },
-  { id: 'farmacia', nombre: 'Farmacia', cat: 'farmacia' },
-  { id: 'administracion', nombre: 'Atención y trámites', cat: 'administracion' },
-  { id: 'espera', nombre: 'Salas de espera', cat: 'espera' },
-  { id: 'vertical', nombre: 'Escaleras y ascensores', cat: 'escaleras' },
+  { id: 'banos', nombre: 'Baños', cat: 'banos', icono: 'bano' },
+  { id: 'consulta', nombre: 'Consultorios', cat: 'consulta', icono: 'consulta' },
+  { id: 'farmacia', nombre: 'Farmacia', cat: 'farmacia', icono: 'farmacia' },
+  { id: 'administracion', nombre: 'Atención y trámites', cat: 'administracion', icono: 'administracion' },
+  { id: 'espera', nombre: 'Salas de espera', cat: 'espera', icono: 'silla' },
+  { id: 'vertical', nombre: 'Escaleras y ascensores', cat: 'escaleras', icono: 'ascensor' },
 ]
+// íconos en tinta sobre un disco neutro: nada de colores de categoría en la interfaz
+const DISCO = '#EEF1F5'
+const TINTA = '#14181F'
 const ICONO_CAT = { banos: 'bano', consulta: 'consulta', farmacia: 'farmacia', administracion: 'administracion', espera: 'silla', escaleras: 'escalera', ascensores: 'ascensor', circulacion: 'piso', apoyo: 'servicios', otro: 'servicios', entrada: 'salida' }
 
 function distPoli(p, anillo) {
@@ -87,7 +91,7 @@ function Buscador({ lugares, modo, cat, onElegir, onCerrar }) {
       <div className="chips">
         {CHIPS.map((c) => (
           <button key={c.id} className={`chip-cat${filtro === c.cat ? ' on' : ''}`} onClick={() => setFiltro(filtro === c.cat ? null : c.cat)}>
-            <span className="punto" style={{ background: CATS[c.cat].acento }} aria-hidden="true" />{c.nombre}
+            <Icono nombre={c.icono} size={16} grosor={2} />{c.nombre}
           </button>
         ))}
       </div>
@@ -95,7 +99,7 @@ function Buscador({ lugares, modo, cat, onElegir, onCerrar }) {
         {lista.map((l) => (
           <li key={l.id}>
             <button onClick={() => onElegir(l)}>
-              <Insignia icono={l.icono} color={l.entrada ? '#14181F' : (CATS[l.cat] || CATS.otro).acento} size={32} />
+              <Insignia icono={l.icono} color={l.entrada ? TINTA : DISCO} tinta={l.entrada ? '#fff' : TINTA} size={34} />
               <span><b>{l.nombre}</b><small>{l.entrada ? 'Entrada del edificio' : [CATS[l.cat]?.nombre, l.cerca && `junto a ${l.cerca}`].filter(Boolean).join(' · ')}</small></span>
             </button>
           </li>
@@ -148,6 +152,8 @@ export default function App() {
     cargarDatos().then((datos) => { usarGeo(datos.geo); setD(datos) }).catch((e) => setError(e.message))
   }, [])
   const lugares = useMemo(() => (d ? armarLugares(d) : []), [d])
+  // ¿se llega caminando por pasillos abiertos? (si no, la app lo dice en vez de trazar por consultorios)
+  const alcanzable = (l) => !!d && (l.entrada || !d.nav.indice[l.id] || d.nav.alcanzable.has(d.nav.indice[l.id]))
   const porId = useMemo(() => Object.fromEntries(lugares.map((l) => [l.id, l])), [lugares])
 
   // origen por defecto (Puerta 1) o el del enlace / QR (?origen=…&destino=…)
@@ -174,7 +180,7 @@ export default function App() {
   }, [origen, destino])
 
   const lugaresIcono = useMemo(() => lugares.filter((l) => l.entrada || ['banos', 'escaleras', 'ascensores', 'farmacia'].includes(l.cat) || ['caja', 'info', 'capilla'].includes(l.icono))
-    .map((l) => ({ ...l, x: l.entrada ? l.x : l.lbl[0], y: l.entrada ? l.y : l.lbl[1], color: l.entrada ? '#14181F' : (CATS[l.cat] || CATS.otro).acento })), [lugares])
+    .map((l) => ({ ...l, x: l.entrada ? l.x : l.lbl[0], y: l.entrada ? l.y : l.lbl[1], color: l.entrada ? TINTA : '#FFFFFF' })), [lugares])
 
   const elegirDesdeMapa = (id) => {
     const l = porId[id] || lugares.find((x) => x.id === id)
@@ -208,14 +214,14 @@ export default function App() {
             <div className="chips" aria-label="Categorías">
               {CHIPS.map((c) => (
                 <button key={c.id} className="chip-cat" onClick={() => setBuscando({ modo: 'destino', cat: c.cat })}>
-                  <span className="punto" style={{ background: CATS[c.cat].acento }} aria-hidden="true" />{c.nombre}
+                  <Icono nombre={c.icono} size={16} grosor={2} />{c.nombre}
                 </button>
               ))}
             </div>
           </div>
 
           {destino && (
-            <div className="tarjeta pb-ruta">
+            <Hoja clase="pb-ruta" resumen={ruta ? `${Math.round(ruta.metros)} m · ${minutos} min` : destino.nombre}>
               <div className="campos">
                 <Campo tipo="origen" lugar={origen} onClick={() => setBuscando({ modo: 'origen' })} />
                 <Campo tipo="destino" lugar={destino} onClick={() => setBuscando({ modo: 'destino' })} />
@@ -243,8 +249,8 @@ export default function App() {
                     <button className="btn-claro" onClick={() => setDestino(null)} aria-label="Cerrar ruta">Cerrar</button>
                   </div>
                 </>
-              ) : <p className="ruta-nota">{origen?.id === destino.id ? 'Ya estás en ese lugar.' : 'No se encontró un camino hasta ese lugar dentro del plano.'}</p>}
-            </div>
+              ) : <p className="ruta-nota">{origen?.id === destino.id ? 'Ya estás en ese lugar.' : 'No hay un camino por pasillos abiertos hasta ese lugar. Pregunta en Información.'}</p>}
+            </Hoja>
           )}
         </div>
       )}
@@ -256,17 +262,18 @@ export default function App() {
 
       {/* ficha al tocar un ambiente */}
       {ficha && !buscando && (
-        <div className="tarjeta pb-ficha" role="dialog" aria-label={ficha.nombre}>
+        <Hoja clase="pb-ficha" resumen={ficha.nombre} arrastrable={false}>
           <div className="pb-ficha-cab">
-            <Insignia icono={ficha.icono} color={ficha.entrada ? '#14181F' : (CATS[ficha.cat] || CATS.otro).acento} size={38} />
-            <div><b>{ficha.nombre}</b><small>{ficha.entrada ? 'Entrada del edificio' : `${CATS[ficha.cat]?.nombre || ''}${ficha.area ? ` · ${ficha.area.toFixed(0)} m²` : ''}`}{ficha.cerca ? ` · junto a ${ficha.cerca}` : ''}</small></div>
+            <Insignia icono={ficha.icono} color={ficha.entrada ? TINTA : DISCO} tinta={ficha.entrada ? '#fff' : TINTA} size={40} />
+            <div><small>{ficha.entrada ? 'Entrada del edificio' : `${CATS[ficha.cat]?.nombre || ''}${ficha.area ? ` · ${ficha.area.toFixed(0)} m²` : ''}`}{ficha.cerca ? ` · junto a ${ficha.cerca}` : ''}</small>
+              {!alcanzable(ficha) && <small className="ficha-aviso">Sin camino por pasillos abiertos en el plano</small>}</div>
             <button className="icono-btn mini" onClick={() => setFicha(null)} aria-label="Cerrar"><Icono nombre="cerrar" size={16} /></button>
           </div>
           <div className="acciones">
             <button className="btn-negro" onClick={() => irA(ficha)}>Cómo llegar</button>
             <button className="btn-claro" onClick={() => { setOrigen(ficha); setFicha(null) }}>Estoy aquí</button>
           </div>
-        </div>
+        </Hoja>
       )}
 
       {/* columna derecha: 2D / 3D, zoom y leyenda */}
@@ -286,8 +293,8 @@ export default function App() {
         <button className="pb-ley-btn" onClick={() => setLeyenda((v) => !v)} aria-expanded={leyenda}>Leyenda</button>
         {leyenda && (
           <ul className="pb-leyenda">
-            {['consulta', 'espera', 'banos', 'farmacia', 'administracion', 'circulacion', 'apoyo', 'escaleras'].map((k) => (
-              <li key={k}><span style={{ background: CATS[k].relleno, borderColor: CATS[k].acento }} />{CATS[k].nombre}</li>
+            {[['consulta', 'consulta'], ['espera', 'silla'], ['banos', 'bano'], ['farmacia', 'farmacia'], ['administracion', 'administracion'], ['circulacion', 'piso'], ['escaleras', 'escalera'], ['apoyo', 'servicios']].map(([k, ic]) => (
+              <li key={k}><Icono nombre={ic} size={16} grosor={2} />{CATS[k].nombre}</li>
             ))}
           </ul>
         )}

@@ -19,7 +19,8 @@ body { background: #E9EDF1; }
 /* íconos de lugares: insignia; el nombre de las entradas siempre visible */
 .pb-pin { display: inline-flex; align-items: center; gap: 4px; border: 0; background: none; padding: 0; cursor: pointer; transition: transform .15s ease; }
 .pb-pin:hover { transform: scale(1.15); }
-.pb-pin-c { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 2px 6px rgba(20, 30, 45, .28); }
+.pb-pin-c { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: #fff; border: 1px solid rgba(20, 24, 31, .14); box-shadow: 0 1px 3px rgba(20, 30, 45, .18); }
+.pb-pin.entrada .pb-pin-c { background: #14181F; border-color: #14181F; }
 .pb-mapa:not(.pb-cerca) .pb-pin:not(.entrada) .pb-pin-c { width: 16px; height: 16px; }
 .pb-mapa:not(.pb-cerca) .pb-pin:not(.entrada) svg { width: 10px; height: 10px; }
 .pb-pin-t { font: 800 11px var(--m-fuente); color: #fff; background: var(--m-tinta); border-radius: 999px; padding: 2px 8px 2px 6px; white-space: nowrap; box-shadow: 0 2px 6px rgba(20, 30, 45, .25); }
@@ -34,8 +35,17 @@ body { background: #E9EDF1; }
 .pb-app .barra-logo { background: #D7443A; min-width: 62px; }
 .pb-app .chip-cat.on { background: var(--m-tinta); border-color: var(--m-tinta); color: #fff; }
 .pb-app .tarjeta { position: relative; background: #fff; border-radius: 20px; box-shadow: var(--m-sombra); }
-.pb-ruta { padding: 14px; display: flex; flex-direction: column; gap: 12px; min-height: 0; overflow: hidden; animation: entrar .2s ease-out; }
-.pb-pasos { list-style: none; margin: 0; padding: 10px 0 0; border-top: 1px solid var(--m-linea); display: flex; flex-direction: column; gap: 4px; overflow: auto; min-height: 0; max-height: 36vh; font-size: .9rem; }
+.hoja { display: flex; flex-direction: column; min-height: 0; overflow: hidden; animation: entrar .2s ease-out; }
+.hoja-agarre { flex: none; padding: 12px 12px 8px 16px; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.hoja-cab { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.hoja-resumen { font-weight: 800; font-size: 1rem; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hoja-min { flex: none; width: 32px; height: 32px; border: 0; border-radius: 50%; background: #F1F4F7; color: var(--m-tinta); display: grid; place-items: center; cursor: pointer; }
+.hoja-min:hover { background: #E4E9EF; }
+.hoja-raya { display: none; }
+.hoja-cuerpo { flex: 1; min-height: 0; overflow: auto; padding: 4px 16px 16px; display: flex; flex-direction: column; gap: 12px; }
+.hoja.mini .hoja-cuerpo { display: none; }
+.hoja.mini .hoja-agarre { padding-bottom: 12px; }
+.pb-pasos { list-style: none; margin: 0; padding: 10px 0 0; border-top: 1px solid var(--m-linea); display: flex; flex-direction: column; gap: 4px; overflow: auto; min-height: 0; max-height: 34vh; font-size: .9rem; }
 .pb-pasos li { display: flex; align-items: center; gap: 10px; padding: 6px 4px; border-radius: 10px; line-height: 1.3; }
 .pb-pasos li:hover { background: #F4F6F9; }
 .pb-paso-i { flex: none; display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: #F1F4F7; color: var(--m-tinta); }
@@ -58,7 +68,7 @@ body { background: #E9EDF1; }
 .pb-nada { padding: 16px; color: var(--m-gris); font-weight: 600; }
 
 /* ficha de un ambiente */
-.pb-ficha { position: absolute !important; left: 50%; bottom: 22px; transform: translateX(-50%); width: min(400px, calc(100% - 28px)); padding: 14px; display: flex; flex-direction: column; gap: 12px; z-index: 7; animation: subir .2s ease-out; }
+.pb-ficha { position: absolute !important; left: 50%; bottom: 22px; transform: translateX(-50%); width: min(400px, calc(100% - 28px)); z-index: 7; animation: subir .2s ease-out; }
 @keyframes subir { from { opacity: 0; transform: translate(-50%, 12px); } }
 .pb-ficha-cab { display: flex; align-items: center; gap: 12px; }
 .pb-ficha-cab > div { flex: 1; min-width: 0; display: flex; flex-direction: column; }
@@ -77,8 +87,8 @@ body { background: #E9EDF1; }
 .pb-piso { width: 52px; height: 40px; display: grid; place-items: center; background: var(--m-tinta); color: #fff; border-radius: 12px; font-weight: 900; box-shadow: var(--m-sombra); }
 .pb-ley-btn { border: 0; background: #fff; border-radius: 999px; padding: 8px 12px; font-weight: 800; font-size: .78rem; box-shadow: var(--m-sombra); cursor: pointer; color: var(--m-tinta); }
 .pb-leyenda { list-style: none; margin: 0; padding: 10px 12px; background: #fff; border-radius: 14px; box-shadow: var(--m-sombra); display: flex; flex-direction: column; gap: 6px; font-size: .8rem; font-weight: 700; }
-.pb-leyenda li { display: flex; align-items: center; gap: 8px; }
-.pb-leyenda span { width: 16px; height: 12px; border-radius: 4px; border: 1.5px solid; }
+.pb-leyenda li { display: flex; align-items: center; gap: 10px; }
+.pb-leyenda li svg { color: var(--m-tinta); }
 
 /* 3D */
 .pb-3d { position: absolute; inset: 0; background: #DDE6EE; }
@@ -103,12 +113,21 @@ body { background: #E9EDF1; }
 @media (max-width: 700px) {
   .pb-col { width: calc(100% - 28px); }
   .pb-der { top: 132px; }
-  .pb-ruta { position: fixed !important; left: 8px; right: 8px; bottom: 8px; max-height: 52vh; }
-  .pb-pasos { max-height: 22vh; }
-  .pb-3d-ctrl { left: 8px; right: 8px; width: auto; bottom: 8px; }
-  .modo-3d .pb-ruta { display: none; }
+  /* la ruta es una hoja abajo: se arrastra, se sube, se baja o se minimiza */
+  .hoja.sheet { position: fixed !important; left: 0; right: 0; bottom: 0; top: auto; width: auto; max-height: 92vh; border-radius: 22px 22px 0 0; box-shadow: 0 -10px 30px rgba(20, 30, 45, .16); z-index: 6; transition: height .24s ease; }
+  .hoja.sheet .hoja-raya { display: block; width: 40px; height: 5px; border-radius: 99px; background: #C9D1DB; margin: 0 auto 10px; }
+  .hoja.sheet .hoja-agarre { touch-action: none; cursor: grab; }
+  .hoja.sheet .hoja-cuerpo { padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
+  .pb-pasos { max-height: none; }
+  .pb-ficha { bottom: 16px; }
+  .modo-3d .pb-3d-ctrl { top: 196px; bottom: auto; left: 8px; right: 8px; width: auto; padding: 10px; gap: 6px; }
+  .modo-3d .pb-3d-t { display: none; }
+  .modo-3d .pb-piso, .modo-3d .pb-ley-btn, .modo-3d .pb-leyenda { display: none; }
   .pb-ayuda3d { display: none; }
   .pb-proto { display: none; }
 }
-@media (prefers-reduced-motion: reduce) { .pb-ruta, .pb-buscador, .pb-ficha { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .hoja, .pb-buscador, .pb-ficha { animation: none; } .hoja.sheet { transition: none; } }
 @media print { .pb-app > *:not(.qr-fondo) { display: none !important; } .qr-fondo { position: static; background: none; } }
+
+/* aviso de lugares sin camino por pasillos */
+.ficha-aviso { color: #B4532A !important; font-weight: 700 !important; }
