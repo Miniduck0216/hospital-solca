@@ -38,7 +38,7 @@ function armarLugares(d) {
   const zonas = d.ambientes.filter((a) => a.nombre && (a.cat === 'circulacion' || a.cat === 'espera') && a.area > 30)
   const lugares = []
   for (const a of d.ambientes) {
-    if (!a.nombre || !a.dest) continue
+    if (!a.nombre || !a.dest || /^Pasillo Bloque/.test(a.nombre)) continue
     let cerca = null
     if (a.cat !== 'circulacion' && a.area < 120) {
       let m = Infinity
@@ -166,7 +166,7 @@ export default function App() {
 
   const ruta = useMemo(() => {
     if (!d || !origen || !destino || origen.id === destino.id) return null
-    const r = buscarRuta(d, [origen.x, origen.y], [destino.x, destino.y], [origen.id, destino.id])
+    const r = buscarRuta(d, [origen.x, origen.y], [destino.x, destino.y], [origen.id, destino.id], destino.id)
     return r ? { ...r, pasos: indicaciones(d, r, origen, destino) } : null
   }, [d, origen, destino])
 

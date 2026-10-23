@@ -1,7 +1,8 @@
-// Rutas sobre la rejilla de navegación del plano real (celdas de 25 cm).
-// Los pacientes solo caminan por la red de pasillos trazada en el plano (líneas verdes): los consultorios y demás
-// ambientes no son paso; solo se entra al de origen y al de destino. La línea sale en tres etapas:
-// A* sobre la rejilla, "estirado" por línea de vista (se quitan los zigzags) y suavizado de giros (Chaikin).
+// Rutas para pacientes sobre la rejilla de navegación del plano real (celdas de 25 cm).
+// Los pacientes caminan solo por la red de pasillos trazada en el plano (líneas verdes) y su franja cercana.
+// La ruta termina en la puerta del destino: no entra a consultorios, farmacia, baños ni oficinas.
+// Sale de su propio cuarto (origen) por la puerta. Línea: A* sobre la rejilla, estirado por línea de vista y
+// curvas en cada giro validadas contra la franja.
 import { ambienteEn } from './datos.js'
 
 class Monticulo {
@@ -53,7 +54,7 @@ function libreMasCercana(nav, cx, cy, pasa) {
   return null
 }
 
-// línea de vista entre dos celdas: no puede cruzar muros, ni celdas pegadas al muro, ni ambientes cerrados
+// línea de vista entre dos celdas: no puede cruzar muros ni salir de la franja
 function visible(nav, pasa, a, b) {
   const { w, celdas } = nav
   let [x0, y0] = a
@@ -72,7 +73,7 @@ function visible(nav, pasa, a, b) {
 }
 
 // curva en cada giro: el vértice se reemplaza por una curva cuadrática que empieza y termina en el pasillo.
-// Si la curva se saldría de un pasillo abierto, se prueba un radio más chico y, si no cabe, se deja el giro.
+// Si la curva se saldría de la franja, se prueba un radio más chico y, si no cabe, se deja el giro.
 function redondear(P, enPaso) {
   if (P.length < 3) return P
   const out = [P[0]]
@@ -99,48 +100,55 @@ function redondear(P, enPaso) {
   return out
 }
 
-export function buscarRuta(d, desde, hasta, idsPropios = []) {
+// ids = [origen, destino]. Si el destino es un ambiente, la ruta termina en su puerta.
+export function buscarRuta(d, desde, hasta, ids = []) {
   const nav = d.nav
-  const { w, h, celdas, res, cuarto, red, puerta, paso } = nav
-  const propios = new Set(idsPropios.map((id) => nav.indice[id]).filter(Boolean))
-  // transitable: la red de pasillos trazada en el plano (líneas verdes), los pasillos abiertos del plano como
-  // respaldo, las puertas que dan a la red y el ambiente de origen o destino. Ningún otro cuarto se cruza.
-  const pasa = (j) => !!celdas[j] && (red[j] === 1 || puerta[j] === 1 || paso[cuarto[j]] === 1 || propios.has(cuarto[j]))
+  const { w, h, celdas, res, cuarto, banda, red } = nav
+  const qO = nav.indice[ids[0]] || 0      // cuarto de origen: se sale de él
+  const qD = nav.indice[ids[1]] || 0      // cuarto de destino: solo se llega hasta su puerta
+  const pasa = (j) => !!celdas[j] && (banda[j] === 1 || (qO !== 0 && cuarto[j] === qO))
+  const meta = (j) => qD !== 0 && !!celdas[j] && cuarto[j] === qD
   const ini = libreMasCercana(nav, ...celda(nav, desde[0], desde[1]), pasa)
-  const fin = libreMasCercana(nav, ...celda(nav, hasta[0], hasta[1]), pasa)
-  if (!ini || !fin) return null
+  const fin = qD ? null : libreMasCercana(nav, ...celda(nav, hasta[0], hasta[1]), pasa)
+  if (!ini || (!qD && !fin)) return null
   const N = w * h
   const g = new Float32Array(N).fill(Infinity)
   const de = new Int32Array(N).fill(-1)
   const cerrado = new Uint8Array(N)
-  const s = ini[1] * w + ini[0], t = fin[1] * w + fin[0]
-  const hx = (i) => { const x = i % w, y = (i / w) | 0; const ax = Math.abs(x - fin[0]), ay = Math.abs(y - fin[1]); return Math.max(ax, ay) + 0.4142 * Math.min(ax, ay) }
+  const s = ini[1] * w + ini[0]
+  const t = fin ? fin[1] * w + fin[0] : -1
+  const hx = (i) => {
+    if (!fin) return 0
+    const x = i % w, y = (i / w) | 0
+    const ax = Math.abs(x - fin[0]), ay = Math.abs(y - fin[1])
+    return Math.max(ax, ay) + 0.4142 * Math.min(ax, ay)
+  }
   const mo = new Monticulo()
   g[s] = 0
   mo.push(s, hx(s))
   const V = [[1, 0, 1], [-1, 0, 1], [0, 1, 1], [0, -1, 1], [1, 1, 1.4142], [1, -1, 1.4142], [-1, 1, 1.4142], [-1, -1, 1.4142]]
+  let final = -1
   while (mo.size) {
     const i = mo.pop()
     if (cerrado[i]) continue
-    if (i === t) break
+    if (qD ? meta(i) : i === t) { final = i; break }
     cerrado[i] = 1
     const x = i % w, y = (i / w) | 0
     for (const [ddx, ddy, c] of V) {
       const nx = x + ddx, ny = y + ddy
       if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue
       const j = ny * w + nx
-      if (cerrado[j] || !pasa(j)) continue
+      if (cerrado[j] || !(pasa(j) || meta(j))) continue
       if (ddx && ddy && (!celdas[y * w + nx] || !celdas[ny * w + x])) continue
       const cj = celdas[j]
-      // junto a los muros cuesta más: la ruta va por el centro del pasillo
-      // la red de las líneas verdes cuesta menos: la ruta la sigue siempre que puede
-      const ng = g[i] + c * (1 + (cj - 1) * 0.45) * (red[j] ? 1 : 3)
+      // la red de las líneas verdes cuesta menos: la ruta la sigue; la franja, un poco más
+      const ng = g[i] + c * (1 + (cj - 1) * 0.45) * (red[j] || meta(j) ? 1 : 2.5)
       if (ng < g[j]) { g[j] = ng; de[j] = i; mo.push(j, ng + hx(j)) }
     }
   }
-  if (de[t] === -1 && s !== t) return null
+  if (final === -1) return null
   const camino = []
-  for (let i = t; i !== -1; i = de[i]) camino.push([i % w, (i / w) | 0])
+  for (let i = final; i !== -1; i = de[i]) camino.push([i % w, (i / w) | 0])
   camino.reverse()
 
   // 1) estirado: solo quedan los vértices donde la línea deja de ser recta
@@ -148,19 +156,21 @@ export function buscarRuta(d, desde, hasta, idsPropios = []) {
   let k = 0
   while (k < camino.length - 1) {
     let j = camino.length - 1
-    while (j > k + 1 && !visible(nav, pasa, camino[k], camino[j])) j--
+    while (j > k + 1 && !visible(nav, (q) => pasa(q) || meta(q), camino[k], camino[j])) j--
     esq.push(camino[j])
     k = j
   }
   const aMetros = ([x, y]) => [nav.x0 + x * res, nav.y0 + y * res]
   const esquinas = esq.map(aMetros)
   esquinas[0] = [desde[0], desde[1]]
-  esquinas.push([hasta[0], hasta[1]])
+  if (!qD) esquinas.push([hasta[0], hasta[1]])
 
-  // 2) curvas en los giros (cada una se valida contra los pasillos)
+  // 2) curvas en los giros (cada una se valida contra la franja)
   const enPaso = (p) => {
     const cx = Math.round((p[0] - nav.x0) / res), cy = Math.round((p[1] - nav.y0) / res)
-    return cx >= 0 && cy >= 0 && cx < w && cy < h && pasa(cy * w + cx)
+    if (cx < 0 || cy < 0 || cx >= w || cy >= h) return false
+    const j = cy * w + cx
+    return pasa(j) || meta(j)
   }
   const pts = redondear(esquinas, enPaso)
 
@@ -197,7 +207,7 @@ export function indicaciones(d, ruta, origen, destino) {
     }
   }
   if (acum > 0.5) pasos.push({ tipo: 'camina', texto: `Camina ${Math.max(1, Math.round(acum))} m${zona ? ` por ${zona}` : ''}` })
-  pasos.push({ tipo: 'fin', texto: `Llegaste a ${destino.nombre}` })
+  pasos.push({ tipo: 'fin', texto: `Llegaste a la puerta de ${destino.nombre}` })
   // juntar "camina" seguidos
   const out = []
   for (const p of pasos) {

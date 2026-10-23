@@ -166,6 +166,10 @@ def exportar(m):
             continue
         for q in poli(mu['poligono'], 0.01):
             muebles.append(dict(t=mu['cat'] if mu['cat'] in ('sanitario', 'silla', 'camilla') else 'mueble', pg=q))
+    # escritorios (mostrador de información, etc.): son mobiliario, no muros
+    for e in m.escritorios:
+        for q in poli(e, 0.01):
+            muebles.append(dict(t='mueble', pg=q))
     gradas = [anillo(l.coords) for tr in m.tramos for l in tr]
     # entradas: puertas en el borde del edificio
     entradas = []
@@ -213,7 +217,7 @@ def exportar(m):
                     cv2.fillPoly(img, [np.array([[(x - x0) / RES, (y - y0) / RES] for x, y in h.coords], np.int32)], 0)
         return img > 0
     interior = ras([a['poligono'] for a in m.ambientes])
-    obst = ras([duro, vent] + [mu['poligono'] for mu in m.muebles if mu['nombre'] not in ('Tope de puerta',)])
+    obst = ras([duro, vent] + [mu['poligono'] for mu in m.muebles if mu['nombre'] not in ('Tope de puerta',)] + list(m.escritorios))
     libre = interior & ~ndimage.binary_dilation(obst, iterations=1)
     # puertas: siempre pasables (vano y 0,5 m a cada lado)
     vanos = []

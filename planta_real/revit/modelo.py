@@ -758,6 +758,15 @@ class Modelo:
         m = self.muros_raw.difference(unary_union(self.columnas))
         m = m.difference(unary_union(self.ventanas))
         self.muros = [p for p in lista_polis(m) if p.area > 0.02]
+        # mostrador curvo de Información: el DXF lo trae como tabiques delgados en arco (unos 4 × 5 m).
+        # Es un escritorio, no un tabique: se saca de los tabiques y pasa a la lista de escritorios
+        from shapely.geometry import Polygon as _P
+        ref = _P([(58.29, 50.69), (57.88, 52.4), (57.93, 52.41), (58.34, 50.71), (59.21, 49.14), (60.47, 47.85),
+                  (62.03, 46.95), (62.0, 46.9), (60.44, 47.81), (59.17, 49.1), (58.3, 50.69)]).buffer(0.1)
+        arco = [t for t in self.tabiques if t['poligono'].intersects(ref)]
+        if arco:
+            self.tabiques = [t for t in self.tabiques if all(t is not q for q in arco)]
+            self.escritorios.append(unary_union([t['poligono'] for t in arco]).buffer(0.25, join_style=1))
 
     # --- ambientes: regiones libres con las puertas cerradas, nombradas con los textos
     def _ambientes(self):

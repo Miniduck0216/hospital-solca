@@ -13,63 +13,118 @@ export async function cargarDatos() {
   const cuarto = new Uint8Array(bin2.length)
   for (let i = 0; i < bin2.length; i++) cuarto[i] = bin2.charCodeAt(i)
   d.nav.cuarto = cuarto
-  // ambientes abiertos al paciente: pasillos, halls, salas de espera y accesos verticales (respaldo de la red)
+  // espacios que la franja de paso puede cruzar: pasillos, halls, salas de espera y accesos verticales
   const ABIERTOS = ['circulacion', 'espera', 'escaleras', 'ascensores']
   d.nav.paso = new Uint8Array(d.ambientes.length + 1)
   d.nav.paso[0] = 1
-  d.ambientes.forEach((a, k) => { d.nav.paso[k + 1] = ABIERTOS.includes(a.cat) || (!a.nombre && a.area >= 30) ? 1 : 0 })
+  d.ambientes.forEach((a, k) => { d.nav.paso[k + 1] = (ABIERTOS.includes(a.cat) && !SOLO_PERSONAL.test(a.nombre || '')) || (!a.nombre && a.area >= 30) ? 1 : 0 })
   // red de pasillos para pacientes (trazada sobre el plano): 1 = pasillo de la red
   const bin3 = atob(d.nav.red)
   d.nav.red = new Uint8Array(bin3.length)
   for (let i = 0; i < bin3.length; i++) d.nav.red[i] = bin3.charCodeAt(i)
-  // puertas: celdas libres pegadas a la red (por ahí se entra a un consultorio que sea origen o destino)
-  d.nav.puerta = puertasDeRed(d.nav)
+  // franja de paso (ver bandaDeRed)
+  d.nav.banda = bandaDeRed(d)
   d.nav.indice = Object.fromEntries(d.ambientes.map((a, k) => [a.id, k + 1]))
   d.nav.alcanzable = alcanzables(d)
   return d
 }
 
-// celdas libres con un lado en la red (accesos a los ambientes)
-function puertasDeRed({ w, h, celdas, red }) {
-  const puerta = new Uint8Array(w * h)
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-    const i = y * w + x
-    if (!celdas[i] || red[i]) continue
-    if ((x > 0 && red[i - 1]) || (x < w - 1 && red[i + 1]) || (y > 0 && red[i - w]) || (y < h - 1 && red[i + w])) puerta[i] = 1
-  }
-  return puerta
-}
+// franja de paso: la red verde y los pasillos y halls abiertos conectados a ella. Los pasillos internos de los bloques
+// son solo del personal y no entran. Un cuarto cerrado (consultorio, farmacia, oficina) aporta solo su puerta: la franja
+// no sigue hacia adentro. Si un cuarto queda sin camino por pasillos públicos, se traza un acceso hasta la franja.
+const SOLO_PERSONAL = /^Pasillo Bloque/
 
-// ambientes a los que se llega caminando (red y pasillos abiertos desde la entrada). Lo que no, la app lo avisa.
-function alcanzables(d) {
-  const { w, h, celdas, cuarto, red, paso, puerta, x0, y0, res } = d.nav
-  const reach = new Set()
-  const ent = d.entradas.find((e) => e.id === 'entrada-puerta-1') || d.entradas[0]
-  if (!ent) return reach
-  const cx = Math.round((ent.x - x0) / res), cy = Math.round((ent.y - y0) / res)
-  let s = -1
-  for (let r = 0; r < 40 && s < 0; r++) for (let dy = -r; dy <= r && s < 0; dy++) for (let dx = -r; dx <= r; dx++) {
-    const x = cx + dx, y = cy + dy
-    if (Math.max(Math.abs(dx), Math.abs(dy)) !== r || x < 0 || y < 0 || x >= w || y >= h) continue
-    if (red[y * w + x]) { s = y * w + x; break }
+function bandaDeRed(d) {
+  const { w, h, celdas, cuarto, red, paso } = d.nav
+  const N = w * h
+  const staff = new Uint8Array(d.ambientes.length + 1)
+  d.ambientes.forEach((a, k) => { staff[k + 1] = SOLO_PERSONAL.test(a.nombre || '') ? 1 : 0 })
+  const libre = (j) => !!celdas[j] && !staff[cuarto[j]]
+  const publico = (j) => libre(j) && (cuarto[j] === 0 || !!paso[cuarto[j]])
+  const orto = (i) => {
+    const x = i % w, y = (i / w) | 0, r = []
+    if (x > 0) r.push(i - 1)
+    if (x < w - 1) r.push(i + 1)
+    if (y > 0) r.push(i - w)
+    if (y < h - 1) r.push(i + w)
+    return r
   }
-  if (s < 0) return reach
-  const pasa = (j) => celdas[j] && (red[j] || paso[cuarto[j]] || puerta[j])
-  const visto = new Uint8Array(w * h)
-  const cola = [s]
-  visto[s] = 1
-  for (let k = 0; k < cola.length; k++) {
-    const i = cola[k], x = i % w, y = (i / w) | 0
+  const vecinos = (i) => {
+    const x = i % w, y = (i / w) | 0, r = []
     for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) {
       const nx = x + dx, ny = y + dy
       if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue
-      const j = ny * w + nx
-      if (visto[j] || !celdas[j]) continue
       if (dx && dy && (!celdas[y * w + nx] || !celdas[ny * w + x])) continue
-      if (pasa(j)) { visto[j] = 1; cola.push(j) } else if (cuarto[j]) reach.add(cuarto[j])
+      r.push(ny * w + nx)
+    }
+    return r
+  }
+  // 1) la franja desde la red, por espacios públicos
+  const banda = new Uint8Array(N)
+  const cola = []
+  for (let i = 0; i < N; i++) if (red[i] && libre(i)) { banda[i] = 1; cola.push(i) }
+  for (let k = 0; k < cola.length; k++) {
+    const i = cola[k]
+    if (cuarto[i] && !paso[cuarto[i]]) continue   // cuarto cerrado: la franja no sigue hacia adentro
+    for (const j of vecinos(i)) {
+      if (banda[j] || !libre(j)) continue
+      banda[j] = 1; cola.push(j)
     }
   }
-  for (const i of cola) if (cuarto[i]) reach.add(cuarto[i])
+  // 2) componentes de la franja (4 vecinos): la principal es la de más celdas
+  const comp = new Int32Array(N).fill(-1)
+  const tam = [0]
+  for (let i = 0; i < N; i++) {
+    if (!banda[i] || comp[i] >= 0) continue
+    const c = tam.length; tam.push(0)
+    const pila = [i]; comp[i] = c
+    while (pila.length) {
+      const p = pila.pop(); tam[c]++
+      for (const j of orto(p)) if (banda[j] && comp[j] < 0) { comp[j] = c; pila.push(j) }
+    }
+  }
+  let main = 1
+  for (let c = 1; c < tam.length; c++) if (tam[c] > tam[main]) main = c
+  // 3) cuartos que no tocan la componente principal: acceso desde su puerta por espacios públicos
+  const porCuarto = d.ambientes.map(() => [])
+  for (let i = 0; i < N; i++) if (cuarto[i]) porCuarto[cuarto[i] - 1].push(i)
+  const enMain = (j) => banda[j] && comp[j] === main
+  const alcanza = (cells) => cells.some((i) => enMain(i) || orto(i).some(enMain))
+  const vis = new Int32Array(N)
+  const prev = new Int32Array(N)
+  let stamp = 0
+  d.ambientes.forEach((a, k) => {
+    const cells = porCuarto[k]
+    if (!a.nombre || staff[k + 1] || !cells.length || alcanza(cells)) return
+    stamp++
+    const frente = []
+    for (const i of cells) for (const n of orto(i)) {
+      if (cuarto[n] !== k + 1 && publico(n) && vis[n] !== stamp) { vis[n] = stamp; prev[n] = -1; frente.push(n) }
+    }
+    let fin = -1
+    for (let q = 0; q < frente.length && fin < 0; q++) {
+      const p = frente[q]
+      if (enMain(p)) { fin = p; break }
+      for (const j of vecinos(p)) {
+        if (vis[j] === stamp || !publico(j)) continue
+        vis[j] = stamp; prev[j] = p; frente.push(j)
+      }
+    }
+    if (fin < 0) return
+    for (let p = fin; p !== -1; p = prev[p]) { banda[p] = 1; comp[p] = main }
+  })
+  return banda
+}
+
+// ambientes a los que se llega: su puerta da a la franja de paso. Lo que no, la app lo avisa al elegirlo.
+function alcanzables(d) {
+  const { w, h, celdas, cuarto, banda } = d.nav
+  const reach = new Set()
+  for (let i = 0; i < w * h; i++) {
+    if (!cuarto[i] || !celdas[i] || banda[i]) continue
+    const x = i % w, y = (i / w) | 0
+    if ((x > 0 && banda[i - 1]) || (x < w - 1 && banda[i + 1]) || (y > 0 && banda[i - w]) || (y < h - 1 && banda[i + w])) reach.add(cuarto[i])
+  }
   return reach
 }
 
