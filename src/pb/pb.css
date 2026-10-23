@@ -229,3 +229,9 @@ body { background: #E9EDF1; }
 .maplibregl-marker:has(.caminante-2d) { z-index: 6; }
 @media (prefers-reduced-motion: reduce) { .caminante-2d .cam-cuerpo { animation: none; } }
 .btn-recorrer { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+
+/* insignias de la lista y la ficha: el ícono centrado en el disco (la regla de los textos de la lista no debe aplicarse) */
+.pb-app .pb-lista .insignia, .pb-app .pb-ficha-cab .insignia, .pb-app .pb-leyenda .insignia { display: inline-grid; place-items: center; flex-direction: initial; }
+.pb-app .insignia svg { display: block; }
+.pb-pin-c { display: grid !important; place-items: center; }
+.pb-pin-c svg { display: block; }

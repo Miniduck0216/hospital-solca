@@ -17,6 +17,8 @@ const PLANO = { circulacion: '#F6F8FB', espera: '#E2F1E6' }
 const ALTO = 2.6
 const esPlano = (a) => !!PLANO[a.cat] || (!a.nombre && a.area >= 30)
 const TINTA_RUTA = '#1E2A4A'
+// ambientes que llevan ícono en el mapa (los mismos que arma App.jsx): su nombre va justo debajo del ícono
+const conPin = (a) => ['banos', 'escaleras', 'ascensores', 'farmacia'].includes(a.cat) || ['caja', 'informacion', 'capilla'].includes(a.icono)
 const anillos = (pg) => pg.map((r) => r.map(([x, y]) => aLonLat(x, y)))
 const polis = (lista, props = () => ({})) => FC(lista.map((pg, i) => ({ type: 'Feature', properties: props(pg, i), geometry: { type: 'Polygon', coordinates: anillos(pg) } })))
 const lineas = (lista) => FC(lista.map((l) => ({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: l.map(([x, y]) => aLonLat(x, y)) } })))
@@ -28,7 +30,7 @@ function capas(d) {
     geometry: { type: 'Polygon', coordinates: anillos(a.pg) },
   })))
   const rotulos = FC(d.ambientes.filter((a) => a.nombre && a.area >= 1.2).map((a) => ({
-    type: 'Feature', properties: { nombre: a.nombre, area: a.area, orden: -a.area, pasillo: a.cat === 'circulacion' ? 1 : 0 },
+    type: 'Feature', properties: { nombre: a.nombre, area: a.area, orden: -a.area, pasillo: a.cat === 'circulacion' ? 1 : 0, pin: conPin(a) ? 1 : 0 },
     geometry: { type: 'Point', coordinates: aLonLat(a.lbl[0], a.lbl[1]) },
   })))
   const parqueos = FC(d.parqueos.map((p) => ({ type: 'Feature', properties: { nombre: p.nombre }, geometry: { type: 'Polygon', coordinates: [[...p.ll, p.ll[0]]] } })))
@@ -145,6 +147,7 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
           'text-size': ['interpolate', ['linear'], ['zoom'], 17, ['case', ['>=', ['get', 'area'], 150], 12, 10], 20, ['case', ['>=', ['get', 'area'], 60], 16, 12.5]],
           'text-max-width': 7, 'text-line-height': 1.1, 'symbol-sort-key': ['get', 'orden'], 'text-padding': 2,
           'text-rotation-alignment': 'viewport', 'text-letter-spacing': 0.01,
+          'text-anchor': ['case', ['==', ['get', 'pin'], 1], 'top', 'center'], 'text-offset': ['case', ['==', ['get', 'pin'], 1], ['literal', [0, 1.1]], ['literal', [0, 0]]],
         }, paint: { 'text-color': ['case', ['==', ['get', 'pasillo'], 1], '#7487A3', '#22314D'], 'text-halo-color': 'rgba(255,255,255,0.92)', 'text-halo-width': 1.5 } })
       }
       // interacción: resaltar al pasar el cursor y elegir con clic
@@ -188,7 +191,7 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
       const color = l.entrada ? TINTA_RUTA : (CATS[l.cat] || CATS.otro).acento
       el.style.setProperty('--pin', color)
       el.innerHTML = renderToStaticMarkup(<span className="pb-pin-c"><Icono nombre={l.icono} size={14} color="#fff" grosor={2.2} /></span>)
-        + `<span class="pb-pin-t">${l.nombre}</span>`
+        + (l.entrada ? `<span class="pb-pin-t">${l.nombre}</span>` : '')   // el nombre de los demás lo pone la capa de rótulos, debajo del ícono
       el.addEventListener('click', (ev) => { ev.stopPropagation(); cb.current.onElegir?.(l.id, null) })
       marcas.current.push(new maplibregl.Marker({ element: el }).setLngLat(aLonLat(l.x, l.y)).addTo(map))
     }
