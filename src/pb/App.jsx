@@ -138,12 +138,18 @@ function QR({ lugar, onCerrar }) {
   )
 }
 
+// modo de inserción: «totem» (pantalla del tótem de OM3) o «guia» (celular tras escanear el QR del tótem).
+// En ambos se ocultan la administración, el QR propio y los enlaces que sacan del mapa; ?vista=3d abre en 3D.
+const PARAMS = new URLSearchParams(location.search)
+const INSERTADO = ['totem', 'guia'].includes(PARAMS.get('modo')) ? PARAMS.get('modo') : null
+const VISTA_INICIAL = PARAMS.get('vista') === '3d' ? '3d' : '2d'
+
 const ICONO_PASO = { inicio: 'caminar', camina: 'subir', izquierda: 'izquierda', derecha: 'derecha', fin: 'destino' }
 
 export default function App() {
   const [d, setD] = useState(null)
   const [error, setError] = useState(null)
-  const [modo, setModo] = useState('2d')
+  const [modo, setModo] = useState(VISTA_INICIAL)
   const [origen, setOrigen] = useState(null)
   const [destino, setDestino] = useState(null)
   const [foco, setFoco] = useState(null)   // lugar elegido en el buscador: la vista llega hasta él
@@ -210,6 +216,7 @@ export default function App() {
   useEffect(() => {
     if (!origen) return
     const p = new URLSearchParams()
+    if (INSERTADO) p.set('modo', INSERTADO)   // el modo se conserva al cambiar origen o destino
     p.set('origen', origen.id)
     if (destino) p.set('destino', destino.id)
     history.replaceState(null, '', `${location.pathname}?${p}`)
@@ -231,7 +238,7 @@ export default function App() {
   const minutos = ruta ? Math.max(1, Math.round(ruta.metros / 1.2 / 60)) : 0
 
   return (
-    <div className={`pb-app modo-${modo}`}>
+    <div className={`pb-app modo-${modo}${INSERTADO ? ` insertado-${INSERTADO}` : ''}`}>
       {modo === '2d'
         ? <Mapa ref={mapa} d={d} ruta={ruta} origen={origen} destino={destino} foco={foco} hover={hover} onElegir={elegirDesdeMapa} onHover={setHover} lugaresIcono={lugaresIcono} pick={!!pickId} onPick={onPick} recorrer={recorrer} onFinRecorrer={() => setRecorrer(false)} />
         : <Suspense fallback={<Cargando texto="Preparando el 3D…" />}><Vista3D d={d} ruta={ruta} destino={destino} foco={foco} recorrer={recorrer} setRecorrer={setRecorrer} onFinRecorrer={() => setRecorrer(false)} /></Suspense>}
@@ -281,7 +288,7 @@ export default function App() {
                       <Icono nombre={recorrer ? 'cerrar' : 'caminar'} size={16} color="#fff" />{recorrer ? 'Detener recorrido' : `Recorrer en ${modo === '2d' ? '2D' : '3D'}`}
                     </button>
                     <button className="btn-claro" onClick={() => setModo(modo === '2d' ? '3d' : '2d')}>{modo === '2d' ? 'Ver en 3D' : 'Ver en 2D'}</button>
-                    <button className="btn-claro" onClick={() => setQr(true)}>QR</button>
+                    {!INSERTADO && <button className="btn-claro" onClick={() => setQr(true)}>QR</button>}
                     <button className="btn-claro" onClick={() => setDestino(null)} aria-label="Cerrar ruta">Cerrar</button>
                   </div>
                 </>
@@ -332,7 +339,7 @@ export default function App() {
           ] : []),
           { id: 'piso', texto: 'PB', titulo: 'Planta baja' },
           { id: 'leyenda', icono: 'mapa', titulo: 'Leyenda', on: leyenda, onClick: () => setLeyenda((v) => !v) },
-          { id: 'admin', icono: 'ajustes', titulo: admin ? 'Salir de administración' : 'Administración', on: admin, onClick: () => (admin ? setAdmin(false) : setPedirClave(true)) },
+          ...(INSERTADO ? [] : [{ id: 'admin', icono: 'ajustes', titulo: admin ? 'Salir de administración' : 'Administración', on: admin, onClick: () => (admin ? setAdmin(false) : setPedirClave(true)) }]),
         ]} />
         {leyenda && (
           <ul className="pb-leyenda">
@@ -345,7 +352,7 @@ export default function App() {
 
       {pedirClave && <Clave onOk={() => { setAdmin(true); setPedirClave(false) }} onCerrar={() => setPedirClave(false)} />}
       {qr && origen && <QR lugar={origen} onCerrar={() => setQr(false)} />}
-      <a className="pb-proto" href={`${import.meta.env.BASE_URL}prototipo/`}>Prototipo anterior (5 pisos)</a>
+      {!INSERTADO && <a className="pb-proto" href={`${import.meta.env.BASE_URL}prototipo/`}>Prototipo anterior (5 pisos)</a>}
     </div>
   )
 }
