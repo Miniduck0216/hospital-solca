@@ -76,8 +76,10 @@ function SueloMapa({ centro }) {
   )
 }
 
-// el GLB trae los pisos agrupados por color (pisos|r,g,b|h): cada grupo toma el acento de la categoría más parecida
-const ACENTOS = Object.values(CATS).map((c) => ({ rgb: new THREE.Color(c.relleno), acento: new THREE.Color(c.acento) }))
+// el GLB trae los pisos agrupados por color (pisos|r,g,b|h): cada grupo toma la paleta de interiores de la categoría
+// más parecida (la misma del mapa 2D): cuartos celestes, farmacia lila, baños turquesa, pasillos claros
+const PALETA = { consulta: '#A9C8F0', administracion: '#B3CEF0', apoyo: '#C3D3E8', otro: '#C7D4E6', farmacia: '#BFAEEE', banos: '#9FD6E8', escaleras: '#CDD5E0', ascensores: '#CDD5E0', circulacion: '#F4F7FB', espera: '#D6ECDD' }
+const ACENTOS = Object.entries(CATS).map(([k, c]) => ({ rgb: new THREE.Color(c.relleno), color: new THREE.Color(PALETA[k] || PALETA.otro) }))
 function colorDePiso(nombre) {
   const [r, g, b] = (nombre.split('|')[1] || '0,0,0').split(',').map(Number)
   let mejor = null, dist = Infinity
@@ -85,7 +87,7 @@ function colorDePiso(nombre) {
     const k = (a.rgb.r - r) ** 2 + (a.rgb.g - g) ** 2 + (a.rgb.b - b) ** 2
     if (k < dist) { dist = k; mejor = a }
   }
-  return mejor ? mejor.acento.clone().lerp(new THREE.Color('#FFFFFF'), 0.18) : null
+  return mejor ? mejor.color.clone() : null
 }
 
 function Edificio({ corte, letreros }) {
@@ -107,7 +109,14 @@ function Edificio({ corte, letreros }) {
         if (c) { o.material = m.clone(); o.material.color.copy(c); o.material.roughness = 0.85 }
         o.userData.coloreado = true
       }
-      if (m && g !== 'pisos') { m.clippingPlanes = [plano]; m.clipShadows = true; m.needsUpdate = true }
+      // paleta de interiores: muros casi blancos con un toque celeste, mobiliario celeste suave
+      // (solo las piezas grises: puertas, vidrios y madera conservan su color)
+      if ((g === 'muros' || g === 'muebles') && !o.userData.tono && m?.color) {
+        const hsl = m.color.getHSL({})
+        if (hsl.s < 0.12) { o.material = m.clone(); o.material.color.set(g === 'muros' ? '#EEF3FA' : '#C6D8F0'); o.material.roughness = 0.9 }
+        o.userData.tono = true
+      }
+      if (o.material && g !== 'pisos') { const m = o.material; m.clippingPlanes = [plano]; m.clipShadows = true; m.needsUpdate = true }
     })
     plano.constant = corte >= 3.8 ? 99 : corte
   }, [scene, corte, letreros, plano])
@@ -118,12 +127,11 @@ function Ruta({ ruta }) {
   const puntos = useMemo(() => ruta.pts.map((p) => E(p, 0.09)), [ruta])
   return (
     <group>
-      <Line points={puntos} color="#2F5BEA" lineWidth={7} />
-      <Line points={puntos} color="#FFFFFF" lineWidth={2} dashed dashSize={0.6} gapSize={0.9} />
-      <mesh position={E(ruta.pts[0], 0.35)}><sphereGeometry args={[0.35, 24, 16]} /><meshStandardMaterial color="#2F5BEA" /></mesh>
+      <Line points={puntos} color="#1E2A4A" lineWidth={8} dashed dashSize={0.05} gapSize={1.1} />
+      <mesh position={E(ruta.pts[0], 0.35)}><sphereGeometry args={[0.35, 24, 16]} /><meshStandardMaterial color="#4C6FFF" /></mesh>
       <group position={E(ruta.pts[ruta.pts.length - 1], 0)}>
-        <mesh position-y={1.6}><coneGeometry args={[0.45, 1.2, 24]} /><meshStandardMaterial color="#14181F" /></mesh>
-        <mesh position-y={2.35}><sphereGeometry args={[0.55, 24, 16]} /><meshStandardMaterial color="#14181F" /></mesh>
+        <mesh position-y={1.6}><coneGeometry args={[0.45, 1.2, 24]} /><meshStandardMaterial color="#7C83E6" /></mesh>
+        <mesh position-y={2.35}><sphereGeometry args={[0.55, 24, 16]} /><meshStandardMaterial color="#7C83E6" /></mesh>
       </group>
     </group>
   )
@@ -232,6 +240,28 @@ function Flujo({ ruta }) {
 }
 
 // parqueaderos del exterior: losas de asfalto sobre el piso del mapa
+// pisos de cada ambiente con la paleta de interiores (la misma del 2D) sobre la losa del modelo; el destino en lila
+function PisosColor({ d, destino }) {
+  const piezas = useMemo(() => d.ambientes.filter((a) => a.pg.length && a.pg[0].length > 2).map((a) => {
+    const [ext, ...huecos] = a.pg
+    const forma = new THREE.Shape(ext.map(([x, y]) => new THREE.Vector2(x, y)))
+    for (const h of huecos) forma.holes.push(new THREE.Path(h.map(([x, y]) => new THREE.Vector2(x, y))))
+    const g = new THREE.ShapeGeometry(forma)
+    g.rotateX(-Math.PI / 2)
+    const plano = !!(a.cat === 'circulacion' || a.cat === 'espera' || (!a.nombre && a.area >= 30))
+    return { id: a.id, g, color: plano ? PALETA[a.cat] || PALETA.circulacion : PALETA[a.cat] || PALETA.otro }
+  }), [d])
+  return (
+    <group position-y={0.04}>
+      {piezas.map((p) => (
+        <mesh key={p.id} geometry={p.g} receiveShadow>
+          <meshStandardMaterial color={destino && destino.id === p.id ? '#7C83E6' : p.color} roughness={0.9} polygonOffset polygonOffsetFactor={-2} />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
 function Parqueos({ parqueos }) {
   const geos = useMemo(() => parqueos.map((p) => {
     const pts = p.ll.map(([lo, la]) => dePlano(lo, la))
@@ -262,10 +292,10 @@ export function Vista3D({ d, ruta, destino, foco }) {
   useEffect(() => setRecorrer(false), [ruta])
   return (
     <div className="pb-3d">
-      <Canvas shadows dpr={[1, 2]} camera={{ position: [cx - 55, 85, -cy + 95], fov: 40, near: 0.5, far: 3000 }} gl={{ antialias: true }}>
-        <color attach="background" args={['#DDE6EE']} />
-        <fog attach="fog" args={['#DDE6EE', 260, 620]} />
-        <hemisphereLight args={['#FFFFFF', '#B9C2CC', 0.9]} />
+      <Canvas shadows flat dpr={[1, 2]} camera={{ position: [cx - 55, 85, -cy + 95], fov: 40, near: 0.5, far: 3000 }} gl={{ antialias: true }}>
+        <color attach="background" args={['#E4EBE3']} />
+        <fog attach="fog" args={['#E4EBE3', 260, 620]} />
+        <hemisphereLight args={['#FFFFFF', '#C9D3DE', 1.5]} />
         <directionalLight position={[cx - 60, 120, -cy + 40]} intensity={1.6} castShadow shadow-mapSize={[2048, 2048]}
           shadow-camera-left={-90} shadow-camera-right={90} shadow-camera-top={90} shadow-camera-bottom={-90} shadow-camera-near={10} shadow-camera-far={400}
           target-position={[cx, 0, -cy]} />
@@ -273,6 +303,7 @@ export function Vista3D({ d, ruta, destino, foco }) {
           <Edificio corte={corte} letreros={letreros} />
         </Suspense>
         <SueloMapa centro={[cx, cy]} />
+        <PisosColor d={d} destino={destino} />
         <Parqueos parqueos={d.parqueos} />
         {ruta && <Ruta ruta={ruta} />}
         {ruta && <Flujo ruta={ruta} />}

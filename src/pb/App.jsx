@@ -6,6 +6,7 @@ import { Mapa } from './Mapa.jsx'
 import { Hoja } from './Hoja.jsx'
 import { Clave, PanelAdmin } from './Admin.jsx'
 import { Cargando } from './Cargando.jsx'
+import { BarraFoco, Dock } from './Hud.jsx'
 import { Icono, Insignia } from '../ui/mapa2d/Iconos.jsx'
 
 const Vista3D = lazy(() => import('./Vista3D.jsx').then((m) => ({ default: m.Vista3D })))
@@ -25,9 +26,11 @@ const CHIPS = [
   { id: 'espera', nombre: 'Salas de espera', cat: 'espera', icono: 'silla' },
   { id: 'vertical', nombre: 'Escaleras y ascensores', cat: 'escaleras', icono: 'ascensor' },
 ]
-// íconos en tinta sobre un disco neutro: nada de colores de categoría en la interfaz
-const DISCO = '#EEF1F5'
-const TINTA = '#14181F'
+// insignias redondas del color de la categoría con el ícono en blanco (como en el mapa)
+const TINTA = '#1E2A4A'
+const colorDe = (l) => (l.entrada ? TINTA : (CATS[l.cat] || CATS.otro).acento)
+const CHIPS_FOCO = CHIPS.map((c) => ({ ...c, color: CATS[c.cat].acento }))
+const chipDe = (cat) => (CHIPS.find((c) => c.cat === cat || (c.cat === 'escaleras' && cat === 'ascensores')) || {}).id || null
 const ICONO_CAT = { banos: 'bano', consulta: 'consulta', farmacia: 'farmacia', administracion: 'administracion', espera: 'silla', escaleras: 'escalera', ascensores: 'ascensor', circulacion: 'piso', apoyo: 'servicios', otro: 'servicios', entrada: 'salida' }
 
 function distPoli(p, anillo) {
@@ -96,18 +99,12 @@ function Buscador({ lugares, modo, cat, onElegir, onCerrar }) {
         <button className="icono-btn" onClick={onCerrar} aria-label="Volver"><Icono nombre="volver" size={18} /></button>
         <input ref={inp} value={q} onChange={(e) => setQ(e.target.value)} placeholder={modo === 'origen' ? '¿Dónde estás?' : 'Buscar servicio, consultorio, baño…'} aria-label="Buscar" />
       </div>
-      <div className="chips">
-        {CHIPS.map((c) => (
-          <button key={c.id} className={`chip-cat${filtro === c.cat ? ' on' : ''}`} onClick={() => setFiltro(filtro === c.cat ? null : c.cat)}>
-            <Icono nombre={c.icono} size={16} grosor={2} />{c.nombre}
-          </button>
-        ))}
-      </div>
+      <BarraFoco items={CHIPS_FOCO} activo={chipDe(filtro)} onElegir={(c) => setFiltro(filtro === c.cat ? null : c.cat)} />
       <ul className="pb-lista">
         {lista.map((l) => (
           <li key={l.id}>
             <button onClick={() => onElegir(l)}>
-              <Insignia icono={l.icono} color={l.entrada ? TINTA : DISCO} tinta={l.entrada ? '#fff' : TINTA} size={34} />
+              <Insignia icono={l.icono} color={colorDe(l)} size={34} />
               <span><b>{l.nombre}</b><small>{l.entrada ? 'Entrada del edificio' : [CATS[l.cat]?.nombre, l.cerca && `junto a ${l.cerca}`].filter(Boolean).join(' · ')}</small></span>
             </button>
           </li>
@@ -141,7 +138,7 @@ function QR({ lugar, onCerrar }) {
   )
 }
 
-const ICONO_PASO = { inicio: 'caminar', camina: 'subir', izquierda: 'volver', derecha: 'flecha', fin: 'centrar' }
+const ICONO_PASO = { inicio: 'caminar', camina: 'subir', izquierda: 'izquierda', derecha: 'derecha', fin: 'destino' }
 
 export default function App() {
   const [d, setD] = useState(null)
@@ -252,13 +249,7 @@ export default function App() {
                 <span>{destino ? destino.nombre : '¿A dónde quieres ir?'}</span>
               </button>
             </div>
-            <div className="chips" aria-label="Categorías">
-              {CHIPS.map((c) => (
-                <button key={c.id} className="chip-cat" onClick={() => setBuscando({ modo: 'destino', cat: c.cat })}>
-                  <Icono nombre={c.icono} size={16} grosor={2} />{c.nombre}
-                </button>
-              ))}
-            </div>
+            <BarraFoco items={CHIPS_FOCO} activo={destino ? chipDe(destino.cat) : null} onElegir={(c) => setBuscando({ modo: 'destino', cat: c.cat })} />
           </div>
 
           {destino && (
@@ -311,7 +302,7 @@ export default function App() {
       {ficha && !buscando && (
         <Hoja clase="pb-ficha" resumen={ficha.nombre} arrastrable={false}>
           <div className="pb-ficha-cab">
-            <Insignia icono={ficha.icono} color={ficha.entrada ? TINTA : DISCO} tinta={ficha.entrada ? '#fff' : TINTA} size={40} />
+            <Insignia icono={ficha.icono} color={colorDe(ficha)} size={40} />
             <div><small>{ficha.entrada ? 'Entrada del edificio' : `${CATS[ficha.cat]?.nombre || ''}${ficha.area ? ` · ${ficha.area.toFixed(0)} m²` : ''}`}{ficha.cerca ? ` · junto a ${ficha.cerca}` : ''}</small>
               {!alcanzable(ficha) && <small className="ficha-aviso">Sin camino por pasillos abiertos en el plano</small>}</div>
             <button className="icono-btn mini" onClick={() => setFicha(null)} aria-label="Cerrar"><Icono nombre="cerrar" size={16} /></button>
@@ -329,20 +320,20 @@ export default function App() {
           <button role="tab" aria-selected={modo === '2d'} onClick={() => setModo('2d')}>2D</button>
           <button role="tab" aria-selected={modo === '3d'} onClick={() => setModo('3d')}>3D</button>
         </div>
-        {modo === '2d' && (
-          <div className="zoom-pb">
-            <button onClick={() => mapa.current?.acercar()} aria-label="Acercar"><Icono nombre="mas" size={18} /></button>
-            <button onClick={() => mapa.current?.alejar()} aria-label="Alejar"><Icono nombre="menos" size={18} /></button>
-            <button onClick={() => mapa.current?.centrar()} aria-label="Centrar el edificio"><Icono nombre="centrar" size={18} /></button>
-          </div>
-        )}
-        <div className="pb-piso" title="Planta baja">PB</div>
-        <button className="pb-ley-btn" onClick={() => (admin ? setAdmin(false) : setPedirClave(true))}>{admin ? 'Salir de administración' : 'Administración'}</button>
-        <button className="pb-ley-btn" onClick={() => setLeyenda((v) => !v)} aria-expanded={leyenda}>Leyenda</button>
+        <Dock items={[
+          ...(modo === '2d' ? [
+            { id: 'mas', icono: 'mas', titulo: 'Acercar', onClick: () => mapa.current?.acercar() },
+            { id: 'menos', icono: 'menos', titulo: 'Alejar', onClick: () => mapa.current?.alejar() },
+            { id: 'centrar', icono: 'centrar', titulo: 'Centrar el edificio', onClick: () => mapa.current?.centrar() },
+          ] : []),
+          { id: 'piso', texto: 'PB', titulo: 'Planta baja' },
+          { id: 'leyenda', icono: 'mapa', titulo: 'Leyenda', on: leyenda, onClick: () => setLeyenda((v) => !v) },
+          { id: 'admin', icono: 'ajustes', titulo: admin ? 'Salir de administración' : 'Administración', on: admin, onClick: () => (admin ? setAdmin(false) : setPedirClave(true)) },
+        ]} />
         {leyenda && (
           <ul className="pb-leyenda">
             {[['consulta', 'consulta'], ['espera', 'silla'], ['banos', 'bano'], ['farmacia', 'farmacia'], ['administracion', 'administracion'], ['circulacion', 'piso'], ['escaleras', 'escalera'], ['apoyo', 'servicios']].map(([k, ic]) => (
-              <li key={k}><Icono nombre={ic} size={16} grosor={2} />{CATS[k].nombre}</li>
+              <li key={k}><Insignia icono={ic} color={CATS[k].acento} size={24} />{CATS[k].nombre}</li>
             ))}
           </ul>
         )}

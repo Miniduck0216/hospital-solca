@@ -162,3 +162,59 @@ body { background: #E9EDF1; }
 @media (prefers-reduced-motion: reduce) { .kinetico span { animation: none; } }
 .ruta-alt { display: flex; flex-direction: column; gap: 10px; }
 .ruta-alt .ruta-nota { margin: 0; }
+
+/* ---------- estilo de interiores + piezas de VengeanceUI (vidrio, barra con foco, dock) ---------- */
+@property --luz-x { syntax: '<length>'; inherits: true; initial-value: 0px; }
+@property --amb-x { syntax: '<length>'; inherits: true; initial-value: 0px; }
+.pb-app { --vidrio: rgba(255, 255, 255, .8); --vidrio-borde: rgba(255, 255, 255, .7); --m-azul: #4C6FFF; --m-tinta: #1E2A4A; }
+.pb-app .barra, .pb-app .tarjeta, .pb-seg, .dock, .pb-leyenda {
+  background: var(--vidrio); -webkit-backdrop-filter: blur(18px) saturate(1.5); backdrop-filter: blur(18px) saturate(1.5);
+  border: 1px solid var(--vidrio-borde); box-shadow: 0 10px 30px rgba(30, 42, 74, .14), 0 0 0 1px rgba(30, 42, 74, .05);
+}
+.pb-app .barra-buscar { background: rgba(30, 42, 74, .05); }
+.pb-app .insignia { box-shadow: 0 0 0 2px #fff, 0 2px 6px rgba(30, 42, 74, .2); }
+
+/* barra de categorías con foco (Spotlight Navbar) */
+.foco-nav { position: relative; margin-top: 6px; border-radius: 999px; background: rgba(30, 42, 74, .04); overflow: hidden; --amb-o: 0; transition: --amb-x .45s cubic-bezier(.2, 1.3, .4, 1); }
+.foco-fila { position: relative; z-index: 2; display: flex; gap: 2px; padding: 4px; overflow-x: auto; scrollbar-width: none; }
+.foco-fila::-webkit-scrollbar { display: none; }
+.foco-item { flex: none; display: inline-flex; align-items: center; gap: 7px; border: 0; background: transparent; border-radius: 999px; padding: 6px 12px 6px 6px; font: 700 .82rem var(--m-fuente); color: #5B6880; cursor: pointer; white-space: nowrap; transition: color .2s, background .2s; }
+.foco-item:hover, .foco-item.on { color: var(--m-tinta); }
+.foco-item.on { background: #fff; box-shadow: 0 1px 4px rgba(30, 42, 74, .12); }
+.foco-ic { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--c); }
+.foco-luz { position: absolute; inset: 0; z-index: 1; pointer-events: none; opacity: 0; transition: opacity .3s; background: radial-gradient(120px circle at var(--luz-x) 100%, rgba(76, 111, 255, .16), transparent 55%); }
+.foco-nav.luz .foco-luz { opacity: 1; }
+.foco-amb { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; z-index: 3; pointer-events: none; opacity: var(--amb-o); transition: opacity .3s; background: radial-gradient(60px circle at var(--amb-x) 0%, var(--m-azul), transparent 100%); }
+
+/* dock de vidrio (Glass Dock) */
+.dock { position: relative; display: flex; gap: 4px; padding: 6px; border-radius: 18px; }
+.dock.vertical { flex-direction: column; }
+.dock-btn { width: 42px; height: 42px; border: 0; border-radius: 12px; display: grid; place-items: center; background: transparent; color: var(--m-tinta); cursor: pointer; transition: transform .25s cubic-bezier(.2, 1.4, .4, 1), background .2s; }
+.dock-btn b { font-weight: 900; font-size: .85rem; }
+.dock-btn.sobre { transform: scale(1.16); background: #fff; box-shadow: 0 4px 12px rgba(30, 42, 74, .14); }
+.dock-btn.vecino { transform: scale(1.06); }
+.dock-btn.on { background: var(--m-tinta); color: #fff; }
+.dock-tip { position: absolute; right: calc(100% + 10px); top: var(--p); transform: translateY(-50%) scale(.92); opacity: 0; pointer-events: none; background: var(--m-tinta); color: #fff; border-radius: 10px; padding: 7px 12px; font: 700 .78rem var(--m-fuente); white-space: nowrap; transition: top .35s cubic-bezier(.2, 1.2, .4, 1), opacity .2s, transform .2s; }
+.dock-tip.ver { opacity: 1; transform: translateY(-50%) scale(1); }
+.dock-tip span { display: inline-block; animation: tip-entra .3s ease-out; }
+@keyframes tip-entra { from { opacity: 0; filter: blur(6px); transform: translateY(6px); } }
+.pb-seg button[aria-selected="true"] { background: var(--m-tinta); }
+
+/* pines del mapa: insignia de color con borde blanco; el nombre debajo al acercarse */
+.pb-pin { position: relative; display: block; }
+.pb-pin-c { width: 26px; height: 26px; background: var(--pin, #1E2A4A) !important; border: 2px solid #fff !important; box-shadow: 0 2px 6px rgba(30, 42, 74, .3) !important; }
+.pb-pin-t { position: absolute; top: calc(100% + 3px); left: 50%; transform: translateX(-50%); background: none !important; box-shadow: none !important; color: var(--m-tinta) !important; padding: 0 !important; font: 800 11px var(--m-fuente) !important; text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 2px #fff; pointer-events: none; }
+.pb-pin.entrada .pb-pin-t { background: var(--m-tinta) !important; color: #fff !important; padding: 2px 8px !important; border-radius: 999px; text-shadow: none; }
+.pb-mapa:not(.pb-cerca) .pb-pin:not(.entrada) .pb-pin-t { display: none; }
+.pb-mapa:not(.pb-cerca) .pb-pin:not(.entrada) .pb-pin-c { width: 18px; height: 18px; border-width: 1.5px !important; }
+.pb-leyenda li .insignia { flex: none; }
+.paso-inicio .pb-paso-i { background: var(--m-azul); }
+.paso-fin .pb-paso-i { background: #7C83E6; }
+.pb-3d-ctrl { background: var(--vidrio); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); }
+@media (prefers-reduced-motion: reduce) { .dock-btn, .dock-tip, .foco-nav { transition: none; } .dock-tip span { animation: none; } }
+@media (max-width: 700px) {
+  .dock-btn { width: 36px; height: 36px; }
+  .dock-btn[aria-label="Acercar"], .dock-btn[aria-label="Alejar"] { display: none; }
+  .dock-tip { display: none; }
+  .pb-der { gap: 8px; }
+}
