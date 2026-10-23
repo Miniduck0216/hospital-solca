@@ -7,6 +7,8 @@ export async function cargarDatos(cambiosLocales = null) {
   const d = await r.json()
   // cambios del administrador: los publicados en el repositorio y los guardados en este navegador
   const publicados = await fetch(`${BASE}pb/cambios.json?v=${__VERSION__}`).then((x) => (x.ok ? x.json() : null)).catch(() => null)
+  // ambientes que se atienden por ventanilla: el paciente llega al punto frente a ella y no entra al cuarto
+  for (const a of d.ambientes) if (VENTANILLAS[a.nombre]) { a.dest = VENTANILLAS[a.nombre].slice(); a.ventanilla = true }
   aplicarCambios(d, publicados)
   aplicarCambios(d, cambiosLocales)
   const bin = atob(d.nav.celdas)
@@ -38,6 +40,7 @@ export async function cargarDatos(cambiosLocales = null) {
   unirPorDentro(d, d.nav.banda)
   abrirPuertas(d, d.nav.banda)
   d.nav.indice = Object.fromEntries(d.ambientes.map((a, k) => [a.id, k + 1]))
+  d.nav.ventanilla = new Set(d.ambientes.flatMap((a, k) => (a.ventanilla ? [k + 1] : [])))
   d.nav.alcanzable = alcanzables(d)
   // administración: la franja más los pasillos de personal (sin cuartos cerrados)
   d.nav.bandaAdmin = Uint8Array.from(d.nav.banda)
@@ -142,6 +145,8 @@ function aplicarCambios(d, cambios) {
 // son solo del personal y no entran. Un cuarto cerrado (consultorio, farmacia, oficina) aporta solo su puerta: la franja
 // no sigue hacia adentro. Si un cuarto queda sin camino por pasillos públicos, se traza un acceso hasta la franja.
 const SOLO_PERSONAL = /^Pasillo Bloque/
+// ventanillas (plano en metros): Farmacia atiende por la ventanilla del muro oeste, desde el Pasillo Central
+const VENTANILLAS = { Farmacia: [56.75, 61.1] }
 
 function bandaDeRed(d) {
   const { w, h, celdas, cuarto, red, paso, vereda } = d.nav
