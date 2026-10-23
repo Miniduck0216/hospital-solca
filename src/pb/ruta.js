@@ -1,6 +1,6 @@
 // Rutas sobre la rejilla de navegación del plano real (celdas de 25 cm).
-// Los pacientes solo caminan por pasillos, halls, salas de espera y accesos verticales: los consultorios y demás
-// ambientes cerrados no son paso (solo se entra al de origen y al de destino). La línea sale en tres etapas:
+// Los pacientes solo caminan por la red de pasillos trazada en el plano (líneas verdes): los consultorios y demás
+// ambientes no son paso; solo se entra al de origen y al de destino. La línea sale en tres etapas:
 // A* sobre la rejilla, "estirado" por línea de vista (se quitan los zigzags) y suavizado de giros (Chaikin).
 import { ambienteEn } from './datos.js'
 
@@ -101,14 +101,11 @@ function redondear(P, enPaso) {
 
 export function buscarRuta(d, desde, hasta, idsPropios = []) {
   const nav = d.nav
-  const { w, h, celdas, res, cuarto, paso } = nav
+  const { w, h, celdas, res, cuarto, red, puerta, paso } = nav
   const propios = new Set(idsPropios.map((id) => nav.indice[id]).filter(Boolean))
-  // una celda es transitable si es de piso y su ambiente está abierto al público (o es el de origen/destino)
-  const pasa = (j) => {
-    if (!celdas[j]) return false
-    const q = cuarto[j]
-    return !q || paso[q] === 1 || propios.has(q)
-  }
+  // transitable: la red de pasillos trazada en el plano (líneas verdes), los pasillos abiertos del plano como
+  // respaldo, las puertas que dan a la red y el ambiente de origen o destino. Ningún otro cuarto se cruza.
+  const pasa = (j) => !!celdas[j] && (red[j] === 1 || puerta[j] === 1 || paso[cuarto[j]] === 1 || propios.has(cuarto[j]))
   const ini = libreMasCercana(nav, ...celda(nav, desde[0], desde[1]), pasa)
   const fin = libreMasCercana(nav, ...celda(nav, hasta[0], hasta[1]), pasa)
   if (!ini || !fin) return null
@@ -136,7 +133,8 @@ export function buscarRuta(d, desde, hasta, idsPropios = []) {
       if (ddx && ddy && (!celdas[y * w + nx] || !celdas[ny * w + x])) continue
       const cj = celdas[j]
       // junto a los muros cuesta más: la ruta va por el centro del pasillo
-      const ng = g[i] + c * (1 + (cj - 1) * 0.45)
+      // la red de las líneas verdes cuesta menos: la ruta la sigue siempre que puede
+      const ng = g[i] + c * (1 + (cj - 1) * 0.45) * (red[j] ? 1 : 3)
       if (ng < g[j]) { g[j] = ng; de[j] = i; mo.push(j, ng + hx(j)) }
     }
   }
