@@ -170,7 +170,7 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, hover, 
       const el = document.createElement('button')
       el.className = 'pb-pin' + (l.entrada ? ' entrada' : '') + (l.entrada && /^Acceso/.test(l.nombre) ? ' menor' : '')
       el.title = l.nombre
-      el.innerHTML = renderToStaticMarkup(<span className="pb-pin-c" style={{ background: l.color }}><Icono nombre={l.icono} size={15} color="#fff" grosor={2.3} /></span>)
+      el.innerHTML = renderToStaticMarkup(<span className="pb-pin-c"><Icono nombre={l.icono} size={15} color={l.entrada ? '#fff' : '#14181F'} grosor={2} /></span>)
         + (l.entrada ? `<span class="pb-pin-t">${l.nombre}</span>` : '')
       el.addEventListener('click', (ev) => { ev.stopPropagation(); cb.current.onElegir?.(l.id, null) })
       marcas.current.push(new maplibregl.Marker({ element: el }).setLngLat(aLonLat(l.x, l.y)).addTo(map))

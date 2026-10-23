@@ -7,13 +7,13 @@ const P = {
   hospitalizacion: <><path d="M3 18.5V6.5M3 14.5h18v4M21 14.5v-2a3 3 0 0 0-3-3h-7.5v5" /><circle cx="6.8" cy="11.6" r="1.7" /></>,
   servicios: <path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z" />,
   administracion: <><rect x="4" y="8" width="16" height="11" rx="1.5" /><path d="M9 8V5.5h6V8M4 13h16" /></>,
-  bano: <><circle cx="7" cy="4.6" r="1.6" fill="#fff" stroke="none" /><path d="M5.2 8h3.6v6h-1v5.5H6.2V14h-1z" fill="#fff" stroke="none" /><circle cx="17" cy="4.6" r="1.6" fill="#fff" stroke="none" /><path d="M17 7.6l3.3 7.4h-2.2v4.5h-2.2V15h-2.2z" fill="#fff" stroke="none" /><path d="M12 4v16" /></>,
+  bano: <><circle cx="7" cy="4.6" r="1.6" fill="currentColor" stroke="none" /><path d="M5.2 8h3.6v6h-1v5.5H6.2V14h-1z" fill="currentColor" stroke="none" /><circle cx="17" cy="4.6" r="1.6" fill="currentColor" stroke="none" /><path d="M17 7.6l3.3 7.4h-2.2v4.5h-2.2V15h-2.2z" fill="currentColor" stroke="none" /><path d="M12 4v16" /></>,
   ascensor: <><rect x="5" y="3" width="14" height="18" rx="1.5" /><path d="M9 10.5l3-3 3 3M9 13.5l3 3 3-3" /></>,
   escalera: <path d="M3.5 20h4.5v-4.5h4.5V11H17V6.5h3.5" />,
   salida: <path d="M13.5 4H6v16h7.5M10.5 12h10M17.5 8.5l3.5 3.5-3.5 3.5" />,
   farmacia: <><rect x="3.5" y="8.5" width="17" height="7" rx="3.5" transform="rotate(-35 12 12)" /><path d="M10 7.5l4.5 8" transform="rotate(-5 12 12)" /></>,
   caja: <path d="M15.5 7.5c-.6-1.3-2-2-3.6-2-2 0-3.4 1.1-3.4 2.7 0 3.8 7.2 2 7.2 5.8 0 1.7-1.5 2.8-3.6 2.8-1.7 0-3.2-.8-3.8-2.2M12 3.5v2M12 16.8v2.7" />,
-  info: <><circle cx="12" cy="6.5" r="1.6" fill="#fff" stroke="none" /><path d="M10 10.5h2.5V18M9.5 18h6" /></>,
+  info: <><circle cx="12" cy="6.5" r="1.6" fill="currentColor" stroke="none" /><path d="M10 10.5h2.5V18M9.5 18h6" /></>,
   cafe: <path d="M4.5 9h12v5a5 5 0 0 1-5 5h-2a5 5 0 0 1-5-5zM16.5 10.5h1.5a2.5 2.5 0 0 1 0 5h-1.6M8 3.5c-.8 1 .8 2 0 3M12 3.5c-.8 1 .8 2 0 3" />,
   capilla: <path d="M12 3.5v17M7.5 8.5h9" />,
   silla: <><circle cx="10" cy="4.6" r="1.6" fill="currentColor" stroke="none" /><path d="M10 7.5v5.5h5l2.2 5M7.5 10.5a5.5 5.5 0 1 0 7.6 7" /></>,
@@ -34,17 +34,17 @@ const P = {
 
 export function Icono({ nombre, size = 20, color = 'currentColor', grosor = 2, ...rest }) {
   return (
-    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke={color} strokeWidth={grosor} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...rest}>
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke={color} color={color} strokeWidth={grosor} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...rest}>
       {P[nombre] || P.servicios}
     </svg>
   )
 }
 
 // insignia redonda (para listas y tarjetas)
-export function Insignia({ icono, color, size = 34 }) {
+export function Insignia({ icono, color, tinta = '#fff', size = 34 }) {
   return (
     <span className="insignia" style={{ width: size, height: size, background: color }}>
-      <Icono nombre={icono} size={size * 0.62} color="#fff" grosor={2.2} />
+      <Icono nombre={icono} size={size * 0.62} color={tinta} grosor={2.2} />
     </span>
   )
 }
@@ -55,7 +55,7 @@ export function InsigniaSVG({ x, y, r, icono, color, activo }) {
     <g transform={`translate(${x} ${y})`} className="pin-svg">
       {activo && <circle r={r * 1.55} fill={color} opacity="0.22" />}
       <circle r={r} fill={color} stroke="#fff" strokeWidth={r * 0.16} />
-      <g transform={`translate(${-r * 0.62} ${-r * 0.62}) scale(${(r * 1.24) / 24})`} fill="none" stroke="#fff" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+      <g transform={`translate(${-r * 0.62} ${-r * 0.62}) scale(${(r * 1.24) / 24})`} fill="none" color="#fff" stroke="#fff" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
         {P[icono] || P.servicios}
       </g>
     </g>
