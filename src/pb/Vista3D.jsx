@@ -90,17 +90,24 @@ function colorDePiso(nombre) {
   return mejor ? mejor.color.clone() : null
 }
 
-function Edificio({ corte, letreros }) {
+// hojas de puerta y manijas del modelo: se ocultan porque la web dibuja sus propias puertas que se abren (ver Puertas)
+const OCULTOS = ['muros|0.360,0.160,0.053', 'muros|0.562,0.026,0.014', 'muebles|0.672,0.672,0.706']
+// tapa de los muros cortados: al recortar la altura, el interior hueco del muro se veía como un bloque gris
+// descuadrado; las caras traseras se pintan del color de la tapa y el corte se ve macizo
+const TAPA = new THREE.MeshBasicMaterial({ color: '#DCE4EE', side: THREE.BackSide })
+
+function Edificio({ corte, letreros, plano }) {
   const { scene } = useGLTF(`${BASE}pb/solca_pb.glb?v=${__VERSION__}`)
   const { gl } = useThree()
-  const plano = useMemo(() => new THREE.Plane(new THREE.Vector3(0, -1, 0), 99), [])
-  useEffect(() => { gl.localClippingEnabled = true }, [gl])
+  useEffect(() => { gl.localClippingEnabled = true; TAPA.clippingPlanes = [plano] }, [gl, plano])
   useEffect(() => {
     scene.traverse((o) => {
       if (!o.isMesh) return
       o.castShadow = true
       o.receiveShadow = true
-      const g = (o.name || o.parent?.name || '').split('|')[0]
+      const nombre = o.name || o.parent?.name || ''
+      const g = nombre.split('|')[0]
+      if (OCULTOS.some((k) => nombre.startsWith(k))) { o.visible = false; return }
       if (g === 'letreros') o.visible = letreros
       if (g === 'viseras') o.visible = corte >= 3.8
       const m = o.material
@@ -117,8 +124,15 @@ function Edificio({ corte, letreros }) {
         o.userData.tono = true
       }
       if (o.material && g !== 'pisos') { const m = o.material; m.clippingPlanes = [plano]; m.clipShadows = true; m.needsUpdate = true }
+      if (g === 'muros' && !o.userData.tapa && o.material && !o.material.transparent) {
+        o.material.side = THREE.FrontSide
+        const tapa = new THREE.Mesh(o.geometry, TAPA)
+        tapa.userData.tapa = true
+        tapa.raycast = () => {}
+        o.add(tapa)
+        o.userData.tapa = true
+      }
     })
-    plano.constant = corte >= 3.8 ? 99 : corte
   }, [scene, corte, letreros, plano])
   return <primitive object={scene} />
 }
@@ -243,14 +257,84 @@ function Personaje({ caminando }) {
   )
 }
 
-// el personaje recorre la ruta a 1,3 m/s; la cámara lo sigue por detrás mientras «recorrer» está activo
-function Caminante({ ruta, recorrer, controles, andado, alTerminar }) {
+// puertas animadas: cada hoja gira sobre su bisagra; se abre (90°, hacia el lado contrario a la persona) cuando el
+// personaje se acerca a menos de 2,4 m y se cierra cuando se aleja
+const MADERA = '#9C6B3E'
+function Puertas({ puertas, plano, persona }) {
+  const hojas = useMemo(() => {
+    const out = []
+    for (const p of puertas) {
+      const a = p.a, b = p.b
+      const mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]
+      const tramos = p.doble ? [[a, mid], [b, mid]] : [[a, b]]
+      for (const [h, f] of tramos) {
+        const dx = f[0] - h[0], dy = f[1] - h[1], L = Math.hypot(dx, dy)
+        if (L < 0.2) continue
+        const ux = dx / L, uy = dy / L
+        // la hoja va a "c" metros del eje, sobre la normal de la puerta (calculada con su dirección a -> b)
+        const D = [b[0] - a[0], b[1] - a[1]], DL = Math.hypot(...D) || 1
+        const n = [-D[1] / DL, D[0] / DL]
+        const nl = [-uy, ux]   // normal propia de esta hoja
+        const off = (p.c || 0) * (n[0] * nl[0] + n[1] * nl[1])
+        out.push({ h, L: p.doble ? L - 0.005 : L - 0.1, ini: p.doble ? 0.005 : 0.05, th: Math.atan2(uy, ux), off, nl, ducto: p.ducto, mid })
+      }
+    }
+    return out
+  }, [puertas])
+  const grupos = useRef([])
+  const ang = useRef(new Float32Array(hojas.length))
+  const mats = useMemo(() => ({
+    madera: new THREE.MeshStandardMaterial({ color: MADERA, roughness: 0.7 }),
+    roja: new THREE.MeshStandardMaterial({ color: '#C0392B', roughness: 0.7 }),
+    manija: new THREE.MeshStandardMaterial({ color: '#D7DBE0', roughness: 0.3, metalness: 0.6 }),
+  }), [])
+  useEffect(() => { for (const m of Object.values(mats)) m.clippingPlanes = [plano] }, [mats, plano])
+  useFrame((_, dt) => {
+    const q = persona.current
+    hojas.forEach((hj, k) => {
+      const g = grupos.current[k]
+      if (!g) return
+      let meta = 0
+      if (q && Math.hypot(q[0] - hj.mid[0], q[1] - hj.mid[1]) < 2.4) {
+        // gira hacia el lado contrario de donde viene la persona
+        const lado = (q[0] - hj.h[0]) * hj.nl[0] + (q[1] - hj.h[1]) * hj.nl[1]
+        meta = lado > 0 ? -Math.PI / 2 : Math.PI / 2
+        if (ang.current[k] !== 0 && Math.sign(ang.current[k]) !== Math.sign(meta)) meta = ang.current[k] > 0 ? Math.PI / 2 : -Math.PI / 2
+      }
+      ang.current[k] += (meta - ang.current[k]) * (1 - Math.exp(-Math.min(dt, 0.1) * 6))
+      g.rotation.y = hj.th + ang.current[k]
+    })
+  })
+  return (
+    <group>
+      {hojas.map((hj, k) => (
+        <group key={k} ref={(el) => { grupos.current[k] = el }} position={E(hj.h, 0)} rotation-y={hj.th}>
+          {/* local +x = a lo largo de la hoja; la normal del plano (nl) es -z local */}
+          <mesh position={[hj.ini + hj.L / 2, 0.01 + 1.02, -hj.off]} material={hj.ducto ? mats.roja : mats.madera} castShadow>
+            <boxGeometry args={[hj.L, 2.04, 0.04]} />
+          </mesh>
+          {!hj.ducto && (
+            <mesh position={[hj.ini + hj.L - 0.12, 1.0, -hj.off]} material={mats.manija}>
+              <boxGeometry args={[0.14, 0.04, 0.14]} />
+            </mesh>
+          )}
+        </group>
+      ))}
+    </group>
+  )
+}
+
+// el personaje recorre la ruta a 1,3 m/s. La cámara lo acompaña como en un juego en tercera persona: se traslada con
+// él, y con el ratón (o el dedo) se puede girar alrededor, subir o bajar la mirada y acercar, sin perderlo de foco
+function Caminante({ ruta, recorrer, controles, andado, alTerminar, persona }) {
   const ref = useRef()
   const t = useRef(0)
   const caminando = useRef(false)
   const fin = useRef(false)
   const { L, en } = useMemo(() => medir(ruta.pts), [ruta])
-  useEffect(() => { t.current = 0; fin.current = false; andado.current = recorrer ? 0 : null }, [ruta, recorrer, andado])
+  const prev = useRef(null)
+  const llegada = useRef(0)   // segundos desde que empezó el recorrido (la cámara se acomoda detrás en el primero)
+  useEffect(() => { t.current = 0; fin.current = false; andado.current = recorrer ? 0 : null; prev.current = null; llegada.current = 0 }, [ruta, recorrer, andado])
   useFrame((_, dt) => {
     if (!ref.current) return
     if (recorrer && !fin.current) t.current += Math.min(dt, 0.1) * 1.3
@@ -259,16 +343,27 @@ function Caminante({ ruta, recorrer, controles, andado, alTerminar }) {
     caminando.current = recorrer && !fin.current && s < L
     if (recorrer) andado.current = s
     ref.current.position.set(q.x, 0.02, -q.y)
+    persona.current = [q.x, q.y]
     // el frente del personaje (+z local) mira hacia donde avanza
     ref.current.rotation.y = Math.atan2(q.dx, -q.dy)
     if (recorrer && controles.current) {
       const c = controles.current
-      const obj = new THREE.Vector3(q.x, 1.1, -q.y)
-      // suavizado según el tiempo del cuadro: en equipos lentos la cámara llega igual de rápido
+      const obj = new THREE.Vector3(q.x, 1.3, -q.y)
       const kd = Math.min(dt, 0.1)
-      c.target.lerp(obj, 1 - Math.exp(-kd * 6))
-      const atras = new THREE.Vector3(-q.dx, 0, q.dy).normalize()
-      c.object.position.lerp(obj.clone().add(atras.multiplyScalar(6.5)).add(new THREE.Vector3(0, 4.5, 0)), 1 - Math.exp(-kd * 2.5))
+      llegada.current += kd
+      if (llegada.current < 1.4) {
+        // al empezar: la cámara se coloca detrás del personaje
+        c.target.lerp(obj, 1 - Math.exp(-kd * 6))
+        const atras = new THREE.Vector3(-q.dx, 0, q.dy).normalize()
+        c.object.position.lerp(obj.clone().add(atras.multiplyScalar(6)).add(new THREE.Vector3(0, 3.2, 0)), 1 - Math.exp(-kd * 4))
+      } else {
+        // después: cámara y foco se trasladan con el personaje; el giro lo decide quien mira
+        const delta = prev.current ? obj.clone().sub(prev.current) : new THREE.Vector3()
+        c.target.add(delta)
+        c.object.position.add(delta)
+        c.target.lerp(obj, 1 - Math.exp(-kd * 4))
+      }
+      prev.current = obj
       c.update()
     }
     if (recorrer && s >= L && !fin.current) { fin.current = true; alTerminar?.() }
@@ -306,20 +401,42 @@ function MarcaFoco({ foco, controles }) {
 
 // parqueaderos del exterior: losas de asfalto sobre el piso del mapa
 // pisos de cada ambiente con la paleta de interiores (la misma del 2D) sobre la losa del modelo; el destino en lila
+// el contorno de cada ambiente queda unos centímetros antes del muro; se ensancha 12 cm (inglete) para que el piso de
+// color llegue hasta debajo del muro y no quede una franja clara descuadrada
+function ensanchar(anillo, e) {
+  let area = 0
+  for (let i = 0; i < anillo.length; i++) { const [x1, y1] = anillo[i], [x2, y2] = anillo[(i + 1) % anillo.length]; area += x1 * y2 - x2 * y1 }
+  const s = area > 0 ? 1 : -1   // antihorario: la normal exterior es (dy, -dx)
+  const n = anillo.length
+  return anillo.map((p, i) => {
+    const a = anillo[(i - 1 + n) % n], b = anillo[(i + 1) % n]
+    const d1 = [p[0] - a[0], p[1] - a[1]], d2 = [b[0] - p[0], b[1] - p[1]]
+    const l1 = Math.hypot(...d1) || 1, l2 = Math.hypot(...d2) || 1
+    const n1 = [s * d1[1] / l1, -s * d1[0] / l1], n2 = [s * d2[1] / l2, -s * d2[0] / l2]
+    let m = [n1[0] + n2[0], n1[1] + n2[1]]
+    const ml = Math.hypot(...m) || 1
+    m = [m[0] / ml, m[1] / ml]
+    const k = Math.min(3, 1 / Math.max(0.35, m[0] * n1[0] + m[1] * n1[1]))
+    return [p[0] + m[0] * e * k, p[1] + m[1] * e * k]
+  })
+}
+
 function PisosColor({ d, destino }) {
   const piezas = useMemo(() => d.ambientes.filter((a) => a.pg.length && a.pg[0].length > 2).map((a) => {
-    const [ext, ...huecos] = a.pg
+    const [ext0, ...huecos] = a.pg
+    const ext = ensanchar(ext0[0][0] === ext0[ext0.length - 1][0] && ext0[0][1] === ext0[ext0.length - 1][1] ? ext0.slice(0, -1) : ext0, 0.12)
     const forma = new THREE.Shape(ext.map(([x, y]) => new THREE.Vector2(x, y)))
     for (const h of huecos) forma.holes.push(new THREE.Path(h.map(([x, y]) => new THREE.Vector2(x, y))))
     const g = new THREE.ShapeGeometry(forma)
     g.rotateX(-Math.PI / 2)
     const plano = !!(a.cat === 'circulacion' || a.cat === 'espera' || (!a.nombre && a.area >= 30))
-    return { id: a.id, g, color: plano ? PALETA[a.cat] || PALETA.circulacion : PALETA[a.cat] || PALETA.otro }
+    // los cuartos van 5 mm sobre los pasillos: donde se tocan (en las puertas) no parpadean
+    return { id: a.id, g, y: plano ? 0 : 0.005, color: plano ? PALETA[a.cat] || PALETA.circulacion : PALETA[a.cat] || PALETA.otro }
   }), [d])
   return (
     <group position-y={0.04}>
       {piezas.map((p) => (
-        <mesh key={p.id} geometry={p.g} receiveShadow>
+        <mesh key={p.id} geometry={p.g} position-y={p.y} receiveShadow>
           <meshStandardMaterial color={destino && destino.id === p.id ? '#7C83E6' : p.color} roughness={0.9} polygonOffset polygonOffsetFactor={-2} />
         </mesh>
       ))}
@@ -354,6 +471,10 @@ export function Vista3D({ d, ruta, destino, foco, recorrer = false, setRecorrer 
   const cx = (Math.min(...hu.map((p) => p[0])) + Math.max(...hu.map((p) => p[0]))) / 2
   const cy = (Math.min(...hu.map((p) => p[1])) + Math.max(...hu.map((p) => p[1]))) / 2
   const andado = useRef(null)
+  const persona = useRef(null)
+  const plano = useMemo(() => new THREE.Plane(new THREE.Vector3(0, -1, 0), 99), [])
+  useEffect(() => { plano.constant = corte >= 3.8 ? 99 : corte }, [corte, plano])
+  useEffect(() => { if (!ruta) persona.current = null }, [ruta])
   return (
     <div className="pb-3d">
       <Canvas shadows flat dpr={[1, 2]} camera={{ position: [cx - 55, 85, -cy + 95], fov: 40, near: 0.5, far: 3000 }} gl={{ antialias: true }}>
@@ -364,15 +485,16 @@ export function Vista3D({ d, ruta, destino, foco, recorrer = false, setRecorrer 
           shadow-camera-left={-90} shadow-camera-right={90} shadow-camera-top={90} shadow-camera-bottom={-90} shadow-camera-near={10} shadow-camera-far={400}
           target-position={[cx, 0, -cy]} />
         <Suspense fallback={<Html center><div className="pb-cargando">Cargando el modelo 3D…</div></Html>}>
-          <Edificio corte={corte} letreros={letreros} />
+          <Edificio corte={corte} letreros={letreros} plano={plano} />
         </Suspense>
         <SueloMapa centro={[cx, cy]} />
         <PisosColor d={d} destino={destino} />
+        <Puertas puertas={d.puertas} plano={plano} persona={persona} />
         <Parqueos parqueos={d.parqueos} />
         {ruta && <Ruta ruta={ruta} andado={andado} />}
         {foco && <MarcaFoco foco={foco} controles={controles} />}
-        {ruta && <Caminante ruta={ruta} recorrer={recorrer} controles={controles} andado={andado} alTerminar={onFinRecorrer} />}
-        <OrbitControls ref={controles} target={[cx, 0, -cy]} maxPolarAngle={Math.PI / 2.08} minDistance={4} maxDistance={420} enableDamping />
+        {ruta && <Caminante ruta={ruta} recorrer={recorrer} controles={controles} andado={andado} alTerminar={onFinRecorrer} persona={persona} />}
+        <OrbitControls ref={controles} target={[cx, 0, -cy]} maxPolarAngle={recorrer ? Math.PI / 1.9 : Math.PI / 2.08} minDistance={recorrer ? 1.5 : 4} maxDistance={recorrer ? 30 : 420} enablePan={!recorrer} enableDamping />
       </Canvas>
       <div className="pb-3d-ctrl" role="group" aria-label="Opciones de la vista 3D">
         <span className="pb-3d-t">Altura de muros</span>
