@@ -4,7 +4,7 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 're
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { aLonLat, rumbo, CATS, ICONO_LUGAR } from './datos.js'
+import { aLonLat, dePlano, rumbo, CATS, ICONO_LUGAR } from './datos.js'
 import { Icono } from '../ui/mapa2d/Iconos.jsx'
 
 const ESTILO = 'https://tiles.openfreemap.org/styles/positron'
@@ -42,12 +42,12 @@ function capas(d) {
 
 const vacio = FC([])
 
-export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, hover, onElegir, onHover, lugaresIcono }, fwd) {
+export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, hover, onElegir, onHover, lugaresIcono, pick = false, onPick }, fwd) {
   const ref = useRef(null)
   const mapa = useRef(null)
   const [listo, setListo] = useState(false)
   const cb = useRef({})
-  cb.current = { onElegir, onHover }
+  cb.current = { onElegir, onHover, onPick, pick }
   const marcas = useRef([])
   const marcasRuta = useRef([])
   const anim = useRef(0)
@@ -78,7 +78,7 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, hover, 
   useEffect(() => {
     const c = aLonLat(54, 60)
     const map = new maplibregl.Map({
-      container: ref.current, style: ESTILO, center: c, zoom: 17.6, minZoom: 15, maxZoom: 21.5, bearing: rumbo(),
+      container: ref.current, style: ESTILO, center: c, zoom: 17.6, minZoom: 15, maxZoom: 21.5, bearing: rumbo(), pitch: 40, maxPitch: 60,
       pitchWithRotate: false, touchPitch: false, dragRotate: false, attributionControl: { compact: true }, fadeDuration: 0,
     })
     mapa.current = map
@@ -104,6 +104,8 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, hover, 
       map.addLayer({ id: 'viseras-borde', type: 'line', source: 'viseras', paint: { 'line-color': '#A69F92', 'line-width': 1, 'line-dasharray': [3, 2] } })
       map.addLayer({ id: 'huella-sombra', type: 'line', source: 'huella', paint: { 'line-color': '#5C6B7D', 'line-width': 10, 'line-opacity': 0.12, 'line-blur': 8, 'line-translate': [0, 3] } })
       map.addLayer({ id: 'huella', type: 'fill', source: 'huella', paint: { 'fill-color': '#FFFFFF' } })
+      // mobiliario, ventanas y muros con altura: se ve como un 3D pequeño, el piso se queda plano para que la ruta no se tape
+      map.addLayer({ id: 'viseras-3d', type: 'fill-extrusion', source: 'viseras', paint: { 'fill-extrusion-color': '#E7E3DA', 'fill-extrusion-height': 4.2, 'fill-extrusion-base': 3.6, 'fill-extrusion-opacity': 0.9 } })
       map.addLayer({ id: 'ambientes', type: 'fill', source: 'ambientes', paint: {
         'fill-color': ['case', ['boolean', ['feature-state', 'destino'], false], '#2F5BEA', ['get', 'color']],
         'fill-opacity': ['case', ['boolean', ['feature-state', 'destino'], false], 0.2, ['boolean', ['feature-state', 'hover'], false], 0.75, 1],
@@ -113,15 +115,16 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, hover, 
         'line-width': ['case', ['boolean', ['feature-state', 'hover'], false], 2.4, ['boolean', ['feature-state', 'destino'], false], 2.4, 0],
         'line-opacity': 0.9,
       } })
-      map.addLayer({ id: 'muebles', type: 'fill', source: 'muebles', minzoom: 18.3, paint: {
-        'fill-color': ['match', ['get', 't'], 'sanitario', '#FFFFFF', 'silla', '#C9D3E0', 'camilla', '#CFE7E6', '#E9E4DA'],
-        'fill-outline-color': '#9AA6B4',
+      map.addLayer({ id: 'muebles', type: 'fill-extrusion', source: 'muebles', minzoom: 18.3, paint: {
+        'fill-extrusion-color': ['match', ['get', 't'], 'sanitario', '#FFFFFF', 'silla', '#C9D3E0', 'camilla', '#CFE7E6', '#E9E4DA'],
+        'fill-extrusion-height': ['match', ['get', 't'], 'sanitario', 0.9, 'silla', 0.6, 'camilla', 0.7, 0.8],
+        'fill-extrusion-base': 0, 'fill-extrusion-opacity': 0.95,
       } })
       map.addLayer({ id: 'trazos', type: 'line', source: 'trazos', minzoom: 18.8, paint: { 'line-color': '#97A3B2', 'line-width': 0.6 } })
       map.addLayer({ id: 'gradas', type: 'line', source: 'gradas', minzoom: 17.5, paint: { 'line-color': '#8A96A5', 'line-width': 0.8 } })
       map.addLayer({ id: 'puertas', type: 'line', source: 'puertas', minzoom: 18.6, paint: { 'line-color': '#9AA6B4', 'line-width': 0.7 } })
-      map.addLayer({ id: 'ventanas', type: 'fill', source: 'ventanas', paint: { 'fill-color': '#BFE0F4', 'fill-outline-color': '#5B9CC8' } })
-      map.addLayer({ id: 'muros', type: 'fill', source: 'muros', paint: { 'fill-color': '#3E4652' } })
+      map.addLayer({ id: 'ventanas', type: 'fill-extrusion', source: 'ventanas', paint: { 'fill-extrusion-color': '#BFE0F4', 'fill-extrusion-height': 2.4, 'fill-extrusion-base': 0.9, 'fill-extrusion-opacity': 0.85 } })
+      map.addLayer({ id: 'muros', type: 'fill-extrusion', source: 'muros', paint: { 'fill-extrusion-color': '#4B5667', 'fill-extrusion-height': 2.4, 'fill-extrusion-base': 0, 'fill-extrusion-opacity': 0.97 } })
       // ruta: base blanca, línea azul y trazos que avanzan
       map.addLayer({ id: 'ruta-borde', type: 'line', source: 'ruta', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#FFFFFF', 'line-width': ['interpolate', ['linear'], ['zoom'], 17, 7, 20, 14] } })
       map.addLayer({ id: 'ruta-linea', type: 'line', source: 'ruta', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#2F5BEA', 'line-width': ['interpolate', ['linear'], ['zoom'], 17, 4, 20, 8] } })
@@ -150,7 +153,8 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, hover, 
         map.getCanvas().style.cursor = ''
         cb.current.onHover?.(null)
       })
-      map.on('click', 'ambientes', (e) => cb.current.onElegir?.(e.features[0].properties.id, e.point))
+      map.on('click', 'ambientes', (e) => { if (!cb.current.pick) cb.current.onElegir?.(e.features[0].properties.id, e.point) })
+      map.on('click', (e) => { if (cb.current.pick) { const [x, y] = dePlano(e.lngLat.lng, e.lngLat.lat); cb.current.onPick?.(x, y) } })
       setListo(true)
       encuadrar()
     }
@@ -183,6 +187,22 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, hover, 
     map.on('zoom', zoomClase)
     return () => map.off('zoom', zoomClase)
   }, [listo, lugaresIcono])
+
+  // ---------- buscador: la vista llega al lugar elegido (si no hay ruta, que la ruta ya encuadra) y lo marca con un pulso
+  useEffect(() => {
+    const map = mapa.current
+    if (!map || !listo || !foco) return
+    if (!ruta) map.easeTo({ center: aLonLat(foco.x, foco.y), zoom: Math.max(map.getZoom(), 19.4), pitch: 45, bearing: rumbo(), duration: 1000 })
+    const el = document.createElement('div')
+    el.className = 'marca-foco'
+    el.innerHTML = '<i></i><i></i>'
+    const m = new maplibregl.Marker({ element: el }).setLngLat(aLonLat(foco.x, foco.y)).addTo(map)
+    const t = setTimeout(() => m.remove(), 3400)
+    return () => { clearTimeout(t); m.remove() }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [foco, listo])
+
+  useEffect(() => { const c = mapa.current?.getCanvas(); if (c) c.style.cursor = pick ? 'crosshair' : '' }, [pick])
 
   // ---------- destino resaltado
   useEffect(() => {

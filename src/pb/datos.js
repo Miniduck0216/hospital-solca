@@ -1,10 +1,14 @@
 // Datos de la planta baja real (exportados desde el plano del hospital) y georreferencia sobre el mapa.
 export const BASE = import.meta.env.BASE_URL
 
-export async function cargarDatos() {
+export async function cargarDatos(cambiosLocales = null) {
   const r = await fetch(`${BASE}pb/datos.json?v=${__VERSION__}`)
   if (!r.ok) throw new Error('No se pudo cargar el plano')
   const d = await r.json()
+  // cambios del administrador: los publicados en el repositorio y los guardados en este navegador
+  const publicados = await fetch(`${BASE}pb/cambios.json?v=${__VERSION__}`).then((x) => (x.ok ? x.json() : null)).catch(() => null)
+  aplicarCambios(d, publicados)
+  aplicarCambios(d, cambiosLocales)
   const bin = atob(d.nav.celdas)
   const celdas = new Uint8Array(bin.length)
   for (let i = 0; i < bin.length; i++) celdas[i] = bin.charCodeAt(i)
@@ -24,9 +28,30 @@ export async function cargarDatos() {
   for (let i = 0; i < bin3.length; i++) d.nav.red[i] = bin3.charCodeAt(i)
   // franja de paso (ver bandaDeRed)
   d.nav.banda = bandaDeRed(d)
+  // el interior de un cuarto cerrado no es paso: la ruta solo llega a su puerta (ver buscarRuta, meta)
+  for (let i = 0; i < d.nav.banda.length; i++) if (d.nav.cuarto[i] && !d.nav.paso[d.nav.cuarto[i]]) d.nav.banda[i] = 0
+  abrirPuertas(d, d.nav.banda)
   d.nav.indice = Object.fromEntries(d.ambientes.map((a, k) => [a.id, k + 1]))
   d.nav.alcanzable = alcanzables(d)
+  // administración: la franja más los pasillos de personal (sin cuartos cerrados)
+  d.nav.bandaAdmin = Uint8Array.from(d.nav.banda)
+  for (let i = 0; i < d.nav.bandaAdmin.length; i++) {
+    const c = d.nav.cuarto[i]
+    if (!d.nav.bandaAdmin[i] && d.nav.celdas[i] && c && SOLO_PERSONAL.test(d.ambientes[c - 1].nombre || '')) d.nav.bandaAdmin[i] = 1
+  }
   return d
+}
+
+// cambios del administrador (ver Admin.jsx): nombre, categoría y punto de acceso de un ambiente
+function aplicarCambios(d, cambios) {
+  if (!cambios || !cambios.ambientes) return
+  for (const [id, c] of Object.entries(cambios.ambientes)) {
+    const a = d.ambientes.find((x) => x.id === id)
+    if (!a) continue
+    if (typeof c.nombre === 'string' && c.nombre.trim()) a.nombre = c.nombre.trim()
+    if (c.cat && CATS[c.cat]) a.cat = c.cat
+    if (Array.isArray(c.dest) && c.dest.length === 2) a.dest = c.dest
+  }
 }
 
 // franja de paso: la red verde y los pasillos y halls abiertos conectados a ella. Los pasillos internos de los bloques
@@ -114,6 +139,64 @@ function bandaDeRed(d) {
     for (let p = fin; p !== -1; p = prev[p]) { banda[p] = 1; comp[p] = main }
   })
   return banda
+}
+
+// cuartos cuya puerta no se ve en el plano: se abre un vano a través del muro hasta el pasillo público más cercano.
+// Solo atraviesa muro: no pasa por otros cuartos ni por pasillos de bloque.
+const PUERTAS_AUTO = ['Cajas', 'Consultorio · 35', 'Tesorería', 'Secretaría – Control', 'Minusválidos', 'SS.HH.']
+
+function abrirPuertas(d, banda) {
+  const { w, h, celdas, cuarto, paso } = d.nav
+  const N = w * h
+  const orto = (i) => {
+    const x = i % w, y = (i / w) | 0, r = []
+    if (x > 0) r.push(i - 1)
+    if (x < w - 1) r.push(i + 1)
+    if (y > 0) r.push(i - w)
+    if (y < h - 1) r.push(i + w)
+    return r
+  }
+  const personal = (c) => c > 0 && SOLO_PERSONAL.test(d.ambientes[c - 1].nombre || '')
+  const publico = (j) => celdas[j] > 0 && !personal(cuarto[j]) && (cuarto[j] === 0 || !!paso[cuarto[j]])
+  // muro que se puede abrir: cualquier celda sin paso (muro); el interior de los cuartos no se toca
+  const muro = (j) => celdas[j] === 0 && !personal(cuarto[j])
+  d.ambientes.forEach((a, k) => {
+    if (!PUERTAS_AUTO.includes(a.nombre)) return
+    const prev = new Int32Array(N).fill(-2)
+    const dist = new Int32Array(N).fill(-1)
+    const cola = []
+    let ya = false
+    for (let i = 0; i < N; i++) {
+      if (cuarto[i] !== k + 1) continue
+      for (const j of orto(i)) {
+        if (banda[j] && !personal(cuarto[j])) ya = true
+        if (muro(j) && dist[j] < 0) { dist[j] = 1; prev[j] = -1; cola.push(j) }
+      }
+    }
+    if (ya) return   // ya tiene camino por la franja
+    let fin = -1, final = -1
+    for (let s = 0; s < cola.length && fin < 0; s++) {
+      const p = cola[s]
+      for (const j of orto(p)) {
+        if (publico(j) && banda[j]) { fin = p; final = j; break }
+        if (muro(j) && dist[j] < 0 && dist[p] < 40) { dist[j] = dist[p] + 1; prev[j] = p; cola.push(j) }
+      }
+    }
+    if (fin < 0) return
+    const camino = []
+    for (let p = fin; p !== -1; p = prev[p]) camino.push(p)
+    // vano de ~0,75 m: 3 celdas de ancho alrededor de cada celda del muro
+    for (const c of camino) {
+      const x = c % w, y = (c / w) | 0
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const nx = x + dx, ny = y + dy
+        if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue
+        const j = ny * w + nx
+        if (muro(j)) { celdas[j] = 3; banda[j] = 1 }
+      }
+    }
+    banda[final] = 1
+  })
 }
 
 // ambientes a los que se llega: su puerta da a la franja de paso. Lo que no, la app lo avisa al elegirlo.

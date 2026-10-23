@@ -5,7 +5,8 @@ import * as THREE from 'three'
 import maplibregl from 'maplibre-gl'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls, useGLTF, Line, Html } from '@react-three/drei'
-import { BASE, aLonLat, rumbo } from './datos.js'
+import { BASE, aLonLat, rumbo, dePlano, CATS } from './datos.js'
+import { Cargando } from './Cargando.jsx'
 
 const E = ([x, y], h = 0) => new THREE.Vector3(x, h, -y)    // plano (x, y) -> escena
 
@@ -75,6 +76,18 @@ function SueloMapa({ centro }) {
   )
 }
 
+// el GLB trae los pisos agrupados por color (pisos|r,g,b|h): cada grupo toma el acento de la categoría más parecida
+const ACENTOS = Object.values(CATS).map((c) => ({ rgb: new THREE.Color(c.relleno), acento: new THREE.Color(c.acento) }))
+function colorDePiso(nombre) {
+  const [r, g, b] = (nombre.split('|')[1] || '0,0,0').split(',').map(Number)
+  let mejor = null, dist = Infinity
+  for (const a of ACENTOS) {
+    const k = (a.rgb.r - r) ** 2 + (a.rgb.g - g) ** 2 + (a.rgb.b - b) ** 2
+    if (k < dist) { dist = k; mejor = a }
+  }
+  return mejor ? mejor.acento.clone().lerp(new THREE.Color('#FFFFFF'), 0.18) : null
+}
+
 function Edificio({ corte, letreros }) {
   const { scene } = useGLTF(`${BASE}pb/solca_pb.glb?v=${__VERSION__}`)
   const { gl } = useThree()
@@ -89,6 +102,11 @@ function Edificio({ corte, letreros }) {
       if (g === 'letreros') o.visible = letreros
       if (g === 'viseras') o.visible = corte >= 3.8
       const m = o.material
+      if (g === 'pisos' && !o.userData.coloreado) {
+        const c = colorDePiso(o.name || o.parent?.name || '')
+        if (c) { o.material = m.clone(); o.material.color.copy(c); o.material.roughness = 0.85 }
+        o.userData.coloreado = true
+      }
       if (m && g !== 'pisos') { m.clippingPlanes = [plano]; m.clipShadows = true; m.needsUpdate = true }
     })
     plano.constant = corte >= 3.8 ? 99 : corte
@@ -155,7 +173,85 @@ function Caminante({ ruta, recorrer, controles, alTerminar }) {
   )
 }
 
-export function Vista3D({ d, ruta, destino }) {
+// la cámara llega al lugar elegido en el buscador y deja un anillo que pulsa unos segundos
+function MarcaFoco({ foco, controles }) {
+  const grupo = useRef()
+  const t0 = useRef(-1)
+  const meta = useMemo(() => new THREE.Vector3(foco.x, 0.4, -foco.y), [foco])
+  useEffect(() => { t0.current = performance.now() }, [foco])
+  useFrame(() => {
+    if (!grupo.current || t0.current < 0) return
+    const s = (performance.now() - t0.current) / 1000
+    grupo.current.visible = s < 3.6
+    if (!grupo.current.visible) return
+    const k = 1 + 0.18 * Math.sin(s * 5)
+    grupo.current.scale.set(k, 1, k)
+    const c = controles.current
+    if (c && s < 2.2) {
+      c.target.lerp(meta, 0.07)
+      c.object.position.lerp(meta.clone().add(new THREE.Vector3(0, 30, 24)), 0.035)
+      c.update()
+    }
+  })
+  return (
+    <group ref={grupo} position={[meta.x, 0.08, meta.z]}>
+      <mesh rotation-x={-Math.PI / 2}><ringGeometry args={[1.6, 2.1, 48]} /><meshBasicMaterial color="#2F5BEA" transparent opacity={0.85} /></mesh>
+      <mesh rotation-x={-Math.PI / 2}><circleGeometry args={[1.1, 40]} /><meshBasicMaterial color="#2F5BEA" transparent opacity={0.22} /></mesh>
+    </group>
+  )
+}
+
+// puntos de luz que avanzan sobre la ruta (dan sensación de movimiento sin tapar el recorrido)
+function Flujo({ ruta }) {
+  const grupo = useRef()
+  const { out, total } = useMemo(() => {
+    const o = []
+    let acc = 0
+    for (let i = 1; i < ruta.pts.length; i++) {
+      const a = ruta.pts[i - 1], b = ruta.pts[i]
+      const l = Math.hypot(b[0] - a[0], b[1] - a[1])
+      o.push({ a, b, l, acc })
+      acc += l
+    }
+    return { out: o, total: acc }
+  }, [ruta])
+  useFrame(({ clock }) => {
+    if (!grupo.current || total <= 0) return
+    grupo.current.children.forEach((hijo, k) => {
+      const s = ((clock.elapsedTime * 2.2 + (k * total) / grupo.current.children.length) % total)
+      const seg = out.find((q) => s <= q.acc + q.l) || out[out.length - 1]
+      const f = seg.l ? (s - seg.acc) / seg.l : 0
+      hijo.position.set(seg.a[0] + (seg.b[0] - seg.a[0]) * f, 0.22, -(seg.a[1] + (seg.b[1] - seg.a[1]) * f))
+    })
+  })
+  return (
+    <group ref={grupo}>
+      {Array.from({ length: 9 }, (_, k) => <mesh key={k}><sphereGeometry args={[0.18, 12, 10]} /><meshBasicMaterial color="#FFFFFF" toneMapped={false} /></mesh>)}
+    </group>
+  )
+}
+
+// parqueaderos del exterior: losas de asfalto sobre el piso del mapa
+function Parqueos({ parqueos }) {
+  const geos = useMemo(() => parqueos.map((p) => {
+    const pts = p.ll.map(([lo, la]) => dePlano(lo, la))
+    const forma = new THREE.Shape(pts.map(([x, y]) => new THREE.Vector2(x, y)))
+    const g = new THREE.ExtrudeGeometry(forma, { depth: 0.08, bevelEnabled: false })
+    g.rotateX(-Math.PI / 2)
+    return g
+  }), [parqueos])
+  return (
+    <group>
+      {geos.map((g, k) => (
+        <mesh key={k} geometry={g} position-y={-0.02} receiveShadow>
+          <meshStandardMaterial color="#C4CCD6" roughness={0.95} />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
+export function Vista3D({ d, ruta, destino, foco }) {
   const [corte, setCorte] = useState(2.6)
   const [letreros, setLetreros] = useState(true)
   const [recorrer, setRecorrer] = useState(false)
@@ -177,7 +273,10 @@ export function Vista3D({ d, ruta, destino }) {
           <Edificio corte={corte} letreros={letreros} />
         </Suspense>
         <SueloMapa centro={[cx, cy]} />
+        <Parqueos parqueos={d.parqueos} />
         {ruta && <Ruta ruta={ruta} />}
+        {ruta && <Flujo ruta={ruta} />}
+        {foco && <MarcaFoco foco={foco} controles={controles} />}
         {ruta && <Caminante ruta={ruta} recorrer={recorrer} controles={controles} alTerminar={() => {}} />}
         <OrbitControls ref={controles} target={[cx, 0, -cy]} maxPolarAngle={Math.PI / 2.08} minDistance={4} maxDistance={420} enableDamping />
       </Canvas>
