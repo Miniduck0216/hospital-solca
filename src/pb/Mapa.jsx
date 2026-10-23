@@ -45,15 +45,17 @@ function capas(d) {
 
 const vacio = FC([])
 
-export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, hover, onElegir, onHover, lugaresIcono, pick = false, onPick }, fwd) {
+export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, hover, onElegir, onHover, lugaresIcono, pick = false, onPick, recorrer = false, onFinRecorrer }, fwd) {
   const ref = useRef(null)
   const mapa = useRef(null)
   const [listo, setListo] = useState(false)
   const cb = useRef({})
-  cb.current = { onElegir, onHover, onPick, pick }
+  cb.current = { onElegir, onHover, onPick, pick, onFinRecorrer }
   const marcas = useRef([])
   const marcasRuta = useRef([])
   const anim = useRef(0)
+  const andado = useRef(null)   // metros recorridos por el personaje (null: sin recorrido)
+  const animCam = useRef(0)
 
   useImperativeHandle(fwd, () => ({
     acercar: () => mapa.current?.zoomIn(),
@@ -132,7 +134,7 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
       // ruta: una fila de puntos oscuros que avanza (ver el efecto de la ruta)
       map.addLayer({ id: 'ruta-halo', type: 'line', source: 'ruta', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': TINTA_RUTA, 'line-opacity': 0.1, 'line-width': ['interpolate', ['linear'], ['zoom'], 17, 8, 20, 18] } })
       map.addLayer({ id: 'ruta-puntos', type: 'circle', source: 'ruta-puntos', paint: {
-        'circle-color': ['case', ['==', ['get', 'p'], 1], '#4C6FFF', TINTA_RUTA],
+        'circle-color': ['match', ['get', 'p'], 1, '#4C6FFF', 2, '#B9C3D3', TINTA_RUTA],
         'circle-radius': ['interpolate', ['linear'], ['zoom'], 17, 1.8, 19, 3.4, 21, 5.5],
         'circle-stroke-color': '#FFFFFF', 'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 17, 0.6, 20, 1.4],
         'circle-pitch-alignment': 'map',
@@ -248,7 +250,10 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
       const f = []
       for (let s = fase; s <= hasta; s += PASO) {
         const [x, y] = enDist(s)
-        f.push({ type: 'Feature', properties: { p: cabeza !== null && s <= cabeza && s > cabeza - 5 ? 1 : 0 }, geometry: { type: 'Point', coordinates: aLonLat(x, y) } })
+        // 2 = tramo ya caminado por el personaje (gris), 1 = destello que avanza, 0 = por recorrer
+        const a = andado.current
+        const p = a !== null ? (s < a ? 2 : 0) : cabeza !== null && s <= cabeza && s > cabeza - 5 ? 1 : 0
+        f.push({ type: 'Feature', properties: { p }, geometry: { type: 'Point', coordinates: aLonLat(x, y) } })
       }
       return FC(f)
     }
@@ -284,6 +289,45 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
     return () => cancelAnimationFrame(anim.current)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listo, ruta])
+
+  // ---------- recorrido: un personaje camina la ruta a 1,3 m/s y la cámara lo sigue; lo caminado queda en gris
+  useEffect(() => {
+    const map = mapa.current
+    if (!map || !listo || !ruta || !recorrer) { andado.current = null; return }
+    const P = ruta.pts
+    const acum = [0]
+    for (let i = 1; i < P.length; i++) acum.push(acum[i - 1] + Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]))
+    const L = acum[acum.length - 1]
+    const en = (s) => {
+      let k = 1
+      while (k < acum.length - 1 && acum[k] < s) k++
+      const t = (s - acum[k - 1]) / ((acum[k] - acum[k - 1]) || 1)
+      return { x: P[k - 1][0] + (P[k][0] - P[k - 1][0]) * t, y: P[k - 1][1] + (P[k][1] - P[k - 1][1]) * t, dx: P[k][0] - P[k - 1][0], dy: P[k][1] - P[k - 1][1] }
+    }
+    const el = document.createElement('div')
+    el.className = 'caminante-2d'
+    el.innerHTML = '<span class="cam-cono"></span><span class="cam-cuerpo">' + renderToStaticMarkup(<Icono nombre="caminar" size={18} color="#fff" grosor={2.4} />) + '</span>'
+    const p0 = en(0)
+    const m = new maplibregl.Marker({ element: el }).setLngLat(aLonLat(p0.x, p0.y)).addTo(map)
+    andado.current = 0
+    map.easeTo({ center: aLonLat(p0.x, p0.y), zoom: 20.2, pitch: 50, duration: 900 })
+    let t0 = null
+    const paso = (now) => {
+      if (t0 === null) t0 = now + 900
+      const sAct = Math.max(0, Math.min(L, ((now - t0) / 1000) * 1.3))
+      const q = en(sAct)
+      andado.current = sAct
+      m.setLngLat(aLonLat(q.x, q.y))
+      // el cono apunta hacia donde camina (ángulo en pantalla = rumbo del tramo menos el giro del mapa)
+      const ang = (Math.atan2(q.dx, q.dy) * 180) / Math.PI + rumbo()
+      el.style.setProperty('--dir', `${ang - map.getBearing()}deg`)
+      if (now > t0) map.jumpTo({ center: aLonLat(q.x, q.y) })
+      if (sAct >= L) { cb.current.onFinRecorrer?.(); return }
+      animCam.current = requestAnimationFrame(paso)
+    }
+    animCam.current = requestAnimationFrame(paso)
+    return () => { cancelAnimationFrame(animCam.current); m.remove(); andado.current = null }
+  }, [listo, ruta, recorrer])
 
   // ---------- resaltar desde la lista (hover externo)
   useEffect(() => {

@@ -201,7 +201,7 @@ body { background: #E9EDF1; }
 .pb-seg button[aria-selected="true"] { background: var(--m-tinta); }
 
 /* pines del mapa: insignia de color con borde blanco; el nombre debajo al acercarse */
-.pb-pin { position: relative; display: block; }
+.pb-pin { display: block; }
 .pb-pin-c { width: 26px; height: 26px; background: var(--pin, #1E2A4A) !important; border: 2px solid #fff !important; box-shadow: 0 2px 6px rgba(30, 42, 74, .3) !important; }
 .pb-pin-t { position: absolute; top: calc(100% + 3px); left: 50%; transform: translateX(-50%); background: none !important; box-shadow: none !important; color: var(--m-tinta) !important; padding: 0 !important; font: 800 11px var(--m-fuente) !important; text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 2px #fff; pointer-events: none; }
 .pb-pin.entrada .pb-pin-t { background: var(--m-tinta) !important; color: #fff !important; padding: 2px 8px !important; border-radius: 999px; text-shadow: none; }
@@ -218,3 +218,14 @@ body { background: #E9EDF1; }
   .dock-tip { display: none; }
   .pb-der { gap: 8px; }
 }
+
+/* personaje del recorrido en 2D: disco azul con la persona y un cono que apunta hacia donde camina */
+.caminante-2d { position: relative; width: 40px; height: 40px; pointer-events: none; z-index: 6; }
+.caminante-2d .cam-cono { position: absolute; left: 50%; top: 50%; width: 64px; height: 64px; margin: -32px 0 0 -32px; border-radius: 50%;
+  background: conic-gradient(from calc(var(--dir, 0deg) - 28deg), rgba(76, 111, 255, .38) 0 56deg, transparent 56deg); transition: background .1s; }
+.caminante-2d .cam-cuerpo { position: absolute; inset: 4px; border-radius: 50%; background: #4C6FFF; border: 3px solid #fff; display: grid; place-items: center;
+  box-shadow: 0 4px 12px rgba(30, 42, 74, .35); animation: cam-paso .5s ease-in-out infinite alternate; }
+@keyframes cam-paso { from { transform: translateY(0); } to { transform: translateY(-3px); } }
+.maplibregl-marker:has(.caminante-2d) { z-index: 6; }
+@media (prefers-reduced-motion: reduce) { .caminante-2d .cam-cuerpo { animation: none; } }
+.btn-recorrer { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
