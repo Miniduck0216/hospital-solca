@@ -156,6 +156,7 @@ export default function App() {
   const [pedirClave, setPedirClave] = useState(false)
   const [cambios, setCambios] = useState(() => leerCambios())
   const [pickId, setPickId] = useState(null)
+  const [recorrer, setRecorrer] = useState(false)   // el personaje camina la ruta (en 2D o en 3D, según la vista)
   const mapa = useRef(null)
 
   useEffect(() => {
@@ -188,6 +189,7 @@ export default function App() {
     if (porId[p.get('destino')]) setDestino(porId[p.get('destino')])
   }, [lugares, porId])
 
+  useEffect(() => setRecorrer(false), [origen, destino])
   const ruta = useMemo(() => {
     if (!d || !origen || !destino || origen.id === destino.id) return null
     const r = buscarRuta(d, [origen.x, origen.y], [destino.x, destino.y], [origen.id, destino.id], { admin })
@@ -231,8 +233,8 @@ export default function App() {
   return (
     <div className={`pb-app modo-${modo}`}>
       {modo === '2d'
-        ? <Mapa ref={mapa} d={d} ruta={ruta} origen={origen} destino={destino} foco={foco} hover={hover} onElegir={elegirDesdeMapa} onHover={setHover} lugaresIcono={lugaresIcono} pick={!!pickId} onPick={onPick} />
-        : <Suspense fallback={<Cargando texto="Preparando el 3D…" />}><Vista3D d={d} ruta={ruta} destino={destino} foco={foco} /></Suspense>}
+        ? <Mapa ref={mapa} d={d} ruta={ruta} origen={origen} destino={destino} foco={foco} hover={hover} onElegir={elegirDesdeMapa} onHover={setHover} lugaresIcono={lugaresIcono} pick={!!pickId} onPick={onPick} recorrer={recorrer} onFinRecorrer={() => setRecorrer(false)} />
+        : <Suspense fallback={<Cargando texto="Preparando el 3D…" />}><Vista3D d={d} ruta={ruta} destino={destino} foco={foco} recorrer={recorrer} setRecorrer={setRecorrer} onFinRecorrer={() => setRecorrer(false)} /></Suspense>}
 
       {/* columna izquierda: marca, búsqueda y ruta */}
       {admin && (
@@ -275,8 +277,10 @@ export default function App() {
                     ))}
                   </ol>
                   <div className="acciones">
-                    {modo === '2d' && <button className="btn-negro" onClick={() => setModo('3d')}>Ver recorrido en 3D</button>}
-                    {modo === '3d' && <button className="btn-negro" onClick={() => setModo('2d')}>Ver en el mapa</button>}
+                    <button className="btn-negro btn-recorrer" onClick={() => setRecorrer((r) => !r)}>
+                      <Icono nombre={recorrer ? 'cerrar' : 'caminar'} size={16} color="#fff" />{recorrer ? 'Detener recorrido' : `Recorrer en ${modo === '2d' ? '2D' : '3D'}`}
+                    </button>
+                    <button className="btn-claro" onClick={() => setModo(modo === '2d' ? '3d' : '2d')}>{modo === '2d' ? 'Ver en 3D' : 'Ver en 2D'}</button>
                     <button className="btn-claro" onClick={() => setQr(true)}>QR</button>
                     <button className="btn-claro" onClick={() => setDestino(null)} aria-label="Cerrar ruta">Cerrar</button>
                   </div>

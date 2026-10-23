@@ -123,62 +123,157 @@ function Edificio({ corte, letreros }) {
   return <primitive object={scene} />
 }
 
-function Ruta({ ruta }) {
-  const puntos = useMemo(() => ruta.pts.map((p) => E(p, 0.09)), [ruta])
+// medidas de la ruta: largo total y punto/dirección a una distancia dada
+function medir(pts) {
+  const acum = [0]
+  for (let i = 1; i < pts.length; i++) acum.push(acum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]))
+  const L = acum[acum.length - 1]
+  const en = (s) => {
+    let k = 1
+    while (k < acum.length - 1 && acum[k] < s) k++
+    const t = (s - acum[k - 1]) / ((acum[k] - acum[k - 1]) || 1)
+    return { x: pts[k - 1][0] + (pts[k][0] - pts[k - 1][0]) * t, y: pts[k - 1][1] + (pts[k][1] - pts[k - 1][1]) * t, dx: pts[k][0] - pts[k - 1][0], dy: pts[k][1] - pts[k - 1][1] }
+  }
+  return { L, en }
+}
+
+// ruta 3D: franja suave en el piso y una fila de puntos que avanza (como en el 2D); lo ya caminado queda gris
+const PASO_PUNTOS = 1.0
+function Ruta({ ruta, andado }) {
+  const { L, en } = useMemo(() => medir(ruta.pts), [ruta])
+  const n = Math.max(2, Math.floor(L / PASO_PUNTOS) + 2)
+  const malla = useRef()
+  const franja = useMemo(() => ruta.pts.map((p) => E(p, 0.07)), [ruta])
+  const tmp = useMemo(() => new THREE.Object3D(), [])
+  const colores = useMemo(() => ({ ir: new THREE.Color('#1E2A4A'), hecho: new THREE.Color('#B9C3D3'), luz: new THREE.Color('#4C6FFF') }), [])
+  useFrame(({ clock }) => {
+    const m = malla.current
+    if (!m) return
+    const t = clock.elapsedTime
+    const fase = (t * 0.8) % PASO_PUNTOS
+    const cabeza = (t * 7) % (L + 12)
+    for (let k = 0; k < n; k++) {
+      const s = fase + k * PASO_PUNTOS
+      if (s > L) { tmp.scale.setScalar(0); tmp.updateMatrix(); m.setMatrixAt(k, tmp.matrix); continue }
+      const q = en(s)
+      tmp.position.set(q.x, 0.16, -q.y)
+      tmp.scale.setScalar(1)
+      tmp.updateMatrix()
+      m.setMatrixAt(k, tmp.matrix)
+      const a = andado.current
+      m.setColorAt(k, a !== null ? (s < a ? colores.hecho : colores.ir) : s <= cabeza && s > cabeza - 5 ? colores.luz : colores.ir)
+    }
+    m.instanceMatrix.needsUpdate = true
+    if (m.instanceColor) m.instanceColor.needsUpdate = true
+  })
   return (
     <group>
-      <Line points={puntos} color="#1E2A4A" lineWidth={8} dashed dashSize={0.05} gapSize={1.1} />
-      <mesh position={E(ruta.pts[0], 0.35)}><sphereGeometry args={[0.35, 24, 16]} /><meshStandardMaterial color="#4C6FFF" /></mesh>
-      <group position={E(ruta.pts[ruta.pts.length - 1], 0)}>
-        <mesh position-y={1.6}><coneGeometry args={[0.45, 1.2, 24]} /><meshStandardMaterial color="#7C83E6" /></mesh>
-        <mesh position-y={2.35}><sphereGeometry args={[0.55, 24, 16]} /><meshStandardMaterial color="#7C83E6" /></mesh>
-      </group>
+      <Line points={franja} color="#1E2A4A" lineWidth={14} transparent opacity={0.12} />
+      <instancedMesh key={n} ref={malla} args={[null, null, n]} frustumCulled={false}>
+        <sphereGeometry args={[0.15, 14, 10]} />
+        <meshBasicMaterial toneMapped={false} />
+      </instancedMesh>
+      <Meta pos={ruta.pts[ruta.pts.length - 1]} />
     </group>
   )
 }
 
-// persona que recorre la ruta (1,3 m/s); la cámara la sigue si «recorrer» está activo
-function Caminante({ ruta, recorrer, controles, alTerminar }) {
-  const ref = useRef()
-  const t = useRef(0)
-  const segs = useMemo(() => {
-    const out = []
-    let acc = 0
-    for (let i = 1; i < ruta.pts.length; i++) {
-      const a = ruta.pts[i - 1], b = ruta.pts[i]
-      const l = Math.hypot(b[0] - a[0], b[1] - a[1])
-      out.push({ a, b, l, acc })
-      acc += l
-    }
-    return { out, total: acc }
-  }, [ruta])
-  useEffect(() => { t.current = 0 }, [ruta, recorrer])
-  useFrame((_, dt) => {
-    if (!ref.current) return
-    t.current += dt * (recorrer ? 1.3 : 0)
-    const d = Math.min(t.current, segs.total)
-    const s = segs.out.find((q) => d <= q.acc + q.l) || segs.out[segs.out.length - 1]
-    const f = s.l ? (d - s.acc) / s.l : 0
-    const x = s.a[0] + (s.b[0] - s.a[0]) * f, y = s.a[1] + (s.b[1] - s.a[1]) * f
-    ref.current.position.set(x, 0, -y)
-    ref.current.rotation.y = Math.atan2(s.b[0] - s.a[0], s.b[1] - s.a[1]) + Math.PI
-    if (recorrer && controles.current) {
-      const c = controles.current
-      const obj = new THREE.Vector3(x, 1.2, -y)
-      c.target.lerp(obj, 0.08)
-      const dir = new THREE.Vector3(-(s.b[0] - s.a[0]), 0, (s.b[1] - s.a[1])).normalize()
-      const cam = obj.clone().add(dir.multiplyScalar(9)).add(new THREE.Vector3(0, 7, 0))
-      c.object.position.lerp(cam, 0.04)
-      c.update()
-    }
-    if (recorrer && d >= segs.total) alTerminar?.()
+// destino: un aro lila que pulsa en el piso y una columna de luz suave (no un pin)
+function Meta({ pos }) {
+  const aro = useRef()
+  useFrame(({ clock }) => {
+    if (!aro.current) return
+    const k = 1 + 0.25 * ((clock.elapsedTime * 0.9) % 1)
+    aro.current.scale.set(k, k, 1)
+    aro.current.material.opacity = 0.9 - 0.7 * ((clock.elapsedTime * 0.9) % 1)
   })
   return (
-    <group ref={ref}>
-      <mesh position-y={0.85} castShadow><capsuleGeometry args={[0.24, 0.9, 6, 12]} /><meshStandardMaterial color="#2F5BEA" /></mesh>
-      <mesh position-y={1.62} castShadow><sphereGeometry args={[0.2, 16, 12]} /><meshStandardMaterial color="#F2C9A0" /></mesh>
+    <group position={E(pos, 0)}>
+      <mesh rotation-x={-Math.PI / 2} position-y={0.1}><circleGeometry args={[0.9, 40]} /><meshBasicMaterial color="#7C83E6" transparent opacity={0.45} toneMapped={false} /></mesh>
+      <mesh ref={aro} rotation-x={-Math.PI / 2} position-y={0.11}><ringGeometry args={[1.0, 1.25, 48]} /><meshBasicMaterial color="#7C83E6" transparent toneMapped={false} /></mesh>
+      <mesh position-y={1.6}><cylinderGeometry args={[0.55, 0.85, 3.2, 32, 1, true]} /><meshBasicMaterial color="#7C83E6" transparent opacity={0.16} side={THREE.DoubleSide} depthWrite={false} toneMapped={false} /></mesh>
     </group>
   )
+}
+
+// personaje: cuerpo articulado (cabeza, cabello, torso, brazos y piernas con zapatos) de 1,7 m
+// que balancea brazos y piernas al caminar y respira cuando está quieto
+const PIEL = '#E2B48E'
+function Personaje({ caminando }) {
+  const brazoI = useRef(), brazoD = useRef(), piernaI = useRef(), piernaD = useRef(), torso = useRef()
+  useFrame(({ clock }) => {
+    const t = clock.elapsedTime
+    const a = caminando.current ? Math.sin(t * 7.5) * 0.55 : 0
+    if (piernaI.current) { piernaI.current.rotation.x = a; piernaD.current.rotation.x = -a }
+    if (brazoI.current) { brazoI.current.rotation.x = -a * 0.8; brazoD.current.rotation.x = a * 0.8 }
+    if (torso.current) torso.current.position.y = caminando.current ? 0.02 * Math.abs(Math.cos(t * 7.5)) : 0.008 * Math.sin(t * 2)
+  })
+  const mat = (c, r = 0.7) => <meshStandardMaterial color={c} roughness={r} />
+  const pierna = (ref, x) => (
+    <group ref={ref} position={[x, 0.86, 0]}>
+      <mesh position-y={-0.4} castShadow><capsuleGeometry args={[0.075, 0.62, 6, 12]} />{mat('#24324F')}</mesh>
+      <mesh position={[0, -0.82, 0.05]} castShadow><boxGeometry args={[0.13, 0.08, 0.27]} />{mat('#F4F6FA', 0.5)}</mesh>
+    </group>
+  )
+  const brazo = (ref, x) => (
+    <group ref={ref} position={[x, 1.42, 0]}>
+      <mesh position-y={-0.22} castShadow><capsuleGeometry args={[0.055, 0.3, 6, 10]} />{mat('#4C6FFF')}</mesh>
+      <mesh position-y={-0.5} castShadow><capsuleGeometry args={[0.045, 0.2, 6, 10]} />{mat(PIEL)}</mesh>
+    </group>
+  )
+  return (
+    <group>
+      {pierna(piernaI, -0.1)}
+      {pierna(piernaD, 0.1)}
+      <group ref={torso}>
+        <mesh position-y={1.17} castShadow><capsuleGeometry args={[0.17, 0.38, 8, 16]} />{mat('#4C6FFF')}</mesh>
+        <mesh position-y={0.9} castShadow><cylinderGeometry args={[0.16, 0.17, 0.12, 16]} />{mat('#24324F')}</mesh>
+        {brazo(brazoI, -0.235)}
+        {brazo(brazoD, 0.235)}
+        <mesh position-y={1.5} castShadow><cylinderGeometry args={[0.05, 0.055, 0.08, 12]} />{mat(PIEL)}</mesh>
+        <mesh position-y={1.64} castShadow><sphereGeometry args={[0.12, 24, 18]} />{mat(PIEL, 0.6)}</mesh>
+        <mesh position={[0, 1.69, -0.015]} scale={[1.05, 0.8, 1.08]} castShadow><sphereGeometry args={[0.12, 24, 18, 0, Math.PI * 2, 0, Math.PI / 1.7]} />{mat('#3A2A20', 0.8)}</mesh>
+        <mesh position={[-0.042, 1.66, 0.108]}><sphereGeometry args={[0.014, 8, 8]} />{mat('#1E2A4A', 0.4)}</mesh>
+        <mesh position={[0.042, 1.66, 0.108]}><sphereGeometry args={[0.014, 8, 8]} />{mat('#1E2A4A', 0.4)}</mesh>
+      </group>
+      {/* sombra de contacto y aro de "usted está aquí" */}
+      <mesh rotation-x={-Math.PI / 2} position-y={0.05}><ringGeometry args={[0.42, 0.52, 40]} /><meshBasicMaterial color="#4C6FFF" transparent opacity={0.8} toneMapped={false} /></mesh>
+      <mesh rotation-x={-Math.PI / 2} position-y={0.04}><circleGeometry args={[0.42, 32]} /><meshBasicMaterial color="#1E2A4A" transparent opacity={0.18} /></mesh>
+    </group>
+  )
+}
+
+// el personaje recorre la ruta a 1,3 m/s; la cámara lo sigue por detrás mientras «recorrer» está activo
+function Caminante({ ruta, recorrer, controles, andado, alTerminar }) {
+  const ref = useRef()
+  const t = useRef(0)
+  const caminando = useRef(false)
+  const fin = useRef(false)
+  const { L, en } = useMemo(() => medir(ruta.pts), [ruta])
+  useEffect(() => { t.current = 0; fin.current = false; andado.current = recorrer ? 0 : null }, [ruta, recorrer, andado])
+  useFrame((_, dt) => {
+    if (!ref.current) return
+    if (recorrer && !fin.current) t.current += Math.min(dt, 0.1) * 1.3
+    const s = Math.min(t.current, L)
+    const q = en(s)
+    caminando.current = recorrer && !fin.current && s < L
+    if (recorrer) andado.current = s
+    ref.current.position.set(q.x, 0.02, -q.y)
+    // el frente del personaje (+z local) mira hacia donde avanza
+    ref.current.rotation.y = Math.atan2(q.dx, -q.dy)
+    if (recorrer && controles.current) {
+      const c = controles.current
+      const obj = new THREE.Vector3(q.x, 1.1, -q.y)
+      // suavizado según el tiempo del cuadro: en equipos lentos la cámara llega igual de rápido
+      const kd = Math.min(dt, 0.1)
+      c.target.lerp(obj, 1 - Math.exp(-kd * 6))
+      const atras = new THREE.Vector3(-q.dx, 0, q.dy).normalize()
+      c.object.position.lerp(obj.clone().add(atras.multiplyScalar(6.5)).add(new THREE.Vector3(0, 4.5, 0)), 1 - Math.exp(-kd * 2.5))
+      c.update()
+    }
+    if (recorrer && s >= L && !fin.current) { fin.current = true; alTerminar?.() }
+  })
+  return <group ref={ref}><Personaje caminando={caminando} /></group>
 }
 
 // la cámara llega al lugar elegido en el buscador y deja un anillo que pulsa unos segundos
@@ -205,36 +300,6 @@ function MarcaFoco({ foco, controles }) {
     <group ref={grupo} position={[meta.x, 0.08, meta.z]}>
       <mesh rotation-x={-Math.PI / 2}><ringGeometry args={[1.6, 2.1, 48]} /><meshBasicMaterial color="#2F5BEA" transparent opacity={0.85} /></mesh>
       <mesh rotation-x={-Math.PI / 2}><circleGeometry args={[1.1, 40]} /><meshBasicMaterial color="#2F5BEA" transparent opacity={0.22} /></mesh>
-    </group>
-  )
-}
-
-// puntos de luz que avanzan sobre la ruta (dan sensación de movimiento sin tapar el recorrido)
-function Flujo({ ruta }) {
-  const grupo = useRef()
-  const { out, total } = useMemo(() => {
-    const o = []
-    let acc = 0
-    for (let i = 1; i < ruta.pts.length; i++) {
-      const a = ruta.pts[i - 1], b = ruta.pts[i]
-      const l = Math.hypot(b[0] - a[0], b[1] - a[1])
-      o.push({ a, b, l, acc })
-      acc += l
-    }
-    return { out: o, total: acc }
-  }, [ruta])
-  useFrame(({ clock }) => {
-    if (!grupo.current || total <= 0) return
-    grupo.current.children.forEach((hijo, k) => {
-      const s = ((clock.elapsedTime * 2.2 + (k * total) / grupo.current.children.length) % total)
-      const seg = out.find((q) => s <= q.acc + q.l) || out[out.length - 1]
-      const f = seg.l ? (s - seg.acc) / seg.l : 0
-      hijo.position.set(seg.a[0] + (seg.b[0] - seg.a[0]) * f, 0.22, -(seg.a[1] + (seg.b[1] - seg.a[1]) * f))
-    })
-  })
-  return (
-    <group ref={grupo}>
-      {Array.from({ length: 9 }, (_, k) => <mesh key={k}><sphereGeometry args={[0.18, 12, 10]} /><meshBasicMaterial color="#FFFFFF" toneMapped={false} /></mesh>)}
     </group>
   )
 }
@@ -281,15 +346,14 @@ function Parqueos({ parqueos }) {
   )
 }
 
-export function Vista3D({ d, ruta, destino, foco }) {
+export function Vista3D({ d, ruta, destino, foco, recorrer = false, setRecorrer = () => {}, onFinRecorrer }) {
   const [corte, setCorte] = useState(2.6)
   const [letreros, setLetreros] = useState(true)
-  const [recorrer, setRecorrer] = useState(false)
   const controles = useRef()
   const hu = d.huella.flatMap((pg) => pg[0])
   const cx = (Math.min(...hu.map((p) => p[0])) + Math.max(...hu.map((p) => p[0]))) / 2
   const cy = (Math.min(...hu.map((p) => p[1])) + Math.max(...hu.map((p) => p[1]))) / 2
-  useEffect(() => setRecorrer(false), [ruta])
+  const andado = useRef(null)
   return (
     <div className="pb-3d">
       <Canvas shadows flat dpr={[1, 2]} camera={{ position: [cx - 55, 85, -cy + 95], fov: 40, near: 0.5, far: 3000 }} gl={{ antialias: true }}>
@@ -305,10 +369,9 @@ export function Vista3D({ d, ruta, destino, foco }) {
         <SueloMapa centro={[cx, cy]} />
         <PisosColor d={d} destino={destino} />
         <Parqueos parqueos={d.parqueos} />
-        {ruta && <Ruta ruta={ruta} />}
-        {ruta && <Flujo ruta={ruta} />}
+        {ruta && <Ruta ruta={ruta} andado={andado} />}
         {foco && <MarcaFoco foco={foco} controles={controles} />}
-        {ruta && <Caminante ruta={ruta} recorrer={recorrer} controles={controles} alTerminar={() => {}} />}
+        {ruta && <Caminante ruta={ruta} recorrer={recorrer} controles={controles} andado={andado} alTerminar={onFinRecorrer} />}
         <OrbitControls ref={controles} target={[cx, 0, -cy]} maxPolarAngle={Math.PI / 2.08} minDistance={4} maxDistance={420} enableDamping />
       </Canvas>
       <div className="pb-3d-ctrl" role="group" aria-label="Opciones de la vista 3D">
@@ -319,7 +382,7 @@ export function Vista3D({ d, ruta, destino, foco }) {
           ))}
         </div>
         <label className="pb-check"><input type="checkbox" checked={letreros} onChange={(e) => setLetreros(e.target.checked)} /> Letreros</label>
-        {ruta && <button className="btn-negro pb-recorrer" onClick={() => setRecorrer((r) => !r)}>{recorrer ? 'Detener recorrido' : `Recorrer hasta ${destino?.nombre || 'el destino'}`}</button>}
+        {ruta && <button className="btn-negro pb-recorrer" onClick={() => setRecorrer(!recorrer)}>{recorrer ? 'Detener recorrido' : `Recorrer hasta ${destino?.nombre || 'el destino'}`}</button>}
       </div>
       <p className="pb-ayuda3d">Arrastra para girar · rueda o pellizco para acercar · clic derecho para mover</p>
     </div>
