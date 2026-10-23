@@ -166,6 +166,10 @@ def exportar(m):
             continue
         for q in poli(mu['poligono'], 0.01):
             muebles.append(dict(t=mu['cat'] if mu['cat'] in ('sanitario', 'silla', 'camilla') else 'mueble', pg=q))
+    # escritorios (mostrador de información, etc.): son mobiliario, no muros
+    for e in m.escritorios:
+        for q in poli(e, 0.01):
+            muebles.append(dict(t='mueble', pg=q))
     gradas = [anillo(l.coords) for tr in m.tramos for l in tr]
     # entradas: puertas en el borde del edificio
     entradas = []
@@ -213,7 +217,7 @@ def exportar(m):
                     cv2.fillPoly(img, [np.array([[(x - x0) / RES, (y - y0) / RES] for x, y in h.coords], np.int32)], 0)
         return img > 0
     interior = ras([a['poligono'] for a in m.ambientes])
-    obst = ras([duro, vent] + [mu['poligono'] for mu in m.muebles if mu['nombre'] not in ('Tope de puerta',)])
+    obst = ras([duro, vent] + [mu['poligono'] for mu in m.muebles if mu['nombre'] not in ('Tope de puerta',)] + list(m.escritorios))
     libre = interior & ~ndimage.binary_dilation(obst, iterations=1)
     # puertas: siempre pasables (vano y 0,5 m a cada lado)
     vanos = []
@@ -258,8 +262,25 @@ def exportar(m):
     for k in sorted(range(len(ordenados)), key=lambda k: -ordenados[k]['area']):
         msk = ras([ordenados[k]['poligono'].buffer(0.15)])
         cuarto[msk] = k + 1
+    # red de pasillos para pacientes: las líneas verdes trazadas sobre el PDF del plano (rutas/verde.png),
+    # llevadas a la rejilla con la calibración de rutas/calibracion.json (ver ajuste ECC en rutas/README.md)
+    RUTAS = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'rutas')
+    cal = json.load(open(os.path.join(RUTAS, 'calibracion.json')))
+    verde = cv2.imread(os.path.join(RUTAS, 'verde.png'), cv2.IMREAD_GRAYSCALE) > 0
+    rad = int(round(0.3 * cal['sx']))
+    verde = cv2.dilate(verde.astype(np.uint8), cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * rad + 1, 2 * rad + 1))) > 0
+    Wm = np.array(cal['W'] + [[0.0, 0.0, 1.0]])
+    gx, gy = np.meshgrid(x0 + np.arange(W) * RES, y0 + np.arange(H) * RES)
+    tx = (cal['ax'] + gx * cal['sx']) / cal['F']
+    ty = (cal['by'] - gy * cal['sy']) / cal['F']
+    rx = Wm[0, 0] * tx + Wm[0, 1] * ty + Wm[0, 2]
+    ry = Wm[1, 0] * tx + Wm[1, 1] * ty + Wm[1, 2]
+    px = np.clip(np.round(rx * cal['F']).astype(int), 0, verde.shape[1] - 1)
+    py = np.clip(np.round(ry * cal['F']).astype(int), 0, verde.shape[0] - 1)
+    red = (verde[py, px] & (celdas > 0)).astype(np.uint8)
+    print('red de pacientes:', int(red.sum()), 'celdas')
     nav = dict(x0=x0, y0=y0, res=RES, w=W, h=H, celdas=base64.b64encode(celdas.tobytes()).decode(),
-               cuarto=base64.b64encode(cuarto.tobytes()).decode())
+               cuarto=base64.b64encode(cuarto.tobytes()).decode(), red=base64.b64encode(red.tobytes()).decode())
 
     # ------------------------------------------------ exterior: parqueaderos (OpenStreetMap / prototipo)
     parqueos = [

@@ -1,0 +1,20 @@
+{
+ "F": 4.0,
+ "sx": 47.2,
+ "sy": 46.2,
+ "ax": 100.91199999999998,
+ "by": 5893.92,
+ "W": [
+  [
+   0.9916402697563171,
+   0.00019928065012209117,
+   0.3699028789997101
+  ],
+  [
+   0.0004625207802746445,
+   1.01435387134552,
+   -21.794143676757812
+  ]
+ ],
+ "nota": "Calibración del plano (PDF 75535d28-planos_entrada-Model_rutas, rasterizado a 2,5x) con las paredes del modelo (ECC). verde.png son las líneas verdes trazadas a mano: recorridos de pacientes."
+}
