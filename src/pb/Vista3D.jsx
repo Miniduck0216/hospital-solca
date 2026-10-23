@@ -7,6 +7,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls, useGLTF, Line, Html } from '@react-three/drei'
 import { BASE, aLonLat, rumbo, dePlano, CATS } from './datos.js'
 import { Cargando } from './Cargando.jsx'
+import { Exterior } from './Exterior3D.jsx'
 
 const E = ([x, y], h = 0) => new THREE.Vector3(x, h, -y)    // plano (x, y) -> escena
 
@@ -25,6 +26,23 @@ function SueloMapa({ centro }) {
     try {
       map = new maplibregl.Map({ container: div, style: 'https://tiles.openfreemap.org/styles/positron', center: c, zoom, bearing: rumbo(),
         interactive: false, attributionControl: false, pixelRatio: 1, preserveDrawingBuffer: true, fadeDuration: 0 })
+      // estilo de maqueta isométrica: césped de fondo, calles de asfalto oscuro, aceras claras, sin rótulos
+      map.on('style.load', () => {
+        for (const l of map.getStyle().layers) {
+          try {
+            if (l.type === 'symbol') map.setLayoutProperty(l.id, 'visibility', 'none')
+            else if (l.type === 'background') map.setPaintProperty(l.id, 'background-color', '#A9D18E')
+            else if (l.type === 'fill' && /water/.test(l.id)) map.setPaintProperty(l.id, 'fill-color', '#7EC8E3')
+            else if (l.type === 'fill' && /building/.test(l.id)) map.setPaintProperty(l.id, 'fill-color', '#E8E1D3')
+            else if (l.type === 'fill' && /park|grass|wood|garden|pitch|forest|scrub|meadow|cemetery/.test(l.id)) map.setPaintProperty(l.id, 'fill-color', '#93C47D')
+            else if (l.type === 'fill') map.setPaintProperty(l.id, 'fill-color', '#B4D79C')
+            else if (l.type === 'line' && /path|pedestrian|footway|steps|track/.test(l.id)) map.setPaintProperty(l.id, 'line-color', '#E9E3D6')
+            else if (l.type === 'line' && /casing/.test(l.id)) map.setPaintProperty(l.id, 'line-color', '#E4DED2')
+            else if (l.type === 'line' && /road|highway|street|bridge|tunnel|motorway|trunk|primary|secondary|tertiary|minor|service/.test(l.id)) map.setPaintProperty(l.id, 'line-color', '#5A626E')
+            else if (l.type === 'line' && /boundary|admin/.test(l.id)) map.setLayoutProperty(l.id, 'visibility', 'none')
+          } catch { /* capa sin esa propiedad */ }
+        }
+      })
     } catch { div.remove(); return }
     let hecho = false
     let intentos = 0
@@ -47,16 +65,6 @@ function SueloMapa({ centro }) {
       cv.width = cv.height = PX
       const ctx = cv.getContext('2d')
       ctx.drawImage(map.getCanvas(), 0, 0, PX, PX)
-      // el estilo claro del mapa casi no se distingue en 3D: se triplica la distancia al blanco
-      // (las calles siguen blancas; el fondo, las manzanas y los edificios se oscurecen)
-      const img = ctx.getImageData(0, 0, PX, PX)
-      const q = img.data
-      for (let i = 0; i < q.length; i += 4) {
-        q[i] = Math.max(0, 255 - (255 - q[i]) * 3.2) * 0.96
-        q[i + 1] = Math.max(0, 255 - (255 - q[i + 1]) * 3.2) * 0.98
-        q[i + 2] = Math.max(0, 255 - (255 - q[i + 2]) * 3.2) * 0.95
-      }
-      ctx.putImageData(img, 0, 0)
       const t = new THREE.CanvasTexture(cv)
       t.colorSpace = THREE.SRGBColorSpace
       t.anisotropy = 8
@@ -71,14 +79,15 @@ function SueloMapa({ centro }) {
   return (
     <mesh rotation-x={-Math.PI / 2} position={[centro[0], -0.22, -centro[1]]} receiveShadow>
       <planeGeometry args={[LADO, LADO]} />
-      {tex ? <meshBasicMaterial key="mapa" map={tex} toneMapped={false} /> : <meshBasicMaterial key="liso" color="#D3DAD0" toneMapped={false} />}
+      {tex ? <meshBasicMaterial key="mapa" map={tex} toneMapped={false} /> : <meshBasicMaterial key="liso" color="#A9D18E" toneMapped={false} />}
     </mesh>
   )
 }
 
 // el GLB trae los pisos agrupados por color (pisos|r,g,b|h): cada grupo toma la paleta de interiores de la categoría
 // más parecida (la misma del mapa 2D): cuartos celestes, farmacia lila, baños turquesa, pasillos claros
-const PALETA = { consulta: '#A9C8F0', administracion: '#B3CEF0', apoyo: '#C3D3E8', otro: '#C7D4E6', farmacia: '#BFAEEE', banos: '#9FD6E8', escaleras: '#CDD5E0', ascensores: '#CDD5E0', circulacion: '#F4F7FB', espera: '#D6ECDD' }
+// paleta de maqueta isométrica: colores planos y saturados por tipo de ambiente, pasillos en tono arena
+const PALETA = { consulta: '#78AEEA', administracion: '#EE9A6B', apoyo: '#A7B2BE', otro: '#B9C2CC', farmacia: '#B08AE0', banos: '#4FC3C9', escaleras: '#C2C8D0', ascensores: '#C2C8D0', circulacion: '#E9D8BC', espera: '#F2C255' }
 const ACENTOS = Object.entries(CATS).map(([k, c]) => ({ rgb: new THREE.Color(c.relleno), color: new THREE.Color(PALETA[k] || PALETA.otro) }))
 function colorDePiso(nombre) {
   const [r, g, b] = (nombre.split('|')[1] || '0,0,0').split(',').map(Number)
@@ -94,7 +103,7 @@ function colorDePiso(nombre) {
 const OCULTOS = ['muros|0.360,0.160,0.053', 'muros|0.562,0.026,0.014', 'muebles|0.672,0.672,0.706']
 // tapa de los muros cortados: al recortar la altura, el interior hueco del muro se veía como un bloque gris
 // descuadrado; las caras traseras se pintan del color de la tapa y el corte se ve macizo
-const TAPA = new THREE.MeshBasicMaterial({ color: '#DCE4EE', side: THREE.BackSide })
+const TAPA = new THREE.MeshBasicMaterial({ color: '#E6DED0', side: THREE.BackSide })
 
 function Edificio({ corte, letreros, plano }) {
   const { scene } = useGLTF(`${BASE}pb/solca_pb.glb?v=${__VERSION__}`)
@@ -108,6 +117,8 @@ function Edificio({ corte, letreros, plano }) {
       const nombre = o.name || o.parent?.name || ''
       const g = nombre.split('|')[0]
       if (OCULTOS.some((k) => nombre.startsWith(k))) { o.visible = false; return }
+      // los pisos de color los dibuja PisosColor (paleta de maqueta); del modelo solo queda la losa base
+      if (g === 'pisos' && !nombre.startsWith('pisos|0.384')) { o.visible = false; return }
       if (g === 'letreros') o.visible = letreros
       if (g === 'viseras') o.visible = corte >= 3.8
       const m = o.material
@@ -120,7 +131,9 @@ function Edificio({ corte, letreros, plano }) {
       // (solo las piezas grises: puertas, vidrios y madera conservan su color)
       if ((g === 'muros' || g === 'muebles') && !o.userData.tono && m?.color) {
         const hsl = m.color.getHSL({})
-        if (hsl.s < 0.12) { o.material = m.clone(); o.material.color.set(g === 'muros' ? '#EEF3FA' : '#C6D8F0'); o.material.roughness = 0.9 }
+        // muros de maqueta: blanco cálido y mate; mobiliario gris en celeste suave
+        if (nombre.startsWith('muros|0.902')) { o.material = m.clone(); o.material.color.set('#FBF7EF'); o.material.roughness = 1 }
+        else if (hsl.s < 0.12) { o.material = m.clone(); o.material.color.set(g === 'muros' ? '#F3EFE6' : '#C6D8F0'); o.material.roughness = 0.9 }
         o.userData.tono = true
       }
       if (o.material && g !== 'pisos') { const m = o.material; m.clippingPlanes = [plano]; m.clipShadows = true; m.needsUpdate = true }
@@ -399,7 +412,6 @@ function MarcaFoco({ foco, controles }) {
   )
 }
 
-// parqueaderos del exterior: losas de asfalto sobre el piso del mapa
 // pisos de cada ambiente con la paleta de interiores (la misma del 2D) sobre la losa del modelo; el destino en lila
 // el contorno de cada ambiente queda unos centímetros antes del muro; se ensancha 12 cm (inglete) para que el piso de
 // color llegue hasta debajo del muro y no quede una franja clara descuadrada
@@ -444,27 +456,8 @@ function PisosColor({ d, destino }) {
   )
 }
 
-function Parqueos({ parqueos }) {
-  const geos = useMemo(() => parqueos.map((p) => {
-    const pts = p.ll.map(([lo, la]) => dePlano(lo, la))
-    const forma = new THREE.Shape(pts.map(([x, y]) => new THREE.Vector2(x, y)))
-    const g = new THREE.ExtrudeGeometry(forma, { depth: 0.08, bevelEnabled: false })
-    g.rotateX(-Math.PI / 2)
-    return g
-  }), [parqueos])
-  return (
-    <group>
-      {geos.map((g, k) => (
-        <mesh key={k} geometry={g} position-y={-0.02} receiveShadow>
-          <meshStandardMaterial color="#C4CCD6" roughness={0.95} />
-        </mesh>
-      ))}
-    </group>
-  )
-}
-
 export function Vista3D({ d, ruta, destino, foco, recorrer = false, setRecorrer = () => {}, onFinRecorrer }) {
-  const [corte, setCorte] = useState(2.6)
+  const [corte, setCorte] = useState(1.2)   // muros bajos por defecto: se ven los pisos, como en una maqueta isométrica
   const [letreros, setLetreros] = useState(true)
   const controles = useRef()
   const hu = d.huella.flatMap((pg) => pg[0])
@@ -477,20 +470,20 @@ export function Vista3D({ d, ruta, destino, foco, recorrer = false, setRecorrer 
   useEffect(() => { if (!ruta) persona.current = null }, [ruta])
   return (
     <div className="pb-3d">
-      <Canvas shadows flat dpr={[1, 2]} camera={{ position: [cx - 55, 85, -cy + 95], fov: 40, near: 0.5, far: 3000 }} gl={{ antialias: true }}>
-        <color attach="background" args={['#E4EBE3']} />
-        <fog attach="fog" args={['#E4EBE3', 260, 620]} />
-        <hemisphereLight args={['#FFFFFF', '#C9D3DE', 1.5]} />
-        <directionalLight position={[cx - 60, 120, -cy + 40]} intensity={1.6} castShadow shadow-mapSize={[2048, 2048]}
+      <Canvas shadows flat dpr={[1, 2]} camera={{ position: [cx + 95, 110, -cy + 95], fov: 32, near: 0.5, far: 3000 }} gl={{ antialias: true }}>
+        <color attach="background" args={['#F2EAD8']} />
+        <fog attach="fog" args={['#F2EAD8', 300, 700]} />
+        <hemisphereLight args={['#FFFFFF', '#D8CDB8', 1.25]} />
+        <directionalLight position={[cx + 70, 120, -cy + 30]} intensity={2.1} castShadow shadow-mapSize={[2048, 2048]}
           shadow-camera-left={-90} shadow-camera-right={90} shadow-camera-top={90} shadow-camera-bottom={-90} shadow-camera-near={10} shadow-camera-far={400}
-          target-position={[cx, 0, -cy]} />
+          shadow-bias={-0.0004} shadow-normalBias={0.06} target-position={[cx, 0, -cy]} />
         <Suspense fallback={<Html center><div className="pb-cargando">Cargando el modelo 3D…</div></Html>}>
           <Edificio corte={corte} letreros={letreros} plano={plano} />
         </Suspense>
         <SueloMapa centro={[cx, cy]} />
         <PisosColor d={d} destino={destino} />
         <Puertas puertas={d.puertas} plano={plano} persona={persona} />
-        <Parqueos parqueos={d.parqueos} />
+        <Exterior d={d} />
         {ruta && <Ruta ruta={ruta} andado={andado} />}
         {foco && <MarcaFoco foco={foco} controles={controles} />}
         {ruta && <Caminante ruta={ruta} recorrer={recorrer} controles={controles} andado={andado} alTerminar={onFinRecorrer} persona={persona} />}

@@ -91,7 +91,7 @@ body { background: #E9EDF1; }
 .pb-leyenda li svg { color: var(--m-tinta); }
 
 /* 3D */
-.pb-3d { position: absolute; inset: 0; background: #DDE6EE; }
+.pb-3d { position: absolute; inset: 0; background: #F2EAD8; }
 .pb-3d-ctrl { position: absolute; right: 14px; bottom: 14px; z-index: 5; background: #fff; border-radius: 18px; box-shadow: var(--m-sombra); padding: 12px; display: flex; flex-direction: column; gap: 8px; align-items: stretch; width: 250px; }
 .pb-3d-t { font-size: .72rem; font-weight: 800; color: var(--m-gris); text-transform: uppercase; letter-spacing: .06em; }
 .pb-3d-ctrl .pb-seg { box-shadow: none; background: #F1F4F7; }
