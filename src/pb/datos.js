@@ -35,6 +35,7 @@ export async function cargarDatos(cambiosLocales = null) {
   // el interior de un cuarto cerrado no es paso: la ruta solo llega a su puerta (ver buscarRuta, meta)
   // (salvo los ganchos trazados en verde o rojo que entran a un consultorio: son su acceso)
   for (let i = 0; i < d.nav.banda.length; i++) if (d.nav.cuarto[i] && !d.nav.paso[d.nav.cuarto[i]] && !d.nav.red[i]) d.nav.banda[i] = 0
+  unirPorDentro(d, d.nav.banda)
   abrirPuertas(d, d.nav.banda)
   d.nav.indice = Object.fromEntries(d.ambientes.map((a, k) => [a.id, k + 1]))
   d.nav.alcanzable = alcanzables(d)
@@ -45,6 +46,84 @@ export async function cargarDatos(cambiosLocales = null) {
     if (!d.nav.bandaAdmin[i] && d.nav.celdas[i] && c && SOLO_PERSONAL.test(d.ambientes[c - 1].nombre || '')) d.nav.bandaAdmin[i] = 1
   }
   return d
+}
+
+// Un tramo trazado (verde o rojo) que solo se une al resto por la vereda exterior se conecta también por dentro:
+// el paciente entra por donde se trazó, sin salir del hospital. Se busca el paso más corto (hasta 6 m) por pasillos,
+// halls o pasillos de bloque, nunca por un cuarto cerrado.
+function unirPorDentro(d, banda) {
+  const { w, h, celdas, cuarto, red, paso, vereda } = d.nav
+  const N = w * h
+  const staff = new Uint8Array(d.ambientes.length + 1)
+  d.ambientes.forEach((a, k) => { staff[k + 1] = SOLO_PERSONAL.test(a.nombre || '') ? 1 : 0 })
+  const dentro = (j) => banda[j] && !vereda[j]
+  // un muro que el trazo cruza (una puerta que el modelo no tiene) también se puede abrir: solo junto al trazo
+  const cerca = new Uint8Array(N)
+  for (let i = 0; i < N; i++) {
+    if (!red[i]) continue
+    const x = i % w, y = (i / w) | 0
+    for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
+      const nx = x + dx, ny = y + dy
+      if (nx >= 0 && ny >= 0 && nx < w && ny < h) cerca[ny * w + nx] = 1
+    }
+  }
+  const cruzable = (j) => !vereda[j] && (celdas[j] ? (cuarto[j] === 0 || !!paso[cuarto[j]] || !!staff[cuarto[j]]) : cerca[j] === 1)
+  const V8 = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]
+  const comp = new Int32Array(N).fill(-1)
+  const tam = [0]
+  for (let i = 0; i < N; i++) {
+    if (!dentro(i) || comp[i] >= 0) continue
+    const c = tam.length; tam.push(0)
+    const pila = [i]; comp[i] = c
+    while (pila.length) {
+      const p = pila.pop(); tam[c]++
+      const x = p % w, y = (p / w) | 0
+      for (const [dx, dy] of V8.slice(0, 4)) {
+        const nx = x + dx, ny = y + dy
+        if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue
+        const j = ny * w + nx
+        if (dentro(j) && comp[j] < 0) { comp[j] = c; pila.push(j) }
+      }
+    }
+  }
+  let main = 1
+  for (let c = 1; c < tam.length; c++) if (tam[c] > tam[main]) main = c
+  const conRed = new Uint8Array(tam.length)
+  for (let i = 0; i < N; i++) if (comp[i] > 0 && red[i]) conRed[comp[i]] = 1
+  const LIM = Math.round(6 / d.nav.res)
+  const dist = new Int32Array(N)
+  const prev = new Int32Array(N)
+  for (let c = 1; c < tam.length; c++) {
+    if (c === main || !conRed[c]) continue
+    dist.fill(-1)
+    const cola = []
+    for (let i = 0; i < N; i++) if (comp[i] === c) { dist[i] = 0; prev[i] = -1; cola.push(i) }
+    let fin = -1
+    for (let q = 0; q < cola.length && fin < 0; q++) {
+      const p = cola[q]
+      if (dist[p] >= LIM) continue
+      const x = p % w, y = (p / w) | 0
+      for (const [dx, dy] of V8) {
+        const nx = x + dx, ny = y + dy
+        if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue
+        if (dx && dy && (!cruzable(y * w + nx) || !cruzable(ny * w + x))) continue
+        const j = ny * w + nx
+        if (dist[j] >= 0) continue
+        if (comp[j] === main) { prev[j] = p; fin = j; break }
+        if (!cruzable(j)) continue
+        dist[j] = dist[p] + 1; prev[j] = p; cola.push(j)
+      }
+    }
+    if (fin < 0) continue
+    for (let i = prev[fin]; i >= 0 && comp[i] !== c; i = prev[i]) {
+      // un poco de ancho para que el trazo suavizado no roce los muros
+      for (const j of [i, i - 1, i + 1, i - w, i + w]) {
+        if (!cruzable(j)) continue
+        if (!celdas[j]) celdas[j] = 3
+        banda[j] = 1
+      }
+    }
+  }
 }
 
 // cambios del administrador (ver Admin.jsx): nombre, categoría y punto de acceso de un ambiente

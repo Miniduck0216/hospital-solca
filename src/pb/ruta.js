@@ -120,7 +120,7 @@ function limpiar(P) {
 // ids = [origen, destino]. Si el destino es un ambiente, la ruta termina en su puerta.
 export function buscarRuta(d, desde, hasta, ids = [], opts = {}) {
   const nav = d.nav
-  const { w, h, celdas, res, cuarto, red } = nav
+  const { w, h, celdas, res, cuarto, red, vereda } = nav
   const banda = opts.admin && nav.bandaAdmin ? nav.bandaAdmin : nav.banda
   const qO = nav.indice[ids[0]] || 0      // cuarto de origen: se sale de él
   const qD = nav.indice[ids[1]] || 0      // cuarto de destino: solo se llega hasta su puerta
@@ -160,7 +160,8 @@ export function buscarRuta(d, desde, hasta, ids = [], opts = {}) {
       if (ddx && ddy && (!celdas[y * w + nx] || !celdas[ny * w + x])) continue
       const cj = celdas[j]
       // la red de las líneas verdes cuesta menos: la ruta la sigue; la franja, un poco más
-      const ng = g[i] + c * (1 + (cj - 1) * 0.45) * (red[j] || meta(j) ? 1 : 2.5)
+      // la vereda exterior es el último recurso: solo se usa para salir/entrar por fuera si por dentro no hay camino razonable
+      const ng = g[i] + c * (1 + (cj - 1) * 0.45) * (vereda && vereda[j] ? 6 : red[j] || meta(j) ? 1 : 2.5)
       if (ng < g[j]) { g[j] = ng; de[j] = i; mo.push(j, ng + hx(j)) }
     }
   }
