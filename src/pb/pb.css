@@ -214,7 +214,6 @@ body { background: #E9EDF1; }
 @media (prefers-reduced-motion: reduce) { .dock-btn, .dock-tip, .foco-nav { transition: none; } .dock-tip span { animation: none; } }
 @media (max-width: 700px) {
   .dock-btn { width: 36px; height: 36px; }
-  .dock-btn[aria-label="Acercar"], .dock-btn[aria-label="Alejar"] { display: none; }
   .dock-tip { display: none; }
   .pb-der { gap: 8px; }
 }
@@ -247,3 +246,10 @@ body { background: #E9EDF1; }
 .insertado-totem .foco-item { padding: 9px 16px 9px 9px; font-size: .95rem; }
 .insertado-totem .pb-pasos { font-size: 1rem; }
 .insertado-totem .acciones button { min-height: 52px; font-size: 1rem; }
+
+/* pantallas táctiles: botones y casillas del tamaño de un dedo (44 px o más) */
+@media (pointer: coarse) {
+  .dock-btn { width: 48px; height: 48px; }
+  .pb-3d-ctrl .pb-seg button { padding: 11px 6px; }
+  .pb-check input { width: 22px; height: 22px; }
+}

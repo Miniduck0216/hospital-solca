@@ -164,6 +164,9 @@ export default function App() {
   const [pickId, setPickId] = useState(null)
   const [recorrer, setRecorrer] = useState(false)   // el personaje camina la ruta (en 2D o en 3D, según la vista)
   const mapa = useRef(null)
+  const vista3d = useRef(null)
+  // zoom con botones en 2D y 3D: el tótem es táctil y no tiene rueda de ratón
+  const vista = () => (modo === '2d' ? mapa.current : vista3d.current)
 
   useEffect(() => {
     cargarDatos(cambios).then((datos) => { usarGeo(datos.geo); setD(datos) }).catch((e) => setError(e.message))
@@ -241,7 +244,7 @@ export default function App() {
     <div className={`pb-app modo-${modo}${INSERTADO ? ` insertado-${INSERTADO}` : ''}`}>
       {modo === '2d'
         ? <Mapa ref={mapa} d={d} ruta={ruta} origen={origen} destino={destino} foco={foco} hover={hover} onElegir={elegirDesdeMapa} onHover={setHover} lugaresIcono={lugaresIcono} pick={!!pickId} onPick={onPick} recorrer={recorrer} onFinRecorrer={() => setRecorrer(false)} />
-        : <Suspense fallback={<Cargando texto="Preparando el 3D…" />}><Vista3D d={d} ruta={ruta} destino={destino} foco={foco} recorrer={recorrer} setRecorrer={setRecorrer} onFinRecorrer={() => setRecorrer(false)} /></Suspense>}
+        : <Suspense fallback={<Cargando texto="Preparando el 3D…" />}><Vista3D ref={vista3d} d={d} ruta={ruta} destino={destino} foco={foco} recorrer={recorrer} setRecorrer={setRecorrer} onFinRecorrer={() => setRecorrer(false)} /></Suspense>}
 
       {/* columna izquierda: marca, búsqueda y ruta */}
       {admin && (
@@ -332,11 +335,9 @@ export default function App() {
           <button role="tab" aria-selected={modo === '3d'} onClick={() => setModo('3d')}>3D</button>
         </div>
         <Dock items={[
-          ...(modo === '2d' ? [
-            { id: 'mas', icono: 'mas', titulo: 'Acercar', onClick: () => mapa.current?.acercar() },
-            { id: 'menos', icono: 'menos', titulo: 'Alejar', onClick: () => mapa.current?.alejar() },
-            { id: 'centrar', icono: 'centrar', titulo: 'Centrar el edificio', onClick: () => mapa.current?.centrar() },
-          ] : []),
+          { id: 'mas', icono: 'mas', titulo: 'Acercar', onClick: () => vista()?.acercar() },
+          { id: 'menos', icono: 'menos', titulo: 'Alejar', onClick: () => vista()?.alejar() },
+          { id: 'centrar', icono: 'centrar', titulo: 'Centrar el edificio', onClick: () => vista()?.centrar() },
           { id: 'piso', texto: 'PB', titulo: 'Planta baja' },
           { id: 'leyenda', icono: 'mapa', titulo: 'Leyenda', on: leyenda, onClick: () => setLeyenda((v) => !v) },
           ...(INSERTADO ? [] : [{ id: 'admin', icono: 'ajustes', titulo: admin ? 'Salir de administración' : 'Administración', on: admin, onClick: () => (admin ? setAdmin(false) : setPedirClave(true)) }]),
