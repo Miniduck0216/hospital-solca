@@ -9,6 +9,12 @@ export async function cargarDatos(cambiosLocales = null) {
   const publicados = await fetch(`${BASE}pb/cambios.json?v=${__VERSION__}`).then((x) => (x.ok ? x.json() : null)).catch(() => null)
   // ambientes que se atienden por ventanilla: el paciente llega al punto frente a ella y no entra al cuarto
   for (const a of d.ambientes) if (VENTANILLAS[a.nombre]) { a.dest = VENTANILLAS[a.nombre].slice(); a.ventanilla = true }
+  // Gestión Privados son 5 módulos (01 a 05): cada uno tiene el lado del paciente (al Hall de Cajas) y, tras el
+  // mostrador, el lado del personal. El lado del personal no es un lugar aparte: no lleva nombre ni es destino.
+  for (const a of d.ambientes) {
+    if (a.nombre === 'Gestión Privados' && a.area < 4) a.nombre = null
+    else if (/^Módulo 0[1-5]$/.test(a.nombre || '')) a.nombre = `${a.nombre} · Gestión Privados`
+  }
   aplicarCambios(d, publicados)
   aplicarCambios(d, cambiosLocales)
   const bin = atob(d.nav.celdas)
@@ -145,8 +151,13 @@ function aplicarCambios(d, cambios) {
 // son solo del personal y no entran. Un cuarto cerrado (consultorio, farmacia, oficina) aporta solo su puerta: la franja
 // no sigue hacia adentro. Si un cuarto queda sin camino por pasillos públicos, se traza un acceso hasta la franja.
 const SOLO_PERSONAL = /^Pasillo Bloque/
-// ventanillas (plano en metros): Farmacia atiende por la ventanilla del muro oeste, desde el Pasillo Central
-const VENTANILLAS = { Farmacia: [56.75, 61.1] }
+// ventanillas (plano en metros, punto donde se para el paciente): Farmacia atiende por la ventanilla del muro oeste,
+// desde el Pasillo Central; Tesorería y los 5 módulos de Gestión Privados atienden desde el Hall de Cajas
+const VENTANILLAS = {
+  Farmacia: [56.75, 61.1],
+  Tesorería: [75.6, 31.1],
+  'Módulo 01': [65.5, 31.1], 'Módulo 02': [67.35, 31.1], 'Módulo 03': [69.2, 31.1], 'Módulo 04': [71.05, 31.1], 'Módulo 05': [72.9, 31.1],
+}
 
 function bandaDeRed(d) {
   const { w, h, celdas, cuarto, red, paso, vereda } = d.nav
