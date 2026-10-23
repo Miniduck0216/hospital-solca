@@ -236,7 +236,7 @@ function bandaDeRed(d) {
 const PUERTAS_AUTO = ['Cajas', 'Consultorio · 35', 'Tesorería', 'Secretaría – Control', 'Minusválidos', 'SS.HH.']
 
 function abrirPuertas(d, banda) {
-  const { w, h, celdas, cuarto, paso } = d.nav
+  const { w, h, celdas, cuarto, paso, vereda } = d.nav
   const N = w * h
   const orto = (i) => {
     const x = i % w, y = (i / w) | 0, r = []
@@ -247,36 +247,51 @@ function abrirPuertas(d, banda) {
     return r
   }
   const personal = (c) => c > 0 && SOLO_PERSONAL.test(d.ambientes[c - 1].nombre || '')
-  const publico = (j) => celdas[j] > 0 && !personal(cuarto[j]) && (cuarto[j] === 0 || !!paso[cuarto[j]])
   // muro que se puede abrir: cualquier celda sin paso (muro); el interior de los cuartos no se toca
   const muro = (j) => celdas[j] === 0 && !personal(cuarto[j])
   d.ambientes.forEach((a, k) => {
     if (!PUERTAS_AUTO.includes(a.nombre)) return
-    const prev = new Int32Array(N).fill(-2)
-    const dist = new Int32Array(N).fill(-1)
+    const q = k + 1
+    // espacio libre que se puede cruzar sin romper nada: vestíbulos sin nombre y espacios abiertos (no otros cuartos)
+    // (y otros baños: el cubículo de Minusválidos puede estar dentro de un SS.HH. y se llega cruzándolo)
+    const libre = (j) => celdas[j] > 0 && cuarto[j] !== q && !personal(cuarto[j]) &&
+      (cuarto[j] === 0 || !!paso[cuarto[j]] || (a.cat === 'banos' && d.ambientes[cuarto[j] - 1].cat === 'banos'))
+    // llegada: la franja de paso interior (no la vereda de afuera)
+    const llega = (j) => banda[j] === 1 && !vereda[j] && !personal(cuarto[j]) && cuarto[j] !== q
+    // la búsqueda parte del piso libre del cuarto (no de sus muros: un muro junto a la franja no es una puerta)
+    const costo = new Int32Array(N).fill(-1)
+    const prev = new Int32Array(N).fill(-1)
     const cola = []
-    let ya = false
     for (let i = 0; i < N; i++) {
-      if (cuarto[i] !== k + 1) continue
-      for (const j of orto(i)) {
-        if (banda[j] && !personal(cuarto[j])) ya = true
-        if (muro(j) && dist[j] < 0) { dist[j] = 1; prev[j] = -1; cola.push(j) }
-      }
+      if (cuarto[i] !== q || !celdas[i]) continue
+      if (orto(i).some(llega)) return   // ya tiene puerta a la franja
+      costo[i] = 0; cola.push(i)
     }
-    if (ya) return   // ya tiene camino por la franja
+    // 0-1: cruzar espacio libre no cuesta, cada celda de muro cuesta 1. Así se usa el vano real (p. ej. el
+    // vestíbulo compartido de dos baños) y, si hay que abrir, se rompe el muro más delgado.
     let fin = -1, final = -1
-    for (let s = 0; s < cola.length && fin < 0; s++) {
-      const p = cola[s]
+    const deque = cola.slice()
+    let cab = 0
+    while (cab < deque.length) {
+      const p = deque[cab++]
+      let hecho = false
       for (const j of orto(p)) {
-        if (publico(j) && banda[j]) { fin = p; final = j; break }
-        if (muro(j) && dist[j] < 0 && dist[p] < 40) { dist[j] = dist[p] + 1; prev[j] = p; cola.push(j) }
+        if (llega(j)) { fin = p; final = j; hecho = true; break }
+        const c = libre(j) ? 0 : muro(j) ? 1 : -1
+        if (c < 0) continue
+        const nc = costo[p] + c
+        if (nc > 12 || (costo[j] >= 0 && costo[j] <= nc)) continue
+        costo[j] = nc; prev[j] = p
+        if (c === 0) deque.splice(cab, 0, j); else deque.push(j)
       }
+      if (hecho) break
     }
     if (fin < 0) return
     const camino = []
-    for (let p = fin; p !== -1; p = prev[p]) camino.push(p)
-    // vano de ~0,75 m: 3 celdas de ancho alrededor de cada celda del muro
+    for (let p = fin; p !== -1 && cuarto[p] !== q; p = prev[p]) camino.push(p)
     for (const c of camino) {
+      if (!muro(c)) { banda[c] = 1; continue }   // vestíbulo: pasa a ser paso
+      // vano de ~0,75 m: 3 celdas de ancho alrededor de cada celda del muro
       const x = c % w, y = (c / w) | 0
       for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
         const nx = x + dx, ny = y + dy
