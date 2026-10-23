@@ -240,3 +240,10 @@ body { background: #E9EDF1; }
 .pb-buscador > .pb-busca-fila, .pb-buscador > .foco-nav { flex: none; }
 .pb-buscador > .foco-nav { margin-top: 0; }
 .pb-buscador > .pb-lista { flex: 1 1 auto; min-height: 0; }
+
+/* insertado en el tótem de OM3 (pantalla táctil vertical de 1080 px): controles más grandes y sin selección de texto */
+.insertado-totem { user-select: none; -webkit-user-select: none; }
+.insertado-totem .dock-btn { width: 54px; height: 54px; }
+.insertado-totem .foco-item { padding: 9px 16px 9px 9px; font-size: .95rem; }
+.insertado-totem .pb-pasos { font-size: 1rem; }
+.insertado-totem .acciones button { min-height: 52px; font-size: 1rem; }
