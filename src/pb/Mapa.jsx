@@ -152,21 +152,33 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
       }
       // interacción: resaltar al pasar el cursor y elegir con clic
       let hoverId = null
-      map.on('mousemove', 'ambientes', (e) => {
-        const f = e.features[0]
-        if (hoverId !== null && hoverId !== f.id) map.setFeatureState({ source: 'ambientes', id: hoverId }, { hover: false })
-        hoverId = f.id
-        map.setFeatureState({ source: 'ambientes', id: hoverId }, { hover: true })
-        map.getCanvas().style.cursor = 'pointer'
-        cb.current.onHover?.(f.properties.id)
-      })
-      map.on('mouseleave', 'ambientes', () => {
+      // con el mapa inclinado, lo que se ve bajo el cursor es el techo del bloque (no su piso, que queda más abajo en
+      // pantalla): primero se buscan los bloques en 3D (MapLibre los ordena por cercanía a la cámara) y, si no hay
+      // ninguno, los pisos planos (pasillos y salas de espera)
+      const ambienteEn = (punto) => {
+        const b = map.queryRenderedFeatures(punto, { layers: ['ambientes-3d'] })
+        if (b.length) return b[0]
+        return map.queryRenderedFeatures(punto, { layers: ['ambientes'], filter: ['==', ['get', 'alto'], 0] })[0] || null
+      }
+      const soltar = () => {
         if (hoverId !== null) map.setFeatureState({ source: 'ambientes', id: hoverId }, { hover: false })
         hoverId = null
-        map.getCanvas().style.cursor = ''
+        map.getCanvas().style.cursor = cb.current.pick ? 'crosshair' : ''
         cb.current.onHover?.(null)
+      }
+      map.on('mousemove', (e) => {
+        const f = ambienteEn(e.point)
+        if (!f) { if (hoverId !== null) soltar(); return }
+        if (hoverId !== f.id) {
+          if (hoverId !== null) map.setFeatureState({ source: 'ambientes', id: hoverId }, { hover: false })
+          hoverId = f.id
+          map.setFeatureState({ source: 'ambientes', id: hoverId }, { hover: true })
+          cb.current.onHover?.(f.properties.id)
+        }
+        if (!cb.current.pick) map.getCanvas().style.cursor = 'pointer'
       })
-      map.on('click', 'ambientes', (e) => { if (!cb.current.pick) cb.current.onElegir?.(e.features[0].properties.id, e.point) })
+      map.on('mouseout', soltar)
+      map.on('click', (e) => { if (cb.current.pick) return; const f = ambienteEn(e.point); if (f) cb.current.onElegir?.(f.properties.id, e.point) })
       map.on('click', (e) => { if (cb.current.pick) { const [x, y] = dePlano(e.lngLat.lng, e.lngLat.lat); cb.current.onPick?.(x, y) } })
       setListo(true)
       encuadrar()
