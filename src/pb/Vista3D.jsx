@@ -1,6 +1,6 @@
 // Vista 3D: el modelo real de la planta baja (el mismo IFC que va a Revit, convertido a GLB) sobre el mapa de
 // la zona, con la ruta dibujada en el piso y un recorrido que la sigue.
-import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import maplibregl from 'maplibre-gl'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
@@ -457,10 +457,44 @@ function PisosColor({ d, destino }) {
   )
 }
 
-export function Vista3D({ d, ruta, destino, foco, recorrer = false, setRecorrer = () => {}, onFinRecorrer }) {
+// pantalla táctil (tótem, celular): sin rueda ni clic derecho; se usan dedos y los botones + / −
+const TACTIL = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
+
+// acerca o aleja la cámara hacia su foco de forma suave (botones + / − del dock, sin rueda del ratón)
+function ZoomSuave({ controles, pedido }) {
+  useFrame((_, dt) => {
+    const c = controles.current, p = pedido.current
+    if (!c || !p) return
+    const k = 1 - Math.exp(-Math.min(dt, 0.1) * 8)
+    const dir = c.object.position.clone().sub(c.target)
+    const dist = dir.length()
+    const meta = Math.min(c.maxDistance, Math.max(c.minDistance, p.dist))
+    const nueva = dist + (meta - dist) * k
+    c.object.position.copy(c.target).add(dir.setLength(nueva))
+    if (p.target) c.target.lerp(p.target, k)
+    c.update()
+    if (Math.abs(nueva - meta) < 0.05 && (!p.target || c.target.distanceTo(p.target) < 0.05)) pedido.current = null
+  })
+  return null
+}
+
+export const Vista3D = forwardRef(function Vista3D({ d, ruta, destino, foco, recorrer = false, setRecorrer = () => {}, onFinRecorrer }, fwd) {
   const [corte, setCorte] = useState(1.2)   // muros bajos por defecto: se ven los pisos, como en una maqueta isométrica
   const [letreros, setLetreros] = useState(true)
   const controles = useRef()
+  const pedidoZoom = useRef(null)
+  const distActual = () => { const c = controles.current; return c ? c.object.position.distanceTo(c.target) : 150 }
+  useImperativeHandle(fwd, () => ({
+    acercar: () => { pedidoZoom.current = { dist: (pedidoZoom.current?.dist ?? distActual()) / 1.6 } },
+    alejar: () => { pedidoZoom.current = { dist: (pedidoZoom.current?.dist ?? distActual()) * 1.6 } },
+    centrar: () => {
+      const c = controles.current
+      if (!c) return
+      // vuelve a la vista isométrica inicial del edificio
+      c.object.position.set(cx + 95, 110, -cy + 95)
+      pedidoZoom.current = { dist: Math.hypot(95, 110, 95), target: new THREE.Vector3(cx, 0, -cy) }
+    },
+  }))
   const hu = d.huella.flatMap((pg) => pg[0])
   const cx = (Math.min(...hu.map((p) => p[0])) + Math.max(...hu.map((p) => p[0]))) / 2
   const cy = (Math.min(...hu.map((p) => p[1])) + Math.max(...hu.map((p) => p[1]))) / 2
@@ -489,7 +523,8 @@ export function Vista3D({ d, ruta, destino, foco, recorrer = false, setRecorrer 
         {ruta && <Ruta ruta={ruta} andado={andado} />}
         {foco && <MarcaFoco foco={foco} controles={controles} />}
         {ruta && <Caminante ruta={ruta} recorrer={recorrer} controles={controles} andado={andado} alTerminar={onFinRecorrer} persona={persona} />}
-        <OrbitControls ref={controles} target={[cx, 0, -cy]} maxPolarAngle={recorrer ? Math.PI / 1.9 : Math.PI / 2.08} minDistance={recorrer ? 1.5 : 4} maxDistance={recorrer ? 30 : 420} enablePan={!recorrer} enableDamping />
+        <ZoomSuave controles={controles} pedido={pedidoZoom} />
+        <OrbitControls ref={controles} touches={{ ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN }} target={[cx, 0, -cy]} maxPolarAngle={recorrer ? Math.PI / 1.9 : Math.PI / 2.08} minDistance={recorrer ? 1.5 : 4} maxDistance={recorrer ? 30 : 420} enablePan={!recorrer} enableDamping />
       </Canvas>
       <div className="pb-3d-ctrl" role="group" aria-label="Opciones de la vista 3D">
         <span className="pb-3d-t">Altura de muros</span>
@@ -501,9 +536,11 @@ export function Vista3D({ d, ruta, destino, foco, recorrer = false, setRecorrer 
         <label className="pb-check"><input type="checkbox" checked={letreros} onChange={(e) => setLetreros(e.target.checked)} /> Letreros</label>
         {ruta && <button className="btn-negro pb-recorrer" onClick={() => setRecorrer(!recorrer)}>{recorrer ? 'Detener recorrido' : `Recorrer hasta ${destino?.nombre || 'el destino'}`}</button>}
       </div>
-      <p className="pb-ayuda3d">Arrastra para girar · rueda o pellizco para acercar · clic derecho para mover</p>
+      <p className="pb-ayuda3d">{TACTIL
+        ? 'Un dedo para girar · pellizca para acercar · dos dedos para mover · o usa + y −'
+        : 'Arrastra para girar · rueda o pellizco para acercar · clic derecho para mover'}</p>
     </div>
   )
-}
+})
 
 useGLTF.preload?.(`${BASE}pb/solca_pb.glb?v=${__VERSION__}`)
