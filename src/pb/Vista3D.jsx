@@ -8,6 +8,7 @@ import { OrbitControls, useGLTF, Line, Html } from '@react-three/drei'
 import { BASE, aLonLat, rumbo, dePlano, CATS } from './datos.js'
 import { Cargando } from './Cargando.jsx'
 import { Exterior } from './Exterior3D.jsx'
+import { Letreros } from './Letreros3D.jsx'
 
 const E = ([x, y], h = 0) => new THREE.Vector3(x, h, -y)    // plano (x, y) -> escena
 
@@ -484,6 +485,7 @@ export function Vista3D({ d, ruta, destino, foco, recorrer = false, setRecorrer 
         <PisosColor d={d} destino={destino} />
         <Puertas puertas={d.puertas} plano={plano} persona={persona} />
         <Exterior d={d} />
+        <Letreros d={d} visibles={letreros} />
         {ruta && <Ruta ruta={ruta} andado={andado} />}
         {foco && <MarcaFoco foco={foco} controles={controles} />}
         {ruta && <Caminante ruta={ruta} recorrer={recorrer} controles={controles} andado={andado} alTerminar={onFinRecorrer} persona={persona} />}
