@@ -4,9 +4,17 @@ import { cargarDatos, usarGeo, CATS, ICONO_LUGAR, plano, dentro } from './datos.
 import { buscarRuta, indicaciones } from './ruta.js'
 import { Mapa } from './Mapa.jsx'
 import { Hoja } from './Hoja.jsx'
+import { Clave, PanelAdmin } from './Admin.jsx'
+import { Cargando } from './Cargando.jsx'
 import { Icono, Insignia } from '../ui/mapa2d/Iconos.jsx'
 
 const Vista3D = lazy(() => import('./Vista3D.jsx').then((m) => ({ default: m.Vista3D })))
+
+// cambios del administrador guardados en este navegador (se suman a los publicados en el repositorio)
+const CLAVE_LOCAL = 'solca-admin-cambios'
+function leerCambios() {
+  try { return JSON.parse(localStorage.getItem(CLAVE_LOCAL)) || {} } catch { return {} }
+}
 
 // categorías de la barra (atajos de búsqueda)
 const CHIPS = [
@@ -141,16 +149,35 @@ export default function App() {
   const [modo, setModo] = useState('2d')
   const [origen, setOrigen] = useState(null)
   const [destino, setDestino] = useState(null)
+  const [foco, setFoco] = useState(null)   // lugar elegido en el buscador: la vista llega hasta él
   const [buscando, setBuscando] = useState(null)
   const [ficha, setFicha] = useState(null)
   const [hover, setHover] = useState(null)
   const [qr, setQr] = useState(false)
   const [leyenda, setLeyenda] = useState(false)
+  const [admin, setAdmin] = useState(false)
+  const [pedirClave, setPedirClave] = useState(false)
+  const [cambios, setCambios] = useState(() => leerCambios())
+  const [pickId, setPickId] = useState(null)
   const mapa = useRef(null)
 
   useEffect(() => {
-    cargarDatos().then((datos) => { usarGeo(datos.geo); setD(datos) }).catch((e) => setError(e.message))
+    cargarDatos(cambios).then((datos) => { usarGeo(datos.geo); setD(datos) }).catch((e) => setError(e.message))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+  // el administrador cambia un ambiente: se guarda aquí y se recalcula el plano
+  const onCambiar = (id, patch) => {
+    const nuevo = { ...cambios, ambientes: { ...(cambios.ambientes || {}), [id]: { ...((cambios.ambientes || {})[id] || {}), ...patch } } }
+    try { localStorage.setItem(CLAVE_LOCAL, JSON.stringify(nuevo)) } catch { /* sin almacenamiento: solo en esta sesión */ }
+    setCambios(nuevo)
+    cargarDatos(nuevo).then((datos) => { usarGeo(datos.geo); setD(datos) })
+  }
+  const onRestablecer = () => {
+    try { localStorage.removeItem(CLAVE_LOCAL) } catch { /* nada que borrar */ }
+    setCambios({})
+    cargarDatos({}).then((datos) => { usarGeo(datos.geo); setD(datos) })
+  }
+  const onPick = (x, y) => { if (pickId) { onCambiar(pickId, { dest: [x, y] }); setPickId(null) } }
   const lugares = useMemo(() => (d ? armarLugares(d) : []), [d])
   // ¿se llega caminando por pasillos abiertos? (si no, la app lo dice en vez de trazar por consultorios)
   const alcanzable = (l) => !!d && (l.entrada || !d.nav.indice[l.id] || d.nav.alcanzable.has(d.nav.indice[l.id]))
@@ -166,9 +193,19 @@ export default function App() {
 
   const ruta = useMemo(() => {
     if (!d || !origen || !destino || origen.id === destino.id) return null
-    const r = buscarRuta(d, [origen.x, origen.y], [destino.x, destino.y], [origen.id, destino.id], destino.id)
+    const r = buscarRuta(d, [origen.x, origen.y], [destino.x, destino.y], [origen.id, destino.id], { admin })
     return r ? { ...r, pasos: indicaciones(d, r, origen, destino) } : null
-  }, [d, origen, destino])
+  }, [d, origen, destino, admin])
+
+  // si desde el origen no hay camino, ¿desde otra entrada del edificio sí? (la app lo ofrece en vez de solo decir que no)
+  const alternativa = useMemo(() => {
+    if (!d || !origen || !destino || origen.id === destino.id || ruta) return null
+    for (const e of d.entradas) {
+      if (e.id === origen.id) continue
+      if (buscarRuta(d, [e.x, e.y], [destino.x, destino.y], [e.id, destino.id], { admin })) return porId[e.id] || e
+    }
+    return null
+  }, [d, origen, destino, admin, ruta, porId])
 
   // el enlace refleja el origen y el destino (para compartir)
   useEffect(() => {
@@ -187,21 +224,25 @@ export default function App() {
     if (!l) { setFicha(null); return }
     setFicha(l)
   }
-  const irA = (l) => { setDestino(l); setFicha(null); setBuscando(null) }
+  const irA = (l) => { setDestino(l); setFoco({ ...l, t: Date.now() }); setFicha(null); setBuscando(null) }
 
   if (error) return <div className="pb-error">No se pudo cargar el plano: {error}</div>
-  if (!d) return <div className="pb-error"><span className="pb-spinner" />Cargando el plano del hospital…</div>
+  if (!d) return <Cargando texto="Cargando el plano del hospital…" />
 
   const minutos = ruta ? Math.max(1, Math.round(ruta.metros / 1.2 / 60)) : 0
 
   return (
     <div className={`pb-app modo-${modo}`}>
       {modo === '2d'
-        ? <Mapa ref={mapa} d={d} ruta={ruta} origen={origen} destino={destino} hover={hover} onElegir={elegirDesdeMapa} onHover={setHover} lugaresIcono={lugaresIcono} />
-        : <Suspense fallback={<div className="pb-error"><span className="pb-spinner" />Preparando el 3D…</div>}><Vista3D d={d} ruta={ruta} destino={destino} /></Suspense>}
+        ? <Mapa ref={mapa} d={d} ruta={ruta} origen={origen} destino={destino} foco={foco} hover={hover} onElegir={elegirDesdeMapa} onHover={setHover} lugaresIcono={lugaresIcono} pick={!!pickId} onPick={onPick} />
+        : <Suspense fallback={<Cargando texto="Preparando el 3D…" />}><Vista3D d={d} ruta={ruta} destino={destino} foco={foco} /></Suspense>}
 
       {/* columna izquierda: marca, búsqueda y ruta */}
-      {!buscando && (
+      {admin && (
+        <PanelAdmin d={d} cambios={cambios} onCambiar={onCambiar} onRestablecer={onRestablecer} pickId={pickId} onPedirPunto={setPickId} onSalir={() => { setAdmin(false); setPickId(null) }} />
+      )}
+
+      {!buscando && !admin && (
         <div className="pb-col">
           <div className="barra">
             <div className="barra-fila">
@@ -249,7 +290,13 @@ export default function App() {
                     <button className="btn-claro" onClick={() => setDestino(null)} aria-label="Cerrar ruta">Cerrar</button>
                   </div>
                 </>
-              ) : <p className="ruta-nota">{origen?.id === destino.id ? 'Ya estás en ese lugar.' : 'No hay un camino por pasillos abiertos hasta ese lugar. Pregunta en Información.'}</p>}
+              ) : origen?.id === destino.id ? <p className="ruta-nota">Ya estás en ese lugar.</p>
+                : alternativa ? (
+                  <div className="ruta-alt">
+                    <p className="ruta-nota">Desde {origen?.nombre} no hay un camino por pasillos abiertos. Desde <b>{alternativa.nombre}</b> sí lo hay.</p>
+                    <button className="btn-negro" onClick={() => setOrigen(alternativa)}>Partir desde {alternativa.nombre}</button>
+                  </div>
+                ) : <p className="ruta-nota">No hay un camino por pasillos abiertos hasta ese lugar. Pregunta en Información.</p>}
             </Hoja>
           )}
         </div>
@@ -290,6 +337,7 @@ export default function App() {
           </div>
         )}
         <div className="pb-piso" title="Planta baja">PB</div>
+        <button className="pb-ley-btn" onClick={() => (admin ? setAdmin(false) : setPedirClave(true))}>{admin ? 'Salir de administración' : 'Administración'}</button>
         <button className="pb-ley-btn" onClick={() => setLeyenda((v) => !v)} aria-expanded={leyenda}>Leyenda</button>
         {leyenda && (
           <ul className="pb-leyenda">
@@ -300,6 +348,7 @@ export default function App() {
         )}
       </div>
 
+      {pedirClave && <Clave onOk={() => { setAdmin(true); setPedirClave(false) }} onCerrar={() => setPedirClave(false)} />}
       {qr && origen && <QR lugar={origen} onCerrar={() => setQr(false)} />}
       <a className="pb-proto" href={`${import.meta.env.BASE_URL}prototipo/`}>Prototipo anterior (5 pisos)</a>
     </div>

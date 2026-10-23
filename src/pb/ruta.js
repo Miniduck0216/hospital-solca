@@ -55,7 +55,7 @@ function libreMasCercana(nav, cx, cy, pasa) {
 }
 
 // línea de vista entre dos celdas: no puede cruzar muros ni salir de la franja
-function visible(nav, pasa, a, b) {
+function visible(nav, pasa, a, b, lim = 3) {
   const { w, celdas } = nav
   let [x0, y0] = a
   const [x1, y1] = b
@@ -64,7 +64,7 @@ function visible(nav, pasa, a, b) {
   let err = dx - dy
   for (;;) {
     const j = y0 * w + x0
-    if (!pasa(j) || celdas[j] > 4) return false
+    if (!pasa(j) || celdas[j] > lim) return false
     if (x0 === x1 && y0 === y1) return true
     const e2 = 2 * err
     if (e2 > -dy) { err -= dy; x0 += sx }
@@ -81,14 +81,14 @@ function redondear(P, enPaso) {
     const V = P[i], A = P[i - 1], B = P[i + 1]
     const la = Math.hypot(A[0] - V[0], A[1] - V[1]), lb = Math.hypot(B[0] - V[0], B[1] - V[1])
     let hecho = false
-    for (const r of [1.2, 0.8, 0.5, 0.3]) {
+    for (const r of [2.2, 1.6, 1.1, 0.7, 0.4]) {
       const f = Math.min(r, 0.5 * la, 0.5 * lb)
       if (f < 0.12) continue
       const a = [V[0] + ((A[0] - V[0]) * f) / la, V[1] + ((A[1] - V[1]) * f) / la]
       const b = [V[0] + ((B[0] - V[0]) * f) / lb, V[1] + ((B[1] - V[1]) * f) / lb]
       const curva = [a]
-      for (let k = 1; k <= 5; k++) {
-        const t = k / 6
+      for (let k = 1; k <= 8; k++) {
+        const t = k / 9
         curva.push([(1 - t) ** 2 * a[0] + 2 * (1 - t) * t * V[0] + t * t * b[0], (1 - t) ** 2 * a[1] + 2 * (1 - t) * t * V[1] + t * t * b[1]])
       }
       curva.push(b)
@@ -100,10 +100,28 @@ function redondear(P, enPaso) {
   return out
 }
 
+// quita esquinas que no cambian de dirección (menos de 12°) o quedan a menos de 0,6 m de la anterior
+function limpiar(P) {
+  if (P.length < 3) return P
+  const out = [P[0]]
+  for (let i = 1; i < P.length - 1; i++) {
+    const A = out[out.length - 1], V = P[i], B = P[i + 1]
+    if (Math.hypot(V[0] - A[0], V[1] - A[1]) < 0.6) continue
+    const a1 = Math.atan2(V[1] - A[1], V[0] - A[0]), a2 = Math.atan2(B[1] - V[1], B[0] - V[0])
+    let da = Math.abs(((a2 - a1) * 180) / Math.PI) % 360
+    if (da > 180) da = 360 - da
+    if (da < 12) continue
+    out.push(V)
+  }
+  out.push(P[P.length - 1])
+  return out
+}
+
 // ids = [origen, destino]. Si el destino es un ambiente, la ruta termina en su puerta.
-export function buscarRuta(d, desde, hasta, ids = []) {
+export function buscarRuta(d, desde, hasta, ids = [], opts = {}) {
   const nav = d.nav
-  const { w, h, celdas, res, cuarto, banda, red } = nav
+  const { w, h, celdas, res, cuarto, red } = nav
+  const banda = opts.admin && nav.bandaAdmin ? nav.bandaAdmin : nav.banda
   const qO = nav.indice[ids[0]] || 0      // cuarto de origen: se sale de él
   const qD = nav.indice[ids[1]] || 0      // cuarto de destino: solo se llega hasta su puerta
   const pasa = (j) => !!celdas[j] && (banda[j] === 1 || (qO !== 0 && cuarto[j] === qO))
@@ -156,12 +174,14 @@ export function buscarRuta(d, desde, hasta, ids = []) {
   let k = 0
   while (k < camino.length - 1) {
     let j = camino.length - 1
-    while (j > k + 1 && !visible(nav, (q) => pasa(q) || meta(q), camino[k], camino[j])) j--
+    // primero una línea que se aleje de las paredes; si no existe, una más cercana a ellas
+    while (j > k + 1 && !visible(nav, (q) => pasa(q) || meta(q), camino[k], camino[j], 3)) j--
+    if (j === k + 1) { j = camino.length - 1; while (j > k + 1 && !visible(nav, (q) => pasa(q) || meta(q), camino[k], camino[j], 6)) j-- }
     esq.push(camino[j])
     k = j
   }
   const aMetros = ([x, y]) => [nav.x0 + x * res, nav.y0 + y * res]
-  const esquinas = esq.map(aMetros)
+  const esquinas = limpiar(esq.map(aMetros))
   esquinas[0] = [desde[0], desde[1]]
   if (!qD) esquinas.push([hasta[0], hasta[1]])
 
