@@ -122,8 +122,10 @@ export function buscarRuta(d, desde, hasta, ids = [], opts = {}) {
   const nav = d.nav
   const { w, h, celdas, res, cuarto, red, vereda } = nav
   const banda = opts.admin && nav.bandaAdmin ? nav.bandaAdmin : nav.banda
-  const qO = nav.indice[ids[0]] || 0      // cuarto de origen: se sale de él
-  const qD = nav.indice[ids[1]] || 0      // cuarto de destino: solo se llega hasta su puerta
+  // un ambiente con ventanilla (Farmacia) no se cruza ni se entra: la ruta empieza o termina en el punto frente a ella
+  const vent = (q) => (nav.ventanilla && nav.ventanilla.has(q) ? 0 : q)
+  const qO = vent(nav.indice[ids[0]] || 0)      // cuarto de origen: se sale de él
+  const qD = vent(nav.indice[ids[1]] || 0)      // cuarto de destino: solo se llega hasta su puerta
   const pasa = (j) => !!celdas[j] && (banda[j] === 1 || (qO !== 0 && cuarto[j] === qO))
   const meta = (j) => qD !== 0 && !!celdas[j] && cuarto[j] === qD
   const ini = libreMasCercana(nav, ...celda(nav, desde[0], desde[1]), pasa)
