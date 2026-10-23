@@ -313,7 +313,9 @@ def exportar(m):
         ambientes=amb,
         muros=poli(muros, 0.015),
         ventanas=poli(vent, 0.015),
-        puertas=[dict(a=[r2(v) for v in p['a']], b=[r2(v) for v in p['b']]) for p in m.puertas],
+        # c: desplazamiento de la hoja desde el eje a-b (hacia la normal); la web anima las hojas en 3D
+        puertas=[dict(a=[r2(v) for v in p['a']], b=[r2(v) for v in p['b']], c=round(float((p['t0'] + p['t1']) / 2), 3),
+                      doble=bool(p['doble']), ducto=p['tipo'].startswith('P-DUC')) for p in m.puertas],
         trazos_puertas=trazos_p, trazos=trazos_s,
         muebles=muebles, gradas=gradas,
         viseras=[poli(v, 0.05)[0] for v in getattr(m, 'viseras', []) if poli(v, 0.05)],
