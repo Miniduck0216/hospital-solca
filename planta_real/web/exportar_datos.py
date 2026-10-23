@@ -267,8 +267,10 @@ def exportar(m):
     RUTAS = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'rutas')
     cal = json.load(open(os.path.join(RUTAS, 'calibracion.json')))
     verde = cv2.imread(os.path.join(RUTAS, 'verde.png'), cv2.IMREAD_GRAYSCALE) > 0
+    # conexiones trazadas en rojo (pasillos públicos que faltaban en el plano): se suman a la red verde
+    rojo = cv2.imread(os.path.join(RUTAS, 'rojo.png'), cv2.IMREAD_GRAYSCALE) > 0 if os.path.exists(os.path.join(RUTAS, 'rojo.png')) else np.zeros_like(verde)
     rad = int(round(0.3 * cal['sx']))
-    verde = cv2.dilate(verde.astype(np.uint8), cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * rad + 1, 2 * rad + 1))) > 0
+    verde = cv2.dilate((verde | rojo).astype(np.uint8), cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * rad + 1, 2 * rad + 1))) > 0
     Wm = np.array(cal['W'] + [[0.0, 0.0, 1.0]])
     gx, gy = np.meshgrid(x0 + np.arange(W) * RES, y0 + np.arange(H) * RES)
     tx = (cal['ax'] + gx * cal['sx']) / cal['F']
@@ -279,8 +281,14 @@ def exportar(m):
     py = np.clip(np.round(ry * cal['F']).astype(int), 0, verde.shape[0] - 1)
     red = (verde[py, px] & (celdas > 0)).astype(np.uint8)
     print('red de pacientes:', int(red.sum()), 'celdas')
+    # vereda: franja exterior de 1,5 m alrededor del edificio, por donde se llega a las puertas exteriores
+    huella_m = ras(list(hu.geoms) if hasattr(hu, 'geoms') else [hu])
+    vereda = ndimage.binary_dilation(huella_m, iterations=int(round(1.5 / RES))) & ~huella_m
+    celdas[vereda & (celdas == 0)] = 2
+    print('vereda:', int(vereda.sum()), 'celdas')
     nav = dict(x0=x0, y0=y0, res=RES, w=W, h=H, celdas=base64.b64encode(celdas.tobytes()).decode(),
-               cuarto=base64.b64encode(cuarto.tobytes()).decode(), red=base64.b64encode(red.tobytes()).decode())
+               cuarto=base64.b64encode(cuarto.tobytes()).decode(), red=base64.b64encode(red.tobytes()).decode(),
+               vereda=base64.b64encode(vereda.astype(np.uint8).tobytes()).decode())
 
     # ------------------------------------------------ exterior: parqueaderos (OpenStreetMap / prototipo)
     parqueos = [

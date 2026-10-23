@@ -26,10 +26,15 @@ export async function cargarDatos(cambiosLocales = null) {
   const bin3 = atob(d.nav.red)
   d.nav.red = new Uint8Array(bin3.length)
   for (let i = 0; i < bin3.length; i++) d.nav.red[i] = bin3.charCodeAt(i)
+  // vereda exterior (franja alrededor del edificio): también es paso para llegar a las puertas exteriores
+  const bin4 = atob(d.nav.vereda)
+  d.nav.vereda = new Uint8Array(bin4.length)
+  for (let i = 0; i < bin4.length; i++) d.nav.vereda[i] = bin4.charCodeAt(i)
   // franja de paso (ver bandaDeRed)
   d.nav.banda = bandaDeRed(d)
   // el interior de un cuarto cerrado no es paso: la ruta solo llega a su puerta (ver buscarRuta, meta)
-  for (let i = 0; i < d.nav.banda.length; i++) if (d.nav.cuarto[i] && !d.nav.paso[d.nav.cuarto[i]]) d.nav.banda[i] = 0
+  // (salvo los ganchos trazados en verde o rojo que entran a un consultorio: son su acceso)
+  for (let i = 0; i < d.nav.banda.length; i++) if (d.nav.cuarto[i] && !d.nav.paso[d.nav.cuarto[i]] && !d.nav.red[i]) d.nav.banda[i] = 0
   abrirPuertas(d, d.nav.banda)
   d.nav.indice = Object.fromEntries(d.ambientes.map((a, k) => [a.id, k + 1]))
   d.nav.alcanzable = alcanzables(d)
@@ -60,11 +65,12 @@ function aplicarCambios(d, cambios) {
 const SOLO_PERSONAL = /^Pasillo Bloque/
 
 function bandaDeRed(d) {
-  const { w, h, celdas, cuarto, red, paso } = d.nav
+  const { w, h, celdas, cuarto, red, paso, vereda } = d.nav
   const N = w * h
   const staff = new Uint8Array(d.ambientes.length + 1)
   d.ambientes.forEach((a, k) => { staff[k + 1] = SOLO_PERSONAL.test(a.nombre || '') ? 1 : 0 })
-  const libre = (j) => !!celdas[j] && !staff[cuarto[j]]
+  // el pasillo de bloque solo es de personal, salvo donde se trazó verde o rojo (eso es un recorrido de paciente)
+  const libre = (j) => !!celdas[j] && (!staff[cuarto[j]] || red[j] === 1)
   const publico = (j) => libre(j) && (cuarto[j] === 0 || !!paso[cuarto[j]])
   const orto = (i) => {
     const x = i % w, y = (i / w) | 0, r = []
@@ -87,7 +93,7 @@ function bandaDeRed(d) {
   // 1) la franja desde la red, por espacios públicos
   const banda = new Uint8Array(N)
   const cola = []
-  for (let i = 0; i < N; i++) if (red[i] && libre(i)) { banda[i] = 1; cola.push(i) }
+  for (let i = 0; i < N; i++) if ((red[i] || vereda[i]) && libre(i)) { banda[i] = 1; cola.push(i) }
   for (let k = 0; k < cola.length; k++) {
     const i = cola[k]
     if (cuarto[i] && !paso[cuarto[i]]) continue   // cuarto cerrado: la franja no sigue hacia adentro
