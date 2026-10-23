@@ -20,6 +20,9 @@ export function BarraFoco({ items, activo = null, onElegir }) {
       n.style.setProperty('--amb-x', `${rb.left - rn.left + rb.width / 2}px`)
       n.style.setProperty('--amb-o', '1')
     }
+    // la categoría activa se desliza a la vista si quedó cortada
+    const b = activo ? f.querySelector(`[data-id="${activo}"]`) : null
+    if (b) f.scrollTo({ left: Math.max(0, b.offsetLeft - (f.clientWidth - b.offsetWidth) / 2), behavior: 'smooth' })
     ubicar()
     f.addEventListener('scroll', ubicar, { passive: true })
     return () => f.removeEventListener('scroll', ubicar)

@@ -235,3 +235,8 @@ body { background: #E9EDF1; }
 .pb-app .insignia svg { display: block; }
 .pb-pin-c { display: grid !important; place-items: center; }
 .pb-pin-c svg { display: block; }
+
+/* buscador: la barra de categorías no se encoge; solo la lista se desplaza */
+.pb-buscador > .pb-busca-fila, .pb-buscador > .foco-nav { flex: none; }
+.pb-buscador > .foco-nav { margin-top: 0; }
+.pb-buscador > .pb-lista { flex: 1 1 auto; min-height: 0; }
