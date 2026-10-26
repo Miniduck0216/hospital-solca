@@ -434,6 +434,18 @@ function ensanchar(anillo, e) {
   })
 }
 
+// muros agregados por el administrador (pasos cerrados): se levantan igual que los del modelo
+function MurosExtra({ muros, plano }) {
+  const geos = useMemo(() => muros.map((pg) => {
+    const g = new THREE.ExtrudeGeometry(new THREE.Shape(pg[0].map(([x, y]) => new THREE.Vector2(x, y))), { depth: 3.84, bevelEnabled: false })
+    g.rotateX(-Math.PI / 2)
+    return g
+  }), [muros])
+  const mat = useMemo(() => new THREE.MeshStandardMaterial({ color: '#FBF7EF', roughness: 1 }), [])
+  useEffect(() => { mat.clippingPlanes = [plano] }, [mat, plano])
+  return <group>{geos.map((g, k) => <mesh key={k} geometry={g} material={mat} castShadow receiveShadow />)}</group>
+}
+
 function PisosColor({ d, destino }) {
   const piezas = useMemo(() => d.ambientes.filter((a) => a.pg.length && a.pg[0].length > 2).map((a) => {
     const [ext0, ...huecos] = a.pg
@@ -517,6 +529,7 @@ export const Vista3D = forwardRef(function Vista3D({ d, ruta, destino, foco, rec
         </Suspense>
         <SueloMapa centro={[cx, cy]} />
         <PisosColor d={d} destino={destino} />
+        <MurosExtra muros={d.murosExtra || []} plano={plano} />
         <Puertas puertas={d.puertas} plano={plano} persona={persona} />
         <Exterior d={d} />
         <Letreros d={d} visibles={letreros} />

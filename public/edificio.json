@@ -1,0 +1,31 @@
+{
+  "nombre": "Hospital SOLCA Quito",
+  "pisoInicial": "PB",
+  "pisos": [
+    { "id": "SB", "nombre": "Subsuelo", "corto": "SB", "nivel": -1, "disponible": false },
+    { "id": "PB", "nombre": "Planta baja", "corto": "PB", "nivel": 0, "disponible": true,
+      "datos": "pb/datos.json", "config": "pb/config.json", "glb": "pb/solca_pb.glb" },
+    { "id": "P1", "nombre": "Piso 1", "corto": "P1", "nivel": 1, "disponible": false },
+    { "id": "P2", "nombre": "Piso 2", "corto": "P2", "nivel": 2, "disponible": false },
+    { "id": "P3", "nombre": "Piso 3", "corto": "P3", "nivel": 3, "disponible": false }
+  ],
+  "conectores": [
+    { "id": "ascensores-hall", "tipo": "ascensor", "nombre": "Ascensores del Hall", "accesible": true,
+      "paradas": [{ "piso": "PB", "ambiente": "a73" }] },
+    { "id": "ascensores-norte", "tipo": "ascensor", "nombre": "Ascensores norte", "accesible": true,
+      "paradas": [{ "piso": "PB", "ambiente": "a75" }] },
+    { "id": "ascensor-servicio", "tipo": "ascensor", "nombre": "Ascensor", "accesible": true,
+      "paradas": [{ "piso": "PB", "ambiente": "a76" }] },
+    { "id": "escalera-central", "tipo": "escalera", "nombre": "Escalera", "accesible": false,
+      "paradas": [{ "piso": "PB", "ambiente": "a21" }] },
+    { "id": "escalera-norte", "tipo": "escalera", "nombre": "Escalera norte", "accesible": false,
+      "paradas": [{ "piso": "PB", "ambiente": "a72" }] }
+  ],
+  "tiempos": {
+    "velocidadMs": 1.2,
+    "ascensorEsperaS": 45,
+    "ascensorPorPisoS": 5,
+    "escaleraPorPisoS": 15
+  },
+  "nota": "Solo la planta baja tiene plano por ahora. Al importar SB, P1, P2 y P3: poner disponible=true, sus archivos y la parada de cada conector en ese piso."
+}

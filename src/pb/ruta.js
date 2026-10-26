@@ -117,6 +117,22 @@ function limpiar(P) {
   return out
 }
 
+// puerta de un cuarto de origen: sus celdas libres que tocan la franja de paso. Se sale desde ahí y no desde el
+// punto de acceso, que puede quedar en un rincón del cuarto separado de la puerta por el mobiliario.
+function puertasDe(nav, q, banda) {
+  const { w, h, celdas, cuarto } = nav
+  const out = []
+  if (!q) return out
+  for (let i = 0; i < w * h; i++) {
+    if (cuarto[i] !== q || !celdas[i]) continue
+    const x = i % w, y = (i / w) | 0
+    for (const j of [x > 0 ? i - 1 : -1, x < w - 1 ? i + 1 : -1, y > 0 ? i - w : -1, y < h - 1 ? i + w : -1]) {
+      if (j >= 0 && banda[j] === 1 && cuarto[j] !== q) { out.push(i); break }
+    }
+  }
+  return out
+}
+
 // ids = [origen, destino]. Si el destino es un ambiente, la ruta termina en su puerta.
 export function buscarRuta(d, desde, hasta, ids = [], opts = {}) {
   const nav = d.nav
@@ -126,7 +142,9 @@ export function buscarRuta(d, desde, hasta, ids = [], opts = {}) {
   const vent = (q) => (nav.ventanilla && nav.ventanilla.has(q) ? 0 : q)
   const qO = vent(nav.indice[ids[0]] || 0)      // cuarto de origen: se sale de él
   const qD = vent(nav.indice[ids[1]] || 0)      // cuarto de destino: solo se llega hasta su puerta
-  const pasa = (j) => !!celdas[j] && (banda[j] === 1 || (qO !== 0 && cuarto[j] === qO))
+  // ruta accesible: sin escalones (gradas y escaleras); el destino puede ser la propia escalera
+  const esc = opts.accesible && nav.escalon ? nav.escalon : null
+  const pasa = (j) => !!celdas[j] && (banda[j] === 1 || (qO !== 0 && cuarto[j] === qO)) && !(esc && esc[j] && cuarto[j] !== qD)
   const meta = (j) => qD !== 0 && !!celdas[j] && cuarto[j] === qD
   const ini = libreMasCercana(nav, ...celda(nav, desde[0], desde[1]), pasa)
   const fin = qD ? null : libreMasCercana(nav, ...celda(nav, hasta[0], hasta[1]), pasa)
@@ -144,8 +162,9 @@ export function buscarRuta(d, desde, hasta, ids = [], opts = {}) {
     return Math.max(ax, ay) + 0.4142 * Math.min(ax, ay)
   }
   const mo = new Monticulo()
-  g[s] = 0
-  mo.push(s, hx(s))
+  // origen en un cuarto: se parte de todas sus puertas a la vez
+  const semillas = puertasDe(nav, qO, banda)
+  for (const k of semillas.length ? semillas : [s]) { g[k] = 0; mo.push(k, hx(k)) }
   const V = [[1, 0, 1], [-1, 0, 1], [0, 1, 1], [0, -1, 1], [1, 1, 1.4142], [1, -1, 1.4142], [-1, 1, 1.4142], [-1, -1, 1.4142]]
   let final = -1
   while (mo.size) {
@@ -237,6 +256,57 @@ export function indicaciones(d, ruta, origen, destino) {
     const u = out[out.length - 1]
     if (u && u.tipo === 'camina' && p.tipo === 'camina') u.texto = p.texto
     else out.push(p)
+  }
+  return out
+}
+
+/**
+ * Metros caminando desde un punto hasta la puerta de varios ambientes a la vez (una sola búsqueda, Dijkstra).
+ * Sirve para elegir el ascensor o la escalera: se mide la distancia a todas sus paradas del piso en una pasada.
+ * @param objetivos ids de ambientes (paradas de ascensores o escaleras)
+ * @returns { [id]: metros } solo de los que se alcanzan
+ */
+export function metrosHasta(d, desde, idOrigen, objetivos, opts = {}) {
+  const nav = d.nav
+  const { w, h, celdas, res, cuarto, red, vereda } = nav
+  const banda = opts.admin && nav.bandaAdmin ? nav.bandaAdmin : nav.banda
+  const vent = (q) => (nav.ventanilla && nav.ventanilla.has(q) ? 0 : q)
+  const qO = vent(nav.indice[idOrigen] || 0)
+  const metaDe = new Map()
+  for (const id of objetivos) { const q = nav.indice[id]; if (q) metaDe.set(q, id) }
+  const esc = opts.accesible && nav.escalon ? nav.escalon : null
+  const pasa = (j) => !!celdas[j] && (banda[j] === 1 || (qO !== 0 && cuarto[j] === qO)) && !(esc && esc[j])
+  const ini = libreMasCercana(nav, ...celda(nav, desde[0], desde[1]), pasa)
+  const out = {}
+  if (!ini) return out
+  const N = w * h
+  const g = new Float32Array(N).fill(Infinity)
+  const m = new Float32Array(N)
+  const cerrado = new Uint8Array(N)
+  const s = ini[1] * w + ini[0]
+  const mo = new Monticulo()
+  const semillas = puertasDe(nav, qO, banda)
+  for (const k of semillas.length ? semillas : [s]) { g[k] = 0; mo.push(k, 0) }
+  const V = [[1, 0, 1], [-1, 0, 1], [0, 1, 1], [0, -1, 1], [1, 1, 1.4142], [1, -1, 1.4142], [-1, 1, 1.4142], [-1, -1, 1.4142]]
+  let faltan = metaDe.size
+  while (mo.size && faltan > 0) {
+    const i = mo.pop()
+    if (cerrado[i]) continue
+    cerrado[i] = 1
+    const q = cuarto[i]
+    if (metaDe.has(q) && !(metaDe.get(q) in out)) { out[metaDe.get(q)] = m[i]; faltan--; continue }
+    const x = i % w, y = (i / w) | 0
+    for (const [ddx, ddy, c] of V) {
+      const nx = x + ddx, ny = y + ddy
+      if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue
+      const j = ny * w + nx
+      const esMeta = metaDe.has(cuarto[j]) && !!celdas[j]
+      if (cerrado[j] || !(pasa(j) || esMeta)) continue
+      if (ddx && ddy && (!celdas[y * w + nx] || !celdas[ny * w + x])) continue
+      const cj = celdas[j]
+      const ng = g[i] + c * (1 + (cj - 1) * 0.45) * (vereda && vereda[j] ? 6 : red[j] || esMeta ? 1 : 2.5)
+      if (ng < g[j]) { g[j] = ng; m[j] = m[i] + c * res; mo.push(j, ng) }
+    }
   }
   return out
 }

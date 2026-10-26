@@ -253,3 +253,17 @@ body { background: #E9EDF1; }
   .pb-3d-ctrl .pb-seg button { padding: 11px 6px; }
   .pb-check input { width: 22px; height: 22px; }
 }
+.admin-pestanas { box-shadow: none; }
+.admin-pestanas button { flex: 1; padding: 7px 6px; font-size: .78rem; }
+.admin-check { flex-direction: row !important; align-items: center; gap: 8px !important; font-size: 13px; }
+.admin-tipos { display: flex; gap: 6px; flex-wrap: wrap; }
+.admin-fila { display: flex; align-items: center; justify-content: space-between; gap: 8px; background: #F4F6F9; border-radius: 10px; padding: 6px 8px; }
+.admin-fila span { display: flex; flex-direction: column; font-size: 13px; }
+.admin-fila small { color: #6A7584; }
+.pb-accesible { font-size: .85rem; color: var(--m-tinta); }
+.pb-pisos li { display: block; }
+.pb-pisos button { width: 100%; display: flex; align-items: center; gap: 8px; border: 0; background: transparent; border-radius: 10px; padding: 6px 8px; font: 700 .82rem var(--m-fuente); color: var(--m-tinta); cursor: pointer; text-align: left; }
+.pb-pisos button b { width: 30px; }
+.pb-pisos button.on { background: var(--m-tinta); color: #fff; }
+.pb-pisos button:disabled { color: #9AA6B4; cursor: default; }
+.pb-pisos small { margin-left: auto; font-weight: 600; font-size: .7rem; }

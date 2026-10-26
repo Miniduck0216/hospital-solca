@@ -1,22 +1,68 @@
 // Datos de la planta baja real (exportados desde el plano del hospital) y georreferencia sobre el mapa.
-export const BASE = import.meta.env.BASE_URL
+// (en las pruebas con node no hay import.meta.env: se usa la raíz)
+export const BASE = import.meta.env?.BASE_URL ?? "/"
 
-export async function cargarDatos(cambiosLocales = null) {
-  const r = await fetch(`${BASE}pb/datos.json?v=${__VERSION__}`)
+const pedirJson = (url) => fetch(url).then((x) => (x.ok ? x.json() : null)).catch(() => null)
+
+// Edificio: pisos disponibles, conectores verticales (ascensores y escaleras) y tiempos para las rutas entre pisos
+const EDIFICIO_RESPALDO = {
+  pisoInicial: 'PB',
+  pisos: [{ id: 'PB', nombre: 'Planta baja', corto: 'PB', nivel: 0, disponible: true, datos: 'pb/datos.json', config: 'pb/config.json', glb: 'pb/solca_pb.glb' }],
+  conectores: [],
+  tiempos: { velocidadMs: 1.2, ascensorEsperaS: 45, ascensorPorPisoS: 5, escaleraPorPisoS: 15 },
+}
+let edificioCache = null
+export async function cargarEdificio() {
+  edificioCache ??= pedirJson(`${BASE}edificio.json?v=${__VERSION__}`).then((e) => e || EDIFICIO_RESPALDO)
+  return edificioCache
+}
+
+// Reglas propias de cada piso (antes escritas en el código): pasillos solo de personal, ventanillas, puertas que se
+// abren solas, nombres corregidos y letreros extra. Ver public/pb/config.json.
+export function compilarConfig(c = {}) {
+  const patrones = (c.soloPersonal || []).map((p) => new RegExp(p))
+  return {
+    esPersonal: (nombre) => patrones.some((r) => r.test(nombre || '')),
+    ventanillas: c.ventanillas || {},
+    puertasAuto: c.puertasAuto || [],
+    renombres: (c.renombres || []).map((r) => ({ ...r, re: new RegExp(r.patron) })),
+    letreros: c.letreros || [],
+  }
+}
+
+/**
+ * Carga un piso: su plano, sus reglas y los cambios del administrador.
+ * @param cambiosLocales cambios en borrador (vista previa del administrador) que se suman a los publicados
+ * @param opciones.pisoId piso a cargar (por defecto el inicial del edificio)
+ * @param opciones.cambiosUrl de dónde leer los cambios publicados (OM3); si no, pb/cambios.json del sitio
+ */
+export async function cargarDatos(cambiosLocales = null, opciones = {}) {
+  const edificio = await cargarEdificio()
+  const piso = edificio.pisos.find((p) => p.id === (opciones.pisoId || edificio.pisoInicial) && p.disponible)
+  if (!piso) throw new Error('Ese piso todavía no tiene plano')
+  const r = await fetch(`${BASE}${piso.datos}?v=${__VERSION__}`)
   if (!r.ok) throw new Error('No se pudo cargar el plano')
   const d = await r.json()
-  // cambios del administrador: los publicados en el repositorio y los guardados en este navegador
-  const publicados = await fetch(`${BASE}pb/cambios.json?v=${__VERSION__}`).then((x) => (x.ok ? x.json() : null)).catch(() => null)
+  d.edificio = edificio
+  d.piso = piso
+  d.cfg = compilarConfig((piso.config && (await pedirJson(`${BASE}${piso.config}?v=${__VERSION__}`))) || {})
+  // cambios del administrador publicados: en OM3 (cambiosUrl) o, si no, en el repositorio
+  // (en el editor de OM3 el borrador ya es el estado completo: no se suman los publicados)
+  const publicados = opciones.sinPublicados ? null : await pedirJson(opciones.cambiosUrl || `${BASE}pb/cambios.json?v=${__VERSION__}`)
   // ambientes que se atienden por ventanilla: el paciente llega al punto frente a ella y no entra al cuarto
-  for (const a of d.ambientes) if (VENTANILLAS[a.nombre]) { a.dest = VENTANILLAS[a.nombre].slice(); a.ventanilla = true }
-  // Gestión Privados son 5 módulos (01 a 05): cada uno tiene el lado del paciente (al Hall de Cajas) y, tras el
-  // mostrador, el lado del personal. El lado del personal no es un lugar aparte: no lleva nombre ni es destino.
+  for (const a of d.ambientes) if (d.cfg.ventanillas[a.nombre]) { a.dest = d.cfg.ventanillas[a.nombre].slice(); a.ventanilla = true }
+  // nombres corregidos (p. ej. el lado del personal de los módulos de Gestión Privados no es un lugar aparte)
   for (const a of d.ambientes) {
-    if (a.nombre === 'Gestión Privados' && a.area < 4) a.nombre = null
-    else if (/^Módulo 0[1-5]$/.test(a.nombre || '')) a.nombre = `${a.nombre} · Gestión Privados`
+    const rn = d.cfg.renombres.find((x) => x.re.test(a.nombre || '') && (x.areaMax == null || a.area < x.areaMax))
+    if (!rn) continue
+    if ('nombre' in rn) a.nombre = rn.nombre
+    else if (rn.sufijo) a.nombre = `${a.nombre}${rn.sufijo}`
   }
-  aplicarCambios(d, publicados)
-  aplicarCambios(d, cambiosLocales)
+  d.cambiosPasos = []
+  aplicarCambios(d, cambiosDelPiso(publicados, piso.id))
+  aplicarCambios(d, cambiosDelPiso(cambiosLocales, piso.id))
+  // solo personal: por regla del piso o marcado por el administrador
+  for (const a of d.ambientes) a.personal = a.personal ?? d.cfg.esPersonal(a.nombre)
   const bin = atob(d.nav.celdas)
   const celdas = new Uint8Array(bin.length)
   for (let i = 0; i < bin.length; i++) celdas[i] = bin.charCodeAt(i)
@@ -29,7 +75,7 @@ export async function cargarDatos(cambiosLocales = null) {
   const ABIERTOS = ['circulacion', 'espera', 'escaleras', 'ascensores']
   d.nav.paso = new Uint8Array(d.ambientes.length + 1)
   d.nav.paso[0] = 1
-  d.ambientes.forEach((a, k) => { d.nav.paso[k + 1] = (ABIERTOS.includes(a.cat) && !SOLO_PERSONAL.test(a.nombre || '')) || (!a.nombre && a.area >= 30) ? 1 : 0 })
+  d.ambientes.forEach((a, k) => { d.nav.paso[k + 1] = (ABIERTOS.includes(a.cat) && !a.personal) || (!a.nombre && a.area >= 30) ? 1 : 0 })
   // red de pasillos para pacientes (trazada sobre el plano): 1 = pasillo de la red
   const bin3 = atob(d.nav.red)
   d.nav.red = new Uint8Array(bin3.length)
@@ -38,6 +84,10 @@ export async function cargarDatos(cambiosLocales = null) {
   const bin4 = atob(d.nav.vereda)
   d.nav.vereda = new Uint8Array(bin4.length)
   for (let i = 0; i < bin4.length; i++) d.nav.vereda[i] = bin4.charCodeAt(i)
+  // pasos del administrador: muros nuevos, pasos abiertos y líneas de recorrido de pacientes
+  aplicarPasos(d)
+  // escalones (gradas de escaleras y desniveles): la ruta accesible no pasa por ellos
+  d.nav.escalon = marcarEscalones(d)
   // franja de paso (ver bandaDeRed)
   d.nav.banda = bandaDeRed(d)
   // el interior de un cuarto cerrado no es paso: la ruta solo llega a su puerta (ver buscarRuta, meta)
@@ -52,7 +102,7 @@ export async function cargarDatos(cambiosLocales = null) {
   d.nav.bandaAdmin = Uint8Array.from(d.nav.banda)
   for (let i = 0; i < d.nav.bandaAdmin.length; i++) {
     const c = d.nav.cuarto[i]
-    if (!d.nav.bandaAdmin[i] && d.nav.celdas[i] && c && SOLO_PERSONAL.test(d.ambientes[c - 1].nombre || '')) d.nav.bandaAdmin[i] = 1
+    if (!d.nav.bandaAdmin[i] && d.nav.celdas[i] && c && d.ambientes[c - 1].personal) d.nav.bandaAdmin[i] = 1
   }
   return d
 }
@@ -64,7 +114,7 @@ function unirPorDentro(d, banda) {
   const { w, h, celdas, cuarto, red, paso, vereda } = d.nav
   const N = w * h
   const staff = new Uint8Array(d.ambientes.length + 1)
-  d.ambientes.forEach((a, k) => { staff[k + 1] = SOLO_PERSONAL.test(a.nombre || '') ? 1 : 0 })
+  d.ambientes.forEach((a, k) => { staff[k + 1] = a.personal ? 1 : 0 })
   const dentro = (j) => banda[j] && !vereda[j]
   // un muro que el trazo cruza (una puerta que el modelo no tiene) también se puede abrir: solo junto al trazo
   const cerca = new Uint8Array(N)
@@ -135,35 +185,125 @@ function unirPorDentro(d, banda) {
   }
 }
 
-// cambios del administrador (ver Admin.jsx): nombre, categoría y punto de acceso de un ambiente
-function aplicarCambios(d, cambios) {
-  if (!cambios || !cambios.ambientes) return
-  for (const [id, c] of Object.entries(cambios.ambientes)) {
+// ---------- cambios del administrador ----------
+// Formato 2 (OM3, ver OMNIUM_MS_GESTION_HOSPITALARIA mapa.*):
+//   { version: 2, pisos: { PB: { ambientes: { a47: { nombre, cat, dest, ventanilla, oculto, personal } },
+//                                lugares: [{ id, nombre, cat, x, y }],
+//                                pasos: [{ tipo: 'cerrar' | 'abrir' | 'linea', puntos: [[x, y], ...] }] } } }
+// El formato 1 ({ ambientes }) del primer administrador vale para la planta baja.
+export function cambiosDelPiso(cambios, pisoId) {
+  if (!cambios || typeof cambios !== 'object') return null
+  if (cambios.pisos) return cambios.pisos[pisoId] || null
+  return cambios.ambientes && pisoId === 'PB' ? cambios : null
+}
+
+const ID_LUGAR = /^L-[A-Za-z0-9_-]{1,40}$/
+const esPunto = (p) => Array.isArray(p) && p.length === 2 && p.every((v) => Number.isFinite(v))
+
+export function aplicarCambios(d, cambios) {
+  if (!cambios) return
+  for (const [id, c] of Object.entries(cambios.ambientes || {})) {
     const a = d.ambientes.find((x) => x.id === id)
-    if (!a) continue
-    if (typeof c.nombre === 'string' && c.nombre.trim()) a.nombre = c.nombre.trim()
+    if (!a || !c) continue
+    if (typeof c.nombre === 'string' && c.nombre.trim()) a.nombre = c.nombre.trim().slice(0, 80)
     if (c.cat && CATS[c.cat]) a.cat = c.cat
-    if (Array.isArray(c.dest) && c.dest.length === 2) a.dest = c.dest
+    if (esPunto(c.dest)) a.dest = c.dest.slice()
+    // ventanilla: el paciente llega al punto (dest) y no entra; false la quita
+    if (typeof c.ventanilla === 'boolean') a.ventanilla = c.ventanilla && !!a.dest
+    if (typeof c.personal === 'boolean') a.personal = c.personal
+    // oculto: deja de ser lugar (sin nombre, sin letrero, no es destino)
+    if (c.oculto === true) { a.nombre = null; a.oculto = true }
   }
+  // lugares nuevos: un punto con nombre (un módulo nuevo, una ventanilla, un servicio sin cuarto propio)
+  for (const l of cambios.lugares || []) {
+    if (!l || !ID_LUGAR.test(l.id) || !esPunto([l.x, l.y]) || typeof l.nombre !== 'string' || !l.nombre.trim()) continue
+    const previo = d.ambientes.find((x) => x.id === l.id)
+    const nuevo = { id: l.id, nombre: l.nombre.trim().slice(0, 80), cat: CATS[l.cat] ? l.cat : 'otro', area: 0, pg: [],
+      lbl: [l.x, l.y], dest: [l.x, l.y], ventanilla: true, nuevo: true, personal: !!l.personal }
+    if (previo) Object.assign(previo, nuevo)
+    else d.ambientes.push(nuevo)
+  }
+  for (const p of cambios.pasos || []) {
+    if (!p || !['cerrar', 'abrir', 'linea'].includes(p.tipo) || !Array.isArray(p.puntos) || p.puntos.length < 2 || !p.puntos.every(esPunto)) continue
+    d.cambiosPasos.push({ tipo: p.tipo, puntos: p.puntos.slice(0, 50) })
+  }
+}
+
+// Pasos sobre la rejilla de navegación (y su dibujo en 2D y 3D):
+// - cerrar: muro nuevo de 15 cm (la ruta ya no pasa); se dibuja como muro en 2D y 3D
+// - abrir: vano de 1 m en un muro (puerta que el plano no tiene); se marca como paso
+// - linea: recorrido de pacientes, igual que una línea verde del plano
+function aplicarPasos(d) {
+  const { w, h, x0, y0, res, celdas, red } = d.nav
+  d.murosExtra = []
+  d.pasosAbiertos = []
+  const marcar = (a, b, ancho, fn) => {
+    const L = Math.hypot(b[0] - a[0], b[1] - a[1])
+    const n = Math.max(1, Math.ceil(L / (res / 2)))
+    const r = Math.ceil(ancho / 2 / res)
+    for (let k = 0; k <= n; k++) {
+      const x = a[0] + ((b[0] - a[0]) * k) / n, y = a[1] + ((b[1] - a[1]) * k) / n
+      const cx = Math.round((x - x0) / res), cy = Math.round((y - y0) / res)
+      for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+        const nx = cx + dx, ny = cy + dy
+        if (nx < 0 || ny < 0 || nx >= w || ny >= h || Math.hypot(dx, dy) * res > ancho / 2 + 1e-6) continue
+        fn(ny * w + nx)
+      }
+    }
+  }
+  const rect = (a, b, g) => {
+    const L = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1
+    const nx = (-(b[1] - a[1]) / L) * g / 2, ny = ((b[0] - a[0]) / L) * g / 2
+    return [[a[0] + nx, a[1] + ny], [b[0] + nx, b[1] + ny], [b[0] - nx, b[1] - ny], [a[0] - nx, a[1] - ny], [a[0] + nx, a[1] + ny]]
+  }
+  for (const p of d.cambiosPasos) {
+    for (let k = 0; k < p.puntos.length - 1; k++) {
+      const a = p.puntos[k], b = p.puntos[k + 1]
+      if (p.tipo === 'cerrar') {
+        marcar(a, b, 0.3, (i) => { celdas[i] = 0; red[i] = 0 })
+        d.murosExtra.push([rect(a, b, 0.15)])
+      } else if (p.tipo === 'abrir') {
+        marcar(a, b, 1.0, (i) => { if (!celdas[i]) celdas[i] = 3; red[i] = 1 })
+        d.pasosAbiertos.push([a, b])
+      } else {
+        marcar(a, b, 0.6, (i) => { if (celdas[i]) red[i] = 1 })
+      }
+    }
+  }
+  if (d.murosExtra.length) d.muros = [...d.muros, ...d.murosExtra]
+}
+
+// celdas con escalones: cada línea de grada del plano (30 cm de ancho) y el interior de las escaleras
+function marcarEscalones(d) {
+  const { w, h, x0, y0, res, cuarto } = d.nav
+  const m = new Uint8Array(w * h)
+  for (const l of d.gradas || []) {
+    for (let k = 0; k < l.length - 1; k++) {
+      const a = l[k], b = l[k + 1]
+      const n = Math.max(1, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / (res / 2)))
+      for (let t = 0; t <= n; t++) {
+        const cx = Math.round((a[0] + ((b[0] - a[0]) * t) / n - x0) / res), cy = Math.round((a[1] + ((b[1] - a[1]) * t) / n - y0) / res)
+        for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+          const nx = cx + dx, ny = cy + dy
+          if (nx >= 0 && ny >= 0 && nx < w && ny < h) m[ny * w + nx] = 1
+        }
+      }
+    }
+  }
+  const esc = new Uint8Array(d.ambientes.length + 1)
+  d.ambientes.forEach((a, k) => { esc[k + 1] = a.cat === 'escaleras' ? 1 : 0 })
+  for (let i = 0; i < m.length; i++) if (esc[cuarto[i]]) m[i] = 1
+  return m
 }
 
 // franja de paso: la red verde y los pasillos y halls abiertos conectados a ella. Los pasillos internos de los bloques
 // son solo del personal y no entran. Un cuarto cerrado (consultorio, farmacia, oficina) aporta solo su puerta: la franja
 // no sigue hacia adentro. Si un cuarto queda sin camino por pasillos públicos, se traza un acceso hasta la franja.
-const SOLO_PERSONAL = /^Pasillo Bloque/
-// ventanillas (plano en metros, punto donde se para el paciente): Farmacia atiende por la ventanilla del muro oeste,
-// desde el Pasillo Central; Tesorería y los 5 módulos de Gestión Privados atienden desde el Hall de Cajas
-const VENTANILLAS = {
-  Farmacia: [56.75, 61.1],
-  Tesorería: [75.6, 31.1],
-  'Módulo 01': [65.5, 31.1], 'Módulo 02': [67.35, 31.1], 'Módulo 03': [69.2, 31.1], 'Módulo 04': [71.05, 31.1], 'Módulo 05': [72.9, 31.1],
-}
-
 function bandaDeRed(d) {
   const { w, h, celdas, cuarto, red, paso, vereda } = d.nav
   const N = w * h
   const staff = new Uint8Array(d.ambientes.length + 1)
-  d.ambientes.forEach((a, k) => { staff[k + 1] = SOLO_PERSONAL.test(a.nombre || '') ? 1 : 0 })
+  d.ambientes.forEach((a, k) => { staff[k + 1] = a.personal ? 1 : 0 })
   // el pasillo de bloque solo es de personal, salvo donde se trazó verde o rojo (eso es un recorrido de paciente)
   const libre = (j) => !!celdas[j] && (!staff[cuarto[j]] || red[j] === 1)
   const publico = (j) => libre(j) && (cuarto[j] === 0 || !!paso[cuarto[j]])
@@ -244,7 +384,6 @@ function bandaDeRed(d) {
 
 // cuartos cuya puerta no se ve en el plano: se abre un vano a través del muro hasta el pasillo público más cercano.
 // Solo atraviesa muro: no pasa por otros cuartos ni por pasillos de bloque.
-const PUERTAS_AUTO = ['Cajas', 'Consultorio · 35', 'Tesorería', 'Secretaría – Control', 'Minusválidos', 'SS.HH.']
 
 function abrirPuertas(d, banda) {
   const { w, h, celdas, cuarto, paso, vereda } = d.nav
@@ -257,11 +396,11 @@ function abrirPuertas(d, banda) {
     if (y < h - 1) r.push(i + w)
     return r
   }
-  const personal = (c) => c > 0 && SOLO_PERSONAL.test(d.ambientes[c - 1].nombre || '')
+  const personal = (c) => c > 0 && !!d.ambientes[c - 1].personal
   // muro que se puede abrir: cualquier celda sin paso (muro); el interior de los cuartos no se toca
   const muro = (j) => celdas[j] === 0 && !personal(cuarto[j])
   d.ambientes.forEach((a, k) => {
-    if (!PUERTAS_AUTO.includes(a.nombre)) return
+    if (!d.cfg.puertasAuto.includes(a.nombre)) return
     const q = k + 1
     // espacio libre que se puede cruzar sin romper nada: vestíbulos sin nombre y espacios abiertos (no otros cuartos)
     // (y otros baños: el cubículo de Minusválidos puede estar dentro de un SS.HH. y se llega cruzándolo)
