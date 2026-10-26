@@ -47,7 +47,7 @@ const TIPOS_PASO = {
  * - cada ambiente: nombre, categoría, punto de acceso, ventanilla, solo personal, oculto
  * - lugares nuevos (un punto con nombre: un módulo, una ventanilla, un servicio sin cuarto propio)
  * - pasos: abrir un vano, cerrar un paso con un muro, trazar una línea de recorrido de pacientes
- * Dentro de OM3 (enOm3) los cambios se guardan como borrador en el servidor; fuera, solo en este navegador.
+ * Dentro de OM3 (enOm3) cada cambio se manda a OM3, que lo guarda en el servidor; fuera, solo en este navegador.
  */
 export function PanelAdmin({ d, cambios, onCambiar, onLugar, onQuitarLugar, onPaso, onQuitarPaso, onRestablecer, pick, onPick, onSalir, enOm3 = false }) {
   const [pestana, setPestana] = useState('ambientes')
@@ -82,7 +82,7 @@ export function PanelAdmin({ d, cambios, onCambiar, onLugar, onQuitarLugar, onPa
         <button className="btn-claro" onClick={onSalir}>Salir</button>
       </div>
       <p className="admin-nota">
-        {enOm3 ? 'Los cambios se guardan como borrador en OM3; se ven en el tótem cuando se publican.' : 'Los cambios se guardan solo en este navegador.'} Se aplican igual en 2D y en 3D.
+        {enOm3 ? 'Los cambios se ven en el tótem cuando se pulsa «Guardar cambios» en OM3.' : 'Los cambios se guardan solo en este navegador.'} Se aplican igual en 2D y en 3D.
       </p>
       <div className="pb-seg admin-pestanas" role="tablist">
         {[['ambientes', 'Ambientes'], ['lugares', 'Lugares nuevos'], ['pasos', 'Pasos y muros']].map(([k, t]) => (
@@ -177,7 +177,7 @@ export function PanelAdmin({ d, cambios, onCambiar, onLugar, onQuitarLugar, onPa
 
       <div className="admin-pie">
         {!enOm3 && <button className="btn-claro" onClick={descargar}>Descargar cambios.json</button>}
-        <button className="btn-claro" onClick={onRestablecer}>{enOm3 ? 'Descartar borrador' : 'Restablecer'}</button>
+        <button className="btn-claro" onClick={onRestablecer}>{enOm3 ? 'Descartar lo no guardado' : 'Restablecer'}</button>
       </div>
     </div>
   )
