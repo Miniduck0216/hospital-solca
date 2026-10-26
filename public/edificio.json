@@ -1,31 +1,254 @@
 {
-  "nombre": "Hospital SOLCA Quito",
-  "pisoInicial": "PB",
-  "pisos": [
-    { "id": "SB", "nombre": "Subsuelo", "corto": "SB", "nivel": -1, "disponible": false },
-    { "id": "PB", "nombre": "Planta baja", "corto": "PB", "nivel": 0, "disponible": true,
-      "datos": "pb/datos.json", "config": "pb/config.json", "glb": "pb/solca_pb.glb" },
-    { "id": "P1", "nombre": "Piso 1", "corto": "P1", "nivel": 1, "disponible": false },
-    { "id": "P2", "nombre": "Piso 2", "corto": "P2", "nivel": 2, "disponible": false },
-    { "id": "P3", "nombre": "Piso 3", "corto": "P3", "nivel": 3, "disponible": false }
-  ],
-  "conectores": [
-    { "id": "ascensores-hall", "tipo": "ascensor", "nombre": "Ascensores del Hall", "accesible": true,
-      "paradas": [{ "piso": "PB", "ambiente": "a73" }] },
-    { "id": "ascensores-norte", "tipo": "ascensor", "nombre": "Ascensores norte", "accesible": true,
-      "paradas": [{ "piso": "PB", "ambiente": "a75" }] },
-    { "id": "ascensor-servicio", "tipo": "ascensor", "nombre": "Ascensor", "accesible": true,
-      "paradas": [{ "piso": "PB", "ambiente": "a76" }] },
-    { "id": "escalera-central", "tipo": "escalera", "nombre": "Escalera", "accesible": false,
-      "paradas": [{ "piso": "PB", "ambiente": "a21" }] },
-    { "id": "escalera-norte", "tipo": "escalera", "nombre": "Escalera norte", "accesible": false,
-      "paradas": [{ "piso": "PB", "ambiente": "a72" }] }
-  ],
-  "tiempos": {
-    "velocidadMs": 1.2,
-    "ascensorEsperaS": 45,
-    "ascensorPorPisoS": 5,
-    "escaleraPorPisoS": 15
+ "nombre": "Hospital SOLCA Quito",
+ "pisoInicial": "PB",
+ "pisos": [
+  {
+   "id": "SB",
+   "nombre": "Subsuelo 1",
+   "corto": "SB",
+   "nivel": -1,
+   "disponible": true,
+   "datos": "sb/datos.json",
+   "glb": "sb/solca_sb.glb",
+   "config": "sb/config.json"
   },
-  "nota": "Solo la planta baja tiene plano por ahora. Al importar SB, P1, P2 y P3: poner disponible=true, sus archivos y la parada de cada conector en ese piso."
+  {
+   "id": "PB",
+   "nombre": "Planta baja",
+   "corto": "PB",
+   "nivel": 0,
+   "disponible": true,
+   "datos": "pb/datos.json",
+   "config": "pb/config.json",
+   "glb": [
+    "pb/solca_pb.glb",
+    "pb/solca_pb_este.glb"
+   ]
+  },
+  {
+   "id": "P1",
+   "nombre": "Piso 1",
+   "corto": "P1",
+   "nivel": 1,
+   "disponible": true,
+   "datos": "p1/datos.json",
+   "glb": "p1/solca_p1.glb",
+   "config": "p1/config.json"
+  },
+  {
+   "id": "P2",
+   "nombre": "Piso 2",
+   "corto": "P2",
+   "nivel": 2,
+   "disponible": true,
+   "datos": "p2/datos.json",
+   "glb": "p2/solca_p2.glb",
+   "config": "p2/config.json"
+  },
+  {
+   "id": "P3",
+   "nombre": "Piso 3",
+   "corto": "P3",
+   "nivel": 3,
+   "disponible": true,
+   "datos": "p3/datos.json",
+   "glb": "p3/solca_p3.glb",
+   "config": "p3/config.json"
+  }
+ ],
+ "conectores": [
+  {
+   "id": "ascensor-servicio",
+   "tipo": "ascensor",
+   "nombre": "Ascensor del Bloque A",
+   "accesible": true,
+   "paradas": [
+    {
+     "piso": "PB",
+     "ambiente": "a76"
+    },
+    {
+     "piso": "P1",
+     "ambiente": "a64"
+    }
+   ]
+  },
+  {
+   "id": "ascensores-hall",
+   "tipo": "ascensor",
+   "nombre": "Ascensores del Hall",
+   "accesible": true,
+   "paradas": [
+    {
+     "piso": "SB",
+     "ambiente": "a96"
+    },
+    {
+     "piso": "PB",
+     "ambiente": "a73"
+    },
+    {
+     "piso": "P1",
+     "ambiente": "a62"
+    },
+    {
+     "piso": "P2",
+     "ambiente": "a40"
+    },
+    {
+     "piso": "P3",
+     "ambiente": "a41"
+    }
+   ]
+  },
+  {
+   "id": "ascensores-norte",
+   "tipo": "ascensor",
+   "nombre": "Ascensores norte",
+   "accesible": true,
+   "paradas": [
+    {
+     "piso": "SB",
+     "ambiente": "a97"
+    },
+    {
+     "piso": "PB",
+     "ambiente": "a75"
+    },
+    {
+     "piso": "P1",
+     "ambiente": "a63"
+    },
+    {
+     "piso": "P2",
+     "ambiente": "a41"
+    },
+    {
+     "piso": "P3",
+     "ambiente": "a42"
+    }
+   ]
+  },
+  {
+   "id": "ascensores-servicio-1",
+   "tipo": "ascensor",
+   "nombre": "Ascensores de servicio",
+   "accesible": true,
+   "paradas": [
+    {
+     "piso": "PB",
+     "ambiente": "a266"
+    },
+    {
+     "piso": "P1",
+     "ambiente": "a60"
+    },
+    {
+     "piso": "P2",
+     "ambiente": "a36"
+    },
+    {
+     "piso": "P3",
+     "ambiente": "a38"
+    }
+   ],
+   "personal": true
+  },
+  {
+   "id": "ascensores-servicio-2",
+   "tipo": "ascensor",
+   "nombre": "Ascensores de servicio",
+   "accesible": true,
+   "paradas": [
+    {
+     "piso": "PB",
+     "ambiente": "a269"
+    },
+    {
+     "piso": "P1",
+     "ambiente": "a58"
+    },
+    {
+     "piso": "P2",
+     "ambiente": "a38"
+    },
+    {
+     "piso": "P3",
+     "ambiente": "a39"
+    }
+   ],
+   "personal": true
+  },
+  {
+   "id": "escalera-norte",
+   "tipo": "escalera",
+   "nombre": "Escalera del Bloque A",
+   "accesible": false,
+   "paradas": [
+    {
+     "piso": "PB",
+     "ambiente": "a72"
+    },
+    {
+     "piso": "P1",
+     "ambiente": "a22"
+    }
+   ]
+  },
+  {
+   "id": "escalera-emergencia",
+   "tipo": "escalera",
+   "nombre": "Gradas de emergencia",
+   "accesible": false,
+   "paradas": [
+    {
+     "piso": "P1",
+     "ambiente": "a36"
+    },
+    {
+     "piso": "P2",
+     "ambiente": "a13"
+    },
+    {
+     "piso": "P3",
+     "ambiente": "a19"
+    }
+   ]
+  },
+  {
+   "id": "escalera-central",
+   "tipo": "escalera",
+   "nombre": "Escalera del Hall",
+   "accesible": false,
+   "paradas": [
+    {
+     "piso": "SB",
+     "ambiente": "a42"
+    },
+    {
+     "piso": "PB",
+     "ambiente": "a21"
+    },
+    {
+     "piso": "P1",
+     "ambiente": "a45"
+    },
+    {
+     "piso": "P2",
+     "ambiente": "a24"
+    },
+    {
+     "piso": "P3",
+     "ambiente": "a25"
+    }
+   ]
+  }
+ ],
+ "tiempos": {
+  "velocidadMs": 1.2,
+  "ascensorEsperaS": 45,
+  "ascensorPorPisoS": 5,
+  "escaleraPorPisoS": 15
+ },
+ "nota": "Pisos importados del DWG del edificio (planta_real/pisos). Conectores generados con planta_real/pisos/conectores.py: un ascensor o escalera es el mismo si cae en el mismo lugar en cada piso. «personal»: no se usa en rutas de pacientes."
 }

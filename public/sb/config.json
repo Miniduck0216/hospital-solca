@@ -1,0 +1,109 @@
+{
+ "nota": "Reglas del piso (ver public/pb/config.json). soloPersonal: ambientes que no son destino de pacientes.",
+ "soloPersonal": [
+  "^Bodega",
+  "^Abastecim",
+  "^Aire Acondicionado",
+  "^Ducto",
+  "^Sanitario",
+  "^Cuarto",
+  "^Tablero",
+  "^Vestidor",
+  "^Vest\\.",
+  "^Aseo",
+  "^U\\.U",
+  "^U\\.L",
+  "^U\\. ",
+  "^Utiler",
+  "^Lavachata",
+  "^Limpios",
+  "^Usados",
+  "^Desechos",
+  "^Residen",
+  "^Dormitorio",
+  "^Comando",
+  "^Sala de Equipos",
+  "^Computadora",
+  "^Central de",
+  "^Filtro Personal",
+  "^Despacho",
+  "^Calderas",
+  "^Subestacion",
+  "^Lavado",
+  "^Lavanderia",
+  "^Plancha",
+  "^Costura",
+  "^Descarga",
+  "^Frigor",
+  "^Termodesinf",
+  "^Mantenimiento",
+  "^Taller",
+  "^Aux\\.",
+  "^Prof\\.",
+  "^Compres",
+  "^Bodega",
+  "^Camara de Transf",
+  "^Jefe",
+  "^Tratamiento Agua",
+  "^Area Equipos",
+  "^Dietas",
+  "^Servicio",
+  "^Cctv",
+  "^Montacargas"
+ ],
+ "ajustes": {
+  "a83": {
+   "si": "Información",
+   "dest": [
+    131.54,
+    41.24
+   ],
+   "ventanilla": true
+  },
+  "a91": {
+   "si": "Recepcion",
+   "dest": [
+    102.19,
+    29.05
+   ],
+   "ventanilla": true
+  },
+  "a45": {
+   "si": "Mujeres",
+   "cat": "banos",
+   "dest": [
+    90.82,
+    52.18
+   ],
+   "ventanilla": true
+  },
+  "a52": {
+   "si": "Mujeres",
+   "cat": "banos"
+  },
+  "a38": {
+   "si": "Oficina Nutricionista",
+   "personal": true
+  },
+  "a72": {
+   "si": "Oficina Economo",
+   "personal": true
+  },
+  "a93": {
+   "si": "Oficina",
+   "personal": true
+  },
+  "a109": {
+   "si": "Aire Acondic.",
+   "personal": true
+  },
+  "a120": {
+   "si": "SS.HH.",
+   "personal": true
+  },
+  "a121": {
+   "si": "SS.HH.",
+   "personal": true
+  }
+ }
+}

@@ -2,7 +2,7 @@
 import './fetchPublic.js'
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { cargarDatos, usarGeo, ambienteEn } from '../src/pb/datos.js'
+import { cargarDatos, cargarEdificio, usarGeo, ambienteEn } from '../src/pb/datos.js'
 import { buscarRuta, metrosHasta } from '../src/pb/ruta.js'
 import { elegirConector, rutaEdificio, segundosVerticales } from '../src/pb/rutaEdificio.js'
 
@@ -13,9 +13,9 @@ const P1 = { id: puerta1.id, punto: [puerta1.x, puerta1.y] }
 const amb = (id) => d.ambientes.find((a) => a.id === id)
 const destinos = d.ambientes.filter((a) => a.nombre && a.dest && !a.personal)
 
-test('desde Puerta 1 hay ruta a todos los lugares de pacientes (salvo personal o servicio)', () => {
+test('desde Puerta 1 hay ruta a todos los lugares de pacientes (los de servicio son solo personal)', () => {
   const sin = destinos.filter((a) => !buscarRuta(d, P1.punto, a.dest, [P1.id, a.id])).map((a) => a.nombre)
-  assert.deepEqual(sin.sort(), ['Abastecimiento', 'Ducto Sanitario'])
+  assert.deepEqual(sin.sort(), [])
 })
 
 test('las rutas no cruzan la farmacia ni pasan por pasillos de bloque', () => {
@@ -131,5 +131,57 @@ test('ruta de dos pisos sobre el plano real (planta baja usada como piso de prue
 
 test('se puede partir desde cualquier lugar de pacientes («Estoy aquí»), también desde un consultorio', () => {
   const sin = destinos.filter((a) => !buscarRuta(d, a.dest, P1.punto, [a.id, P1.id])).map((a) => a.nombre)
-  assert.deepEqual(sin.sort(), ['Abastecimiento', 'Ducto Sanitario'])
+  assert.deepEqual(sin.sort(), [])
+})
+
+// ---------------------------------------------------------------- edificio real: SB, PB, P1, P2, P3
+const edificio = await cargarEdificio()
+const pisos = { PB: d }
+for (const p of edificio.pisos) if (p.id !== 'PB' && p.disponible) pisos[p.id] = await cargarDatos(null, { pisoId: p.id })
+
+test('cada piso: desde los Ascensores del Hall se llega a todos los lugares de pacientes', () => {
+  const hall = edificio.conectores.find((c) => c.id === 'ascensores-hall')
+  for (const [id, dd] of Object.entries(pisos)) {
+    const parada = hall.paradas.find((s) => s.piso === id)
+    assert.ok(parada, `el ascensor del Hall no para en ${id}`)
+    const a0 = dd.ambientes.find((a) => a.id === parada.ambiente)
+    const sin = dd.ambientes.filter((a) => a.nombre && a.dest && !a.personal)
+      .filter((a) => !buscarRuta(dd, a0.dest, a.dest, [a0.id, a.id])).map((a) => `${a.id} ${a.nombre}`)
+    assert.deepEqual(sin, [], `${id}: sin ruta`)
+  }
+})
+
+test('los conectores paran en ambientes que existen y son ascensores o escaleras', () => {
+  for (const c of edificio.conectores) {
+    for (const s of c.paradas) {
+      const a = pisos[s.piso].ambientes.find((x) => x.id === s.ambiente)
+      assert.ok(a, `${c.id} en ${s.piso}: ${s.ambiente} no existe`)
+      assert.equal(a.cat, c.tipo === 'ascensor' ? 'ascensores' : 'escaleras', `${c.id} en ${s.piso}: ${a.nombre}`)
+    }
+  }
+})
+
+test('Puerta 1 → una habitación del piso 3: por ascensor y con la escalera como alternativa', () => {
+  const hab = pisos.P3.ambientes.find((a) => /^Hab/.test(a.nombre) && a.dest && !a.personal)
+  const args = { edificio, pisos, origen: { piso: 'PB', ...P1 }, destino: { piso: 'P3', id: hab.id, punto: hab.dest }, buscar: buscarRuta, medir: metrosHasta }
+  const r = rutaEdificio(args)
+  assert.ok(r && !r.sinRuta, 'sin ruta')
+  assert.equal(r.vertical.tipo, 'ascensor')
+  assert.ok(!r.vertical.conector.personal, 'no usa ascensores de servicio')
+  assert.deepEqual(r.tramos.map((t) => t.piso), ['PB', 'P3'])
+  assert.equal(r.alternativa?.tipo, 'escalera')
+  const e = rutaEdificio({ ...args, via: 'escalera' })
+  assert.equal(e.vertical.tipo, 'escalera')
+  const acc = rutaEdificio({ ...args, accesible: true })
+  assert.equal(acc.vertical.tipo, 'ascensor')
+  assert.equal(acc.alternativa, null)
+})
+
+test('subsuelo → piso 1 y vuelta: hay ruta en los dos sentidos', () => {
+  const sb = pisos.SB.ambientes.find((a) => a.nombre && a.dest && !a.personal && a.cat !== 'ascensores' && a.cat !== 'escaleras')
+  const p1 = pisos.P1.ambientes.find((a) => a.nombre && a.dest && !a.personal && a.cat !== 'ascensores' && a.cat !== 'escaleras')
+  const ida = rutaEdificio({ edificio, pisos, origen: { piso: 'SB', id: sb.id, punto: sb.dest }, destino: { piso: 'P1', id: p1.id, punto: p1.dest }, buscar: buscarRuta, medir: metrosHasta })
+  const vuelta = rutaEdificio({ edificio, pisos, origen: { piso: 'P1', id: p1.id, punto: p1.dest }, destino: { piso: 'SB', id: sb.id, punto: sb.dest }, buscar: buscarRuta, medir: metrosHasta })
+  assert.ok(ida && !ida.sinRuta && vuelta && !vuelta.sinRuta)
+  assert.match(vuelta.vertical.texto, /baje/)
 })

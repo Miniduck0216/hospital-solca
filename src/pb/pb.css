@@ -267,3 +267,14 @@ body { background: #E9EDF1; }
 .pb-pisos button.on { background: var(--m-tinta); color: #fff; }
 .pb-pisos button:disabled { color: #9AA6B4; cursor: default; }
 .pb-pisos small { margin-left: auto; font-weight: 600; font-size: .7rem; }
+
+/* rutas entre pisos: elegir ascensor o escaleras y ver el tramo de cada piso */
+.pb-via { box-shadow: none; background: #F1F4F7; align-self: flex-start; }
+.pb-via button { display: inline-flex; align-items: center; gap: 6px; }
+.pb-via button[aria-checked="true"] { background: var(--m-tinta); color: #fff; }
+.pb-pasos li.paso-piso { padding: 4px 0 0; }
+.pb-pasos li.paso-piso:hover { background: none; }
+.pb-pasos li.paso-piso .btn-claro { display: inline-flex; align-items: center; gap: 6px; font-weight: 800; font-size: .8rem; padding: 5px 10px; }
+.pb-pasos li.paso-piso.on .btn-claro { background: var(--m-tinta); color: #fff; }
+.pb-pasos li.paso-vertical { background: #EEF1FF; font-weight: 700; }
+.insertado-totem .pb-via button { padding: 14px 18px; font-size: 1rem; }

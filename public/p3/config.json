@@ -1,0 +1,49 @@
+{
+ "nota": "Reglas del piso (ver public/pb/config.json). soloPersonal: ambientes que no son destino de pacientes.",
+ "soloPersonal": [
+  "^Bodega",
+  "^Abastecim",
+  "^Aire Acondicionado",
+  "^Ducto",
+  "^Sanitario",
+  "^Cuarto",
+  "^Tablero",
+  "^Vestidor",
+  "^Vest\\.",
+  "^Aseo",
+  "^U\\.U",
+  "^U\\.L",
+  "^U\\. ",
+  "^Utiler",
+  "^Lavachata",
+  "^Limpios",
+  "^Usados",
+  "^Desechos",
+  "^Residen",
+  "^Dormitorio",
+  "^Comando",
+  "^Sala de Equipos",
+  "^Computadora",
+  "^Central de",
+  "^Filtro Personal",
+  "^SS\\.HH\\.",
+  "^Baño",
+  "^Sala Medicos",
+  "^Oficina",
+  "^Estar",
+  "^Examen",
+  "^L\\.ch",
+  "^Tina",
+  "^Cocina"
+ ],
+ "ajustes": {
+  "a38": {
+   "si": "Ascensores",
+   "personal": true
+  },
+  "a39": {
+   "si": "Ascensores",
+   "personal": true
+  }
+ }
+}
