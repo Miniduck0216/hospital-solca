@@ -29,7 +29,7 @@ function capas(d) {
     properties: { id: a.id, color: esPlano(a) ? (PLANO[a.cat] || PLANO.circulacion) : (BLOQUE[a.cat] || BLOQUE.otro), alto: esPlano(a) ? 0 : ALTO, pasillo: a.cat === 'circulacion' ? 1 : 0 },
     geometry: { type: 'Polygon', coordinates: anillos(a.pg) },
   })))
-  const rotulos = FC(d.ambientes.filter((a) => a.nombre && a.area >= 1.2).map((a) => ({
+  const rotulos = FC(d.ambientes.filter((a) => a.nombre && (a.area >= 1.2 || a.nuevo)).map((a) => ({
     type: 'Feature', properties: { nombre: a.nombre, area: a.area, orden: -a.area, pasillo: a.cat === 'circulacion' ? 1 : 0, pin: conPin(a) ? 1 : 0 },
     geometry: { type: 'Point', coordinates: aLonLat(a.lbl[0], a.lbl[1]) },
   })))
@@ -40,6 +40,8 @@ function capas(d) {
     rotulos,
     muros: polis(d.muros),
     gradas: lineas(d.gradas),
+    // pasos abiertos por el administrador (puertas que el plano no tiene)
+    pasos: lineas(d.pasosAbiertos || []),
     viseras: polis(d.viseras),
     parqueos,
   }
@@ -47,7 +49,7 @@ function capas(d) {
 
 const vacio = FC([])
 
-export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, hover, onElegir, onHover, lugaresIcono, pick = false, onPick, recorrer = false, onFinRecorrer }, fwd) {
+export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, hover, onElegir, onHover, lugaresIcono, pick = false, onPick, recorrer = false, onFinRecorrer, trazo = null }, fwd) {
   const ref = useRef(null)
   const mapa = useRef(null)
   const [listo, setListo] = useState(false)
@@ -84,6 +86,8 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
   // ---------- creación del mapa
   useEffect(() => {
     const c = aLonLat(54, 60)
+    // al recrear el mapa (datos nuevos del administrador o de otro piso) se espera a que cargue su estilo
+    setListo(false)
     const map = new maplibregl.Map({
       container: ref.current, style: ESTILO, center: c, zoom: 17.6, minZoom: 15, maxZoom: 21.5, bearing: rumbo(), pitch: 40, maxPitch: 60,
       pitchWithRotate: false, touchPitch: false, dragRotate: false, attributionControl: { compact: true }, fadeDuration: 0,
@@ -101,6 +105,7 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
       for (const [k, v] of Object.entries(C)) map.addSource(k, { type: 'geojson', data: v })
       map.addSource('ruta', { type: 'geojson', data: vacio })
       map.addSource('ruta-puntos', { type: 'geojson', data: vacio })
+      map.addSource('trazo', { type: 'geojson', data: vacio })
       const fuente = map.getStyle().glyphs ? ['Noto Sans Bold'] : undefined
       // exterior al estilo de mapa de interiores: áreas verdes de OSM en verde césped, manzanas claras
       try {
@@ -124,6 +129,7 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
         'fill-color': ['case', ['boolean', ['feature-state', 'destino'], false], '#7C83E6', ['get', 'color']],
         'fill-opacity': ['case', ['boolean', ['feature-state', 'hover'], false], 0.8, 1],
       } })
+      map.addLayer({ id: 'pasos', type: 'line', source: 'pasos', layout: { 'line-cap': 'round' }, paint: { 'line-color': '#2E9D5B', 'line-width': ['interpolate', ['linear'], ['zoom'], 17, 2, 20, 6], 'line-dasharray': [1, 1.5] } })
       map.addLayer({ id: 'gradas', type: 'line', source: 'gradas', minzoom: 17.5, paint: { 'line-color': '#9AA8BA', 'line-width': 0.8 } })
       // cuartos como bloques: el destino se pinta lila, el que está bajo el cursor un poco más intenso
       map.addLayer({ id: 'ambientes-3d', type: 'fill-extrusion', source: 'ambientes', filter: ['>', ['get', 'alto'], 0], paint: {
@@ -141,6 +147,10 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
         'circle-stroke-color': '#FFFFFF', 'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 17, 0.6, 20, 1.4],
         'circle-pitch-alignment': 'map',
       } })
+      // trazo del administrador mientras dibuja un paso (abrir, cerrar o línea de recorrido)
+      map.addLayer({ id: 'trazo-linea', type: 'line', source: 'trazo', filter: ['==', ['geometry-type'], 'LineString'], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: {
+        'line-color': ['match', ['get', 'tipo'], 'cerrar', '#C0392B', 'abrir', '#2E9D5B', '#1B95BD'], 'line-width': 4, 'line-dasharray': [2, 1] } })
+      map.addLayer({ id: 'trazo-puntos', type: 'circle', source: 'trazo', filter: ['==', ['geometry-type'], 'Point'], paint: { 'circle-radius': 5, 'circle-color': '#fff', 'circle-stroke-width': 2, 'circle-stroke-color': '#1E2A4A' } })
       if (fuente) {
         map.addLayer({ id: 'rotulos', type: 'symbol', source: 'rotulos', minzoom: 16.8, filter: ['any', ['>=', ['get', 'area'], 60], ['>=', ['zoom'], ['case', ['>=', ['get', 'area'], 15], 17.8, 18.8]]], layout: {
           'text-field': ['get', 'nombre'], 'text-font': fuente,
@@ -192,7 +202,7 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
   // ---------- íconos de lugares (baños, ascensores, farmacia, entradas…)
   useEffect(() => {
     const map = mapa.current
-    if (!map || !listo) return
+    if (!map || !listo || !map.getSource('ambientes')) return
     marcas.current.forEach((m) => m.remove())
     marcas.current = []
     for (const l of lugaresIcono) {
@@ -219,7 +229,7 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
   // ---------- buscador: la vista llega al lugar elegido (si no hay ruta, que la ruta ya encuadra) y lo marca con un pulso
   useEffect(() => {
     const map = mapa.current
-    if (!map || !listo || !foco) return
+    if (!map || !listo || !map.getSource('ambientes') || !foco) return
     if (!ruta) map.easeTo({ center: aLonLat(foco.x, foco.y), zoom: Math.max(map.getZoom(), 19.4), pitch: 45, bearing: rumbo(), duration: 1000 })
     const el = document.createElement('div')
     el.className = 'marca-foco'
@@ -232,17 +242,27 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
 
   useEffect(() => { const c = mapa.current?.getCanvas(); if (c) c.style.cursor = pick ? 'crosshair' : '' }, [pick])
 
+  // ---------- trazo en curso del administrador
+  useEffect(() => {
+    const map = mapa.current
+    if (!map || !listo || !map.getSource('ambientes') || !map.getSource('trazo')) return
+    const pts = (trazo?.puntos || []).map(([x, y]) => aLonLat(x, y))
+    const f = pts.map((c) => ({ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: c } }))
+    if (pts.length > 1) f.push({ type: 'Feature', properties: { tipo: trazo.tipo }, geometry: { type: 'LineString', coordinates: pts } })
+    map.getSource('trazo').setData(FC(f))
+  }, [trazo, listo])
+
   // ---------- destino resaltado
   useEffect(() => {
     const map = mapa.current
-    if (!map || !listo) return
+    if (!map || !listo || !map.getSource('ambientes')) return
     for (const a of d.ambientes) map.setFeatureState({ source: 'ambientes', id: Number(a.id.slice(1)) }, { destino: !!destino && destino.id === a.id })
   }, [listo, destino, d])
 
   // ---------- ruta animada y marcas de inicio / fin
   useEffect(() => {
     const map = mapa.current
-    if (!map || !listo) return
+    if (!map || !listo || !map.getSource('ambientes')) return
     marcasRuta.current.forEach((m) => m.remove())
     marcasRuta.current = []
     cancelAnimationFrame(anim.current)
@@ -308,7 +328,7 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
   // ---------- recorrido: un personaje camina la ruta a 1,3 m/s y la cámara lo sigue; lo caminado queda en gris
   useEffect(() => {
     const map = mapa.current
-    if (!map || !listo || !ruta || !recorrer) { andado.current = null; return }
+    if (!map || !listo || !map.getSource('ambientes') || !ruta || !recorrer) { andado.current = null; return }
     const P = ruta.pts
     const acum = [0]
     for (let i = 1; i < P.length; i++) acum.push(acum[i - 1] + Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]))
@@ -347,7 +367,7 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
   // ---------- resaltar desde la lista (hover externo)
   useEffect(() => {
     const map = mapa.current
-    if (!map || !listo) return
+    if (!map || !listo || !map.getSource('ambientes')) return
     for (const a of d.ambientes) map.setFeatureState({ source: 'ambientes', id: Number(a.id.slice(1)) }, { hover: hover === a.id })
   }, [hover, listo, d])
 

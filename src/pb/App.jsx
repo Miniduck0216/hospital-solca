@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, lazy, Suspense } from 'react'
 import QRCode from 'qrcode'
-import { cargarDatos, usarGeo, CATS, ICONO_LUGAR, plano, dentro } from './datos.js'
+import { cargarDatos, cambiosDelPiso, usarGeo, CATS, ICONO_LUGAR, plano, dentro } from './datos.js'
 import { buscarRuta, indicaciones } from './ruta.js'
 import { Mapa } from './Mapa.jsx'
 import { Hoja } from './Hoja.jsx'
@@ -13,8 +13,14 @@ const Vista3D = lazy(() => import('./Vista3D.jsx').then((m) => ({ default: m.Vis
 
 // cambios del administrador guardados en este navegador (se suman a los publicados en el repositorio)
 const CLAVE_LOCAL = 'solca-admin-cambios'
+// formato 2 de cambios (por piso). El formato 1 ({ ambientes }) del primer administrador era de la planta baja.
+export function aFormato2(c) {
+  if (!c || typeof c !== 'object') return { version: 2, pisos: {} }
+  if (c.pisos) return { version: 2, pisos: c.pisos }
+  return { version: 2, pisos: c.ambientes ? { PB: { ambientes: c.ambientes } } : {} }
+}
 function leerCambios() {
-  try { return JSON.parse(localStorage.getItem(CLAVE_LOCAL)) || {} } catch { return {} }
+  try { return aFormato2(JSON.parse(localStorage.getItem(CLAVE_LOCAL))) } catch { return aFormato2(null) }
 }
 
 // categorías de la barra (atajos de búsqueda)
@@ -49,7 +55,7 @@ function armarLugares(d) {
   const zonas = d.ambientes.filter((a) => a.nombre && (a.cat === 'circulacion' || a.cat === 'espera') && a.area > 30)
   const lugares = []
   for (const a of d.ambientes) {
-    if (!a.nombre || !a.dest || /^Pasillo Bloque/.test(a.nombre)) continue
+    if (!a.nombre || !a.dest || a.personal) continue
     let cerca = null
     if (a.cat !== 'circulacion' && a.area < 120) {
       let m = Infinity
@@ -141,7 +147,17 @@ function QR({ lugar, onCerrar }) {
 // modo de inserción: «totem» (pantalla del tótem de OM3) o «guia» (celular tras escanear el QR del tótem).
 // En ambos se ocultan la administración, el QR propio y los enlaces que sacan del mapa; ?vista=3d abre en 3D.
 const PARAMS = new URLSearchParams(location.search)
-const INSERTADO = ['totem', 'guia'].includes(PARAMS.get('modo')) ? PARAMS.get('modo') : null
+const INSERTADO = ['totem', 'guia', 'admin'].includes(PARAMS.get('modo')) ? PARAMS.get('modo') : null
+// editor dentro de OM3 (?modo=admin&padre=<origen de OM3>): sin clave (OM3 ya validó el permiso «Mapa del hospital»);
+// el borrador llega y se devuelve por postMessage, solo con esa ventana padre
+const URL_OK = (u) => { try { const x = new URL(u); return x.protocol === 'https:' || x.protocol === 'http:' ? x : null } catch { return null } }
+const PADRE = INSERTADO === 'admin' ? URL_OK(PARAMS.get('padre') || '')?.origin || null : null
+const MODO_ADMIN = !!PADRE
+// cambios publicados en OM3 (?config=<url pública>); si no, los del repositorio
+const CONFIG_URL = URL_OK(PARAMS.get('config') || '')?.href || null
+// preferencias de ruta: ?via=ascensor|escalera|cualquiera (entre pisos) y ?accesible=1 (sin escalones)
+const VIA_INICIAL = ['ascensor', 'escalera', 'cualquiera'].includes(PARAMS.get('via')) ? PARAMS.get('via') : 'ascensor'
+const ACCESIBLE_INICIAL = PARAMS.get('accesible') === '1'
 const VISTA_INICIAL = PARAMS.get('vista') === '3d' ? '3d' : '2d'
 
 const ICONO_PASO = { inicio: 'caminar', camina: 'subir', izquierda: 'izquierda', derecha: 'derecha', fin: 'destino' }
@@ -158,33 +174,70 @@ export default function App() {
   const [hover, setHover] = useState(null)
   const [qr, setQr] = useState(false)
   const [leyenda, setLeyenda] = useState(false)
-  const [admin, setAdmin] = useState(false)
+  const [admin, setAdmin] = useState(MODO_ADMIN)
   const [pedirClave, setPedirClave] = useState(false)
-  const [cambios, setCambios] = useState(() => leerCambios())
-  const [pickId, setPickId] = useState(null)
+  const [cambios, setCambios] = useState(() => (MODO_ADMIN ? aFormato2(null) : leerCambios()))
+  // selección en el plano del administrador: { tipo: 'dest', id } | { tipo: 'lugar', datos } | { tipo: 'trazo', paso, puntos }
+  const [pick, setPick] = useState(null)
+  const [pisoId, setPisoId] = useState(null)
+  const [pisosAbierto, setPisosAbierto] = useState(false)
+  const [accesible, setAccesible] = useState(ACCESIBLE_INICIAL)
+  const via = VIA_INICIAL   // se usa en las rutas entre pisos (al importar SB, P1, P2 y P3)
   const [recorrer, setRecorrer] = useState(false)   // el personaje camina la ruta (en 2D o en 3D, según la vista)
   const mapa = useRef(null)
   const vista3d = useRef(null)
   // zoom con botones en 2D y 3D: el tótem es táctil y no tiene rueda de ratón
   const vista = () => (modo === '2d' ? mapa.current : vista3d.current)
 
+  const cargar = (c, piso = pisoId) =>
+    cargarDatos(c, { pisoId: piso || undefined, cambiosUrl: CONFIG_URL, sinPublicados: MODO_ADMIN })
+      .then((datos) => { usarGeo(datos.geo); setD(datos); setPisoId(datos.piso.id) })
   useEffect(() => {
-    cargarDatos(cambios).then((datos) => { usarGeo(datos.geo); setD(datos) }).catch((e) => setError(e.message))
+    cargar(cambios).catch((e) => setError(e.message))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-  // el administrador cambia un ambiente: se guarda aquí y se recalcula el plano
-  const onCambiar = (id, patch) => {
-    const nuevo = { ...cambios, ambientes: { ...(cambios.ambientes || {}), [id]: { ...((cambios.ambientes || {})[id] || {}), ...patch } } }
-    try { localStorage.setItem(CLAVE_LOCAL, JSON.stringify(nuevo)) } catch { /* sin almacenamiento: solo en esta sesión */ }
+  // editor en OM3: OM3 manda el borrador (estado completo) y recibe cada cambio
+  useEffect(() => {
+    if (!MODO_ADMIN) return
+    const alRecibir = (e) => {
+      if (e.origin !== PADRE || e.source !== window.parent || !e.data || e.data.tipo !== 'mapa-borrador') return
+      const c = aFormato2(e.data.cambios)
+      setCambios(c)
+      cargar(c).catch((err) => setError(err.message))
+    }
+    window.addEventListener('message', alRecibir)
+    window.parent.postMessage({ tipo: 'mapa-listo' }, PADRE)
+    return () => window.removeEventListener('message', alRecibir)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  // guarda (navegador u OM3) y recalcula el plano con los cambios del piso actual
+  const guardar = (nuevo) => {
     setCambios(nuevo)
-    cargarDatos(nuevo).then((datos) => { usarGeo(datos.geo); setD(datos) })
+    if (MODO_ADMIN) window.parent.postMessage({ tipo: 'mapa-cambios', cambios: nuevo }, PADRE)
+    else { try { localStorage.setItem(CLAVE_LOCAL, JSON.stringify(nuevo)) } catch { /* sin almacenamiento: solo en esta sesión */ } }
+    cargar(nuevo)
   }
+  const cambiosPiso = cambiosDelPiso(cambios, pisoId) || {}
+  const conPiso = (fn) => guardar({ version: 2, pisos: { ...cambios.pisos, [pisoId]: fn({ ambientes: {}, lugares: [], pasos: [], ...cambiosPiso }) } })
+  const onCambiar = (id, patch) => conPiso((cp) => ({ ...cp, ambientes: { ...cp.ambientes, [id]: { ...(cp.ambientes[id] || {}), ...patch } } }))
+  const onLugar = (l) => conPiso((cp) => ({ ...cp, lugares: [...cp.lugares.filter((x) => x.id !== l.id), l] }))
+  const onQuitarLugar = (id) => conPiso((cp) => ({ ...cp, lugares: cp.lugares.filter((x) => x.id !== id) }))
+  const onPaso = (p) => conPiso((cp) => ({ ...cp, pasos: [...cp.pasos, p] }))
+  const onQuitarPaso = (i) => conPiso((cp) => ({ ...cp, pasos: cp.pasos.filter((_, k) => k !== i) }))
   const onRestablecer = () => {
-    try { localStorage.removeItem(CLAVE_LOCAL) } catch { /* nada que borrar */ }
-    setCambios({})
-    cargarDatos({}).then((datos) => { usarGeo(datos.geo); setD(datos) })
+    if (!MODO_ADMIN) { try { localStorage.removeItem(CLAVE_LOCAL) } catch { /* nada que borrar */ } }
+    guardar(aFormato2(null))
   }
-  const onPick = (x, y) => { if (pickId) { onCambiar(pickId, { dest: [x, y] }); setPickId(null) } }
+  const redondo = (v) => Math.round(v * 100) / 100
+  const onPick = (x, y) => {
+    if (!pick) return
+    if (pick.tipo === 'dest') { onCambiar(pick.id, { dest: [redondo(x), redondo(y)] }); setPick(null) }
+    else if (pick.tipo === 'lugar') {
+      onLugar({ id: `L-${Date.now().toString(36)}`, nombre: pick.datos.nombre, cat: pick.datos.cat, x: redondo(x), y: redondo(y) })
+      setPick(null)
+    } else if (pick.tipo === 'trazo') setPick({ ...pick, puntos: [...pick.puntos, [redondo(x), redondo(y)]] })
+  }
+  const cambiarPiso = (p) => { setPisosAbierto(false); if (p.disponible && p.id !== pisoId) { setDestino(null); setOrigen(null); cargar(cambios, p.id) } }
   const lugares = useMemo(() => (d ? armarLugares(d) : []), [d])
   // ¿se llega caminando por pasillos abiertos? (si no, la app lo dice en vez de trazar por consultorios)
   const alcanzable = (l) => !!d && (l.entrada || !d.nav.indice[l.id] || d.nav.alcanzable.has(d.nav.indice[l.id]))
@@ -201,29 +254,31 @@ export default function App() {
   useEffect(() => setRecorrer(false), [origen, destino])
   const ruta = useMemo(() => {
     if (!d || !origen || !destino || origen.id === destino.id) return null
-    const r = buscarRuta(d, [origen.x, origen.y], [destino.x, destino.y], [origen.id, destino.id], { admin })
+    const r = buscarRuta(d, [origen.x, origen.y], [destino.x, destino.y], [origen.id, destino.id], { admin, accesible })
     return r ? { ...r, pasos: indicaciones(d, r, origen, destino) } : null
-  }, [d, origen, destino, admin])
+  }, [d, origen, destino, admin, accesible])
 
   // si desde el origen no hay camino, ¿desde otra entrada del edificio sí? (la app lo ofrece en vez de solo decir que no)
   const alternativa = useMemo(() => {
     if (!d || !origen || !destino || origen.id === destino.id || ruta) return null
     for (const e of d.entradas) {
       if (e.id === origen.id) continue
-      if (buscarRuta(d, [e.x, e.y], [destino.x, destino.y], [e.id, destino.id], { admin })) return porId[e.id] || e
+      if (buscarRuta(d, [e.x, e.y], [destino.x, destino.y], [e.id, destino.id], { admin, accesible })) return porId[e.id] || e
     }
     return null
-  }, [d, origen, destino, admin, ruta, porId])
+  }, [d, origen, destino, admin, accesible, ruta, porId])
 
   // el enlace refleja el origen y el destino (para compartir)
   useEffect(() => {
     if (!origen) return
     const p = new URLSearchParams()
-    if (INSERTADO) p.set('modo', INSERTADO)   // el modo se conserva al cambiar origen o destino
+    // el modo y las opciones de inserción se conservan al cambiar origen o destino
+    for (const k of ['modo', 'padre', 'config', 'via']) if (PARAMS.get(k)) p.set(k, PARAMS.get(k))
+    if (accesible) p.set('accesible', '1')
     p.set('origen', origen.id)
     if (destino) p.set('destino', destino.id)
     history.replaceState(null, '', `${location.pathname}?${p}`)
-  }, [origen, destino])
+  }, [origen, destino, accesible])
 
   const lugaresIcono = useMemo(() => lugares.filter((l) => l.entrada || ['banos', 'escaleras', 'ascensores', 'farmacia'].includes(l.cat) || ['caja', 'info', 'capilla'].includes(l.icono))
     .map((l) => ({ ...l, x: l.entrada ? l.x : l.lbl[0], y: l.entrada ? l.y : l.lbl[1], color: l.entrada ? TINTA : '#FFFFFF' })), [lugares])
@@ -243,12 +298,14 @@ export default function App() {
   return (
     <div className={`pb-app modo-${modo}${INSERTADO ? ` insertado-${INSERTADO}` : ''}`}>
       {modo === '2d'
-        ? <Mapa ref={mapa} d={d} ruta={ruta} origen={origen} destino={destino} foco={foco} hover={hover} onElegir={elegirDesdeMapa} onHover={setHover} lugaresIcono={lugaresIcono} pick={!!pickId} onPick={onPick} recorrer={recorrer} onFinRecorrer={() => setRecorrer(false)} />
+        ? <Mapa ref={mapa} d={d} ruta={ruta} origen={origen} destino={destino} foco={foco} hover={hover} onElegir={elegirDesdeMapa} onHover={setHover} lugaresIcono={lugaresIcono} pick={!!pick} onPick={onPick} trazo={pick?.tipo === 'trazo' ? { tipo: pick.paso, puntos: pick.puntos } : null} recorrer={recorrer} onFinRecorrer={() => setRecorrer(false)} />
         : <Suspense fallback={<Cargando texto="Preparando el 3D…" />}><Vista3D ref={vista3d} d={d} ruta={ruta} destino={destino} foco={foco} recorrer={recorrer} setRecorrer={setRecorrer} onFinRecorrer={() => setRecorrer(false)} /></Suspense>}
 
       {/* columna izquierda: marca, búsqueda y ruta */}
       {admin && (
-        <PanelAdmin d={d} cambios={cambios} onCambiar={onCambiar} onRestablecer={onRestablecer} pickId={pickId} onPedirPunto={setPickId} onSalir={() => { setAdmin(false); setPickId(null) }} />
+        <PanelAdmin d={d} cambios={cambiosPiso} onCambiar={onCambiar} onLugar={onLugar} onQuitarLugar={onQuitarLugar} onPaso={onPaso} onQuitarPaso={onQuitarPaso}
+          onRestablecer={onRestablecer} pick={pick} onPick={setPick} enOm3={MODO_ADMIN}
+          onSalir={MODO_ADMIN ? () => window.parent.postMessage({ tipo: 'mapa-salir' }, PADRE) : () => { setAdmin(false); setPick(null) }} />
       )}
 
       {!buscando && !admin && (
@@ -277,8 +334,12 @@ export default function App() {
                   <div className="ruta-datos">
                     <span><Icono nombre="caminar" size={15} /> {Math.round(ruta.metros)} m</span>
                     <span><Icono nombre="reloj" size={15} /> {minutos} min</span>
-                    <span><Icono nombre="piso" size={15} /> Planta baja</span>
+                    <span><Icono nombre="piso" size={15} /> {d.piso?.nombre || 'Planta baja'}</span>
                   </div>
+                  <label className="pb-check pb-accesible">
+                    <input type="checkbox" checked={accesible} onChange={(e) => setAccesible(e.target.checked)} />
+                    <Icono nombre="accesible" size={16} /> Ruta accesible (sin escalones)
+                  </label>
                   <ol className="pb-pasos">
                     {ruta.pasos.map((p, i) => (
                       <li key={i} className={`paso-${p.tipo}`}>
@@ -338,10 +399,21 @@ export default function App() {
           { id: 'mas', icono: 'mas', titulo: 'Acercar', onClick: () => vista()?.acercar() },
           { id: 'menos', icono: 'menos', titulo: 'Alejar', onClick: () => vista()?.alejar() },
           { id: 'centrar', icono: 'centrar', titulo: 'Centrar el edificio', onClick: () => vista()?.centrar() },
-          { id: 'piso', texto: 'PB', titulo: 'Planta baja' },
+          { id: 'piso', texto: d.piso?.corto || 'PB', titulo: 'Cambiar de piso', on: pisosAbierto, onClick: () => setPisosAbierto((v) => !v) },
           { id: 'leyenda', icono: 'mapa', titulo: 'Leyenda', on: leyenda, onClick: () => setLeyenda((v) => !v) },
           ...(INSERTADO ? [] : [{ id: 'admin', icono: 'ajustes', titulo: admin ? 'Salir de administración' : 'Administración', on: admin, onClick: () => (admin ? setAdmin(false) : setPedirClave(true)) }]),
         ]} />
+        {pisosAbierto && (
+          <ul className="pb-leyenda pb-pisos" aria-label="Pisos">
+            {[...(d.edificio?.pisos || [])].sort((a, b) => b.nivel - a.nivel).map((p) => (
+              <li key={p.id}>
+                <button className={p.id === pisoId ? 'on' : ''} disabled={!p.disponible} onClick={() => cambiarPiso(p)}>
+                  <b>{p.corto}</b> {p.nombre}{!p.disponible && <small>plano pendiente</small>}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
         {leyenda && (
           <ul className="pb-leyenda">
             {[['consulta', 'consulta'], ['espera', 'silla'], ['banos', 'bano'], ['farmacia', 'farmacia'], ['administracion', 'administracion'], ['circulacion', 'piso'], ['escaleras', 'escalera'], ['apoyo', 'servicios']].map(([k, ic]) => (

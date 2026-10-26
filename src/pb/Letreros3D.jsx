@@ -7,13 +7,8 @@ import * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
 import { CATS } from './datos.js'
 
-// textos del plano que no son un ambiente propio (coordenadas del plano, en metros)
-const EXTRA = [
-  { nombre: 'Zona 1', x: 59.1, y: 45.0, zona: true },
-  { nombre: 'Zona 2', x: 38.5, y: 103.4, zona: true },
-  { nombre: 'Espera Citología', x: 76.7, y: 100.6, cat: 'espera' },
-  { nombre: 'Sala de Espera', x: 52.6, y: 82.7, cat: 'espera' },
-]
+// los textos del plano que no son un ambiente propio (Zona 1, Zona 2…) vienen de la configuración del piso
+// (public/pb/config.json → letreros)
 const NAVY = '#1E2A4A'
 
 // placa dibujada en un lienzo: esquinas redondeadas, franja de color, nombre en blanco
@@ -54,7 +49,7 @@ export function Letreros({ d, visibles = true }) {
       const color = (CATS[a.cat] || CATS.otro).acento
       out.push({ nombre: a.nombre, x: a.lbl[0], y: a.lbl[1], color, area: a.area, zona: false })
     }
-    for (const e of EXTRA) out.push({ ...e, color: e.zona ? NAVY : (CATS[e.cat] || CATS.otro).acento, area: e.zona ? 999 : 80 })
+    for (const e of d.cfg?.letreros || []) out.push({ ...e, color: e.zona ? NAVY : (CATS[e.cat] || CATS.otro).acento, area: e.zona ? 999 : 80 })
     return out.map((it) => ({ ...it, ...placa(it.nombre, it.color, it.zona) }))
   }, [d])
   // tamaño de la placa en pantalla (fracción del alto de la vista)
