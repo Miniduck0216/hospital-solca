@@ -106,8 +106,14 @@ const OCULTOS = ['muros|0.360,0.160,0.053', 'muros|0.562,0.026,0.014', 'muebles|
 // descuadrado; las caras traseras se pintan del color de la tapa y el corte se ve macizo
 const TAPA = new THREE.MeshBasicMaterial({ color: '#E6DED0', side: THREE.BackSide })
 
-function Edificio({ corte, letreros, plano }) {
-  const { scene } = useGLTF(`${BASE}pb/solca_pb.glb?v=${__VERSION__}`)
+// el piso puede venir en varias partes (la planta baja: lo que ya estaba + lo que se completó del plano 2025)
+function Edificio({ glb, ...props }) {
+  const partes = Array.isArray(glb) ? glb : [glb]
+  return <>{partes.map((u) => <ParteEdificio key={u} url={u} {...props} />)}</>
+}
+
+function ParteEdificio({ corte, letreros, plano, url }) {
+  const { scene } = useGLTF(`${BASE}${url}?v=${__VERSION__}`)
   const { gl } = useThree()
   useEffect(() => { gl.localClippingEnabled = true; TAPA.clippingPlanes = [plano] }, [gl, plano])
   useEffect(() => {
@@ -525,7 +531,7 @@ export const Vista3D = forwardRef(function Vista3D({ d, ruta, destino, foco, rec
           shadow-camera-left={-90} shadow-camera-right={90} shadow-camera-top={90} shadow-camera-bottom={-90} shadow-camera-near={10} shadow-camera-far={400}
           shadow-bias={-0.0004} shadow-normalBias={0.06} target-position={[cx, 0, -cy]} />
         <Suspense fallback={<Html center><div className="pb-cargando">Cargando el modelo 3D…</div></Html>}>
-          <Edificio corte={corte} letreros={letreros} plano={plano} />
+          <Edificio corte={corte} letreros={letreros} plano={plano} glb={d.piso?.glb || 'pb/solca_pb.glb'} />
         </Suspense>
         <SueloMapa centro={[cx, cy]} />
         <PisosColor d={d} destino={destino} />

@@ -2,3 +2,7 @@ node_modules
 dist
 .validar.mjs
 __pycache__
+
+# pisos: cachés de lectura del DXF
+planta_real/pisos/cache/
+planta_real/pisos/__pycache__/

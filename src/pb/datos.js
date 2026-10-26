@@ -27,6 +27,8 @@ export function compilarConfig(c = {}) {
     puertasAuto: c.puertasAuto || [],
     renombres: (c.renombres || []).map((r) => ({ ...r, re: new RegExp(r.patron) })),
     letreros: c.letreros || [],
+    // ajustes por ambiente (ver planta_real/pisos/ajustes.py): se aplican solo si el ambiente conserva el nombre «si»
+    ajustes: c.ajustes || {},
   }
 }
 
@@ -59,6 +61,9 @@ export async function cargarDatos(cambiosLocales = null, opciones = {}) {
     else if (rn.sufijo) a.nombre = `${a.nombre}${rn.sufijo}`
   }
   d.cambiosPasos = []
+  const ajustes = Object.fromEntries(Object.entries(d.cfg.ajustes)
+    .filter(([id, c]) => d.ambientes.find((x) => x.id === id)?.nombre === c.si))
+  aplicarCambios(d, { ambientes: ajustes })
   aplicarCambios(d, cambiosDelPiso(publicados, piso.id))
   aplicarCambios(d, cambiosDelPiso(cambiosLocales, piso.id))
   // solo personal: por regla del piso o marcado por el administrador
@@ -68,14 +73,16 @@ export async function cargarDatos(cambiosLocales = null, opciones = {}) {
   for (let i = 0; i < bin.length; i++) celdas[i] = bin.charCodeAt(i)
   d.nav.celdas = celdas
   const bin2 = atob(d.nav.cuarto)
-  const cuarto = new Uint8Array(bin2.length)
-  for (let i = 0; i < bin2.length; i++) cuarto[i] = bin2.charCodeAt(i)
-  d.nav.cuarto = cuarto
+  const bytes2 = new Uint8Array(bin2.length)
+  for (let i = 0; i < bin2.length; i++) bytes2[i] = bin2.charCodeAt(i)
+  // con más de 255 ambientes el índice del cuarto va en 2 bytes (little-endian): nav.cuartoBits = 16
+  d.nav.cuarto = d.nav.cuartoBits === 16 ? new Uint16Array(bytes2.buffer) : bytes2
   // espacios que la franja de paso puede cruzar: pasillos, halls, salas de espera y accesos verticales
   const ABIERTOS = ['circulacion', 'espera', 'escaleras', 'ascensores']
   d.nav.paso = new Uint8Array(d.ambientes.length + 1)
   d.nav.paso[0] = 1
-  d.ambientes.forEach((a, k) => { d.nav.paso[k + 1] = (ABIERTOS.includes(a.cat) && !a.personal) || (!a.nombre && a.area >= 30) ? 1 : 0 })
+  // a.paso: vestíbulo o recepción que reparte a varios cuartos (marcado al importar el plano por su número de puertas)
+  d.ambientes.forEach((a, k) => { d.nav.paso[k + 1] = ((ABIERTOS.includes(a.cat) || a.paso) && !a.personal) || (!a.nombre && a.area >= 30) ? 1 : 0 })
   // red de pasillos para pacientes (trazada sobre el plano): 1 = pasillo de la red
   const bin3 = atob(d.nav.red)
   d.nav.red = new Uint8Array(bin3.length)

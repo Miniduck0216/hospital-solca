@@ -1,25 +1,158 @@
 {
-  "piso": "PB",
-  "nota": "Reglas propias de la planta baja. El administrador puede sobrescribir lo de cada ambiente con sus cambios.",
-  "soloPersonal": ["^Pasillo Bloque"],
-  "ventanillas": {
-    "Farmacia": [56.75, 61.1],
-    "Tesorería": [75.6, 31.1],
-    "Módulo 01": [65.5, 31.1],
-    "Módulo 02": [67.35, 31.1],
-    "Módulo 03": [69.2, 31.1],
-    "Módulo 04": [71.05, 31.1],
-    "Módulo 05": [72.9, 31.1]
-  },
-  "puertasAuto": ["Cajas", "Consultorio · 35", "Tesorería", "Secretaría – Control", "Minusválidos", "SS.HH."],
-  "renombres": [
-    { "patron": "^Gestión Privados$", "areaMax": 4, "nombre": null, "nota": "lado del personal de cada módulo" },
-    { "patron": "^Módulo 0[1-5]$", "sufijo": " · Gestión Privados" }
+ "piso": "PB",
+ "nota": "Reglas propias de la planta baja. El administrador puede sobrescribir lo de cada ambiente con sus cambios.",
+ "soloPersonal": [
+  "^Pasillo Bloque",
+  "^Bodega",
+  "^Abastecim",
+  "^Aire Acondicionado",
+  "^Ducto",
+  "^Sanitario",
+  "^Cuarto",
+  "^Tablero",
+  "^Vestidor",
+  "^Vest\\.",
+  "^Aseo",
+  "^U\\.U",
+  "^U\\.L",
+  "^U\\. ",
+  "^Utiler",
+  "^Lavachata",
+  "^Limpios",
+  "^Usados",
+  "^Desechos",
+  "^Residen",
+  "^Dormitorio",
+  "^Comando",
+  "^Sala de Equipos",
+  "^Computadora",
+  "^Central de",
+  "^Filtro Personal",
+  "^Quir[oó]fano",
+  "^Esterilizaci",
+  "^Morgue",
+  "^Archivo",
+  "^Hidroterapia",
+  "^Mecanoterapia",
+  "^Deposito",
+  "^Redes",
+  "^Investigaci",
+  "^Gen[oó]mica",
+  "^Citogen",
+  "^Cuarto Oscuro",
+  "^Bodega Reactivos",
+  "^Reactivos",
+  "^Circulaci[oó]n Blanca",
+  "^Oficina Anestesi",
+  "^Sala Reuniones",
+  "^Reunion",
+  "^Jefatura",
+  "^Oficina Jefe"
+ ],
+ "ventanillas": {
+  "Farmacia": [
+   56.75,
+   61.1
   ],
-  "letreros": [
-    { "nombre": "Zona 1", "x": 59.1, "y": 45.0, "zona": true },
-    { "nombre": "Zona 2", "x": 38.5, "y": 103.4, "zona": true },
-    { "nombre": "Espera Citología", "x": 76.7, "y": 100.6, "cat": "espera" },
-    { "nombre": "Sala de Espera", "x": 52.6, "y": 82.7, "cat": "espera" }
+  "Tesorería": [
+   75.6,
+   31.1
+  ],
+  "Módulo 01": [
+   65.5,
+   31.1
+  ],
+  "Módulo 02": [
+   67.35,
+   31.1
+  ],
+  "Módulo 03": [
+   69.2,
+   31.1
+  ],
+  "Módulo 04": [
+   71.05,
+   31.1
+  ],
+  "Módulo 05": [
+   72.9,
+   31.1
   ]
+ },
+ "puertasAuto": [
+  "Cajas",
+  "Consultorio · 35",
+  "Tesorería",
+  "Secretaría – Control",
+  "Minusválidos",
+  "SS.HH."
+ ],
+ "renombres": [
+  {
+   "patron": "^Gestión Privados$",
+   "areaMax": 4,
+   "nombre": null,
+   "nota": "lado del personal de cada módulo"
+  },
+  {
+   "patron": "^Módulo 0[1-5]$",
+   "sufijo": " · Gestión Privados"
+  }
+ ],
+ "letreros": [
+  {
+   "nombre": "Zona 1",
+   "x": 59.1,
+   "y": 45.0,
+   "zona": true
+  },
+  {
+   "nombre": "Zona 2",
+   "x": 38.5,
+   "y": 103.4,
+   "zona": true
+  },
+  {
+   "nombre": "Espera Citología",
+   "x": 76.7,
+   "y": 100.6,
+   "cat": "espera"
+  },
+  {
+   "nombre": "Sala de Espera",
+   "x": 52.6,
+   "y": 82.7,
+   "cat": "espera"
+  }
+ ],
+ "ajustes": {
+  "a92": {
+   "si": "Vestíbulo de Ductos",
+   "personal": true
+  },
+  "a277": {
+   "si": "Punciones",
+   "personal": true
+  },
+  "a283": {
+   "si": "Seleccion Donantes",
+   "personal": true
+  },
+  "a292": {
+   "si": "Baño",
+   "personal": true
+  },
+  "a293": {
+   "si": "Baños",
+   "personal": true
+  },
+  "a266": {
+   "si": "Ascensores",
+   "personal": true
+  },
+  "a269": {
+   "si": "Ascensores",
+   "personal": true
+  }
+ }
 }

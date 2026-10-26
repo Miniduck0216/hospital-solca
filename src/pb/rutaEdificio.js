@@ -33,13 +33,14 @@ export const paradaEn = (conector, pisoId) => conector.paradas.find((p) => p.pis
  * @param e.metrosDestino  { [ambienteParada]: metros } desde el destino hasta cada parada de su piso
  * @returns { elegida, alternativa, opciones, aviso } (elegida = null si no hay forma de llegar)
  */
-export function elegirConector({ edificio, origen, destino, metrosOrigen, metrosDestino, via = VIA_POR_DEFECTO, accesible = false }) {
+export function elegirConector({ edificio, origen, destino, metrosOrigen, metrosDestino, via = VIA_POR_DEFECTO, accesible = false, admin = false }) {
   const tiempos = { ...TIEMPOS_DEF, ...(edificio.tiempos || {}) }
   const nivel = (id) => edificio.pisos.find((p) => p.id === id)?.nivel
   const dn = nivel(destino.piso) - nivel(origen.piso)
   const opciones = []
   for (const c of edificio.conectores || []) {
     if (accesible && !c.accesible) continue
+    if (c.personal && !admin) continue   // ascensores de servicio: no son para pacientes
     const a = paradaEn(c, origen.piso), b = paradaEn(c, destino.piso)
     if (!a || !b) continue
     const mA = metrosOrigen[a.ambiente], mB = metrosDestino[b.ambiente]
@@ -81,17 +82,17 @@ export function textoVertical(op, edificio, origen, destino) {
  * @param buscar  (d, desde, hasta, ids, opts) => { pts, metros } | null     (buscarRuta de ruta.js)
  * @param medir   (d, desde, idOrigen, objetivos, opts) => { [id]: metros }  (metrosHasta de ruta.js)
  */
-export function rutaEdificio({ edificio, pisos, origen, destino, via = VIA_POR_DEFECTO, accesible = false, buscar, medir }) {
+export function rutaEdificio({ edificio, pisos, origen, destino, via = VIA_POR_DEFECTO, accesible = false, admin = false, buscar, medir }) {
   const opts = { accesible }
   if (origen.piso === destino.piso) {
     const r = buscar(pisos[origen.piso], origen.punto, destino.punto, [origen.id, destino.id], opts)
     return r ? { tramos: [{ piso: origen.piso, ...r }], metros: r.metros, vertical: null, alternativa: null, aviso: null } : null
   }
   const dO = pisos[origen.piso], dD = pisos[destino.piso]
-  const paradas = (pisoId) => (edificio.conectores || []).map((c) => paradaEn(c, pisoId)?.ambiente).filter(Boolean)
+  const paradas = (pisoId) => (edificio.conectores || []).filter((c) => admin || !c.personal).map((c) => paradaEn(c, pisoId)?.ambiente).filter(Boolean)
   const metrosOrigen = medir(dO, origen.punto, origen.id, paradas(origen.piso), opts)
   const metrosDestino = medir(dD, destino.punto, destino.id, paradas(destino.piso), opts)
-  const sel = elegirConector({ edificio, origen, destino, metrosOrigen, metrosDestino, via, accesible })
+  const sel = elegirConector({ edificio, origen, destino, metrosOrigen, metrosDestino, via, accesible, admin })
   if (!sel.elegida) return { tramos: [], metros: 0, vertical: null, alternativa: null, aviso: sel.aviso, sinRuta: true }
   const tramos = armarTramos(sel.elegida, { pisos, origen, destino, buscar, opts })
   if (!tramos) return { tramos: [], metros: 0, vertical: null, alternativa: null, aviso: 'No se pudo trazar la ruta.', sinRuta: true }
