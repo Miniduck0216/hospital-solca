@@ -1,0 +1,45 @@
+{
+ "nota": "PDF de cada zona del piso 1 sobre el marco local (m): (x, -y)*escala, espejo, giro rot*90\u00b0, + (tx, ty). Calculado por coincidencia de plantillas con el DXF (registrar.py).",
+ "zonas": {
+  "2": {
+   "score": 0.941,
+   "rot": 1.0,
+   "espejo": false,
+   "escala": 0.08298755186721991,
+   "tx": 23.871550657564246,
+   "ty": 61.690426279718366
+  },
+  "3": {
+   "score": 0.944,
+   "rot": 2.0,
+   "espejo": false,
+   "escala": 0.06224066390041494,
+   "tx": 91.96325233291596,
+   "ty": 61.2248654552727
+  },
+  "4": {
+   "score": 0.937,
+   "rot": 2.0,
+   "espejo": false,
+   "escala": 0.06224066390041494,
+   "tx": 91.86325043348164,
+   "ty": 34.32486450555553
+  },
+  "1": {
+   "score": 0.944,
+   "rot": 1.0,
+   "espejo": false,
+   "escala": 0.08298755186721991,
+   "tx": -2.462889644987793,
+   "ty": 61.790425013428845
+  },
+  "5": {
+   "score": 0.891,
+   "rot": 2.0,
+   "espejo": false,
+   "escala": 0.03817427385892116,
+   "tx": 94.79297698585133,
+   "ty": 23.02229346924443
+  }
+ }
+}

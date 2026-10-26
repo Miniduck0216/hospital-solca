@@ -67,6 +67,28 @@ def limpiar_nombre(n):
     return ' / '.join(partes[:2])
 
 
+def habitaciones(m):
+    """Rótulos «HAB 101» que el modelo no asignó (texto girado: su punto de inserción cae en el borde del cuarto, y el
+    cuarto quedó con el código de red de un tomacorriente): cada cuarto sin nombre toma el rótulo de habitación que cae
+    dentro o a menos de 0,6 m, si es uno solo y no lo tiene ya otro cuarto."""
+    import re as _re
+    usados = {a['nombre'].upper() for a in m.ambientes if a['nombre']}
+    hab = []
+    for c, t, x, y, h, ap in m.textos:
+        t = ' '.join(t.split())
+        if _re.fullmatch(r'HAB\.? ?\d{1,3}', t, _re.I) and t.upper() not in usados:
+            hab.append((t.upper(), Point(*m.L((x, y)))))
+    for a in sorted(m.ambientes, key=lambda a: a['area']):
+        if a['nombre'] or not (8 <= a['area'] <= 60):
+            continue
+        cand = {t for t, p in hab if a['poligono'].contains(p)}
+        if not cand:
+            cand = {t for t, p in hab if a['poligono'].buffer(0.6).contains(p)}
+        if len(cand) == 1:
+            a['nombre'] = cand.pop()
+            hab = [(t, p) for t, p in hab if t != a['nombre']]
+
+
 def es_circulacion(nombre, area):
     n = (nombre or '').upper()
     if not n:
@@ -143,6 +165,7 @@ def exportar(m, piso, salida):
     ox, oy = m.origen
     for a in m.ambientes:
         a['nombre'] = limpiar_nombre(a['nombre'])
+    habitaciones(m)
     for nombre, g in EXTRA.get(piso, []):
         g = affinity.translate(g, -ox, -oy)
         quedan = []

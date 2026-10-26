@@ -69,7 +69,7 @@
     },
     {
      "piso": "P1",
-     "ambiente": "a64"
+     "ambiente": "a69"
     }
    ]
   },
@@ -89,7 +89,7 @@
     },
     {
      "piso": "P1",
-     "ambiente": "a62"
+     "ambiente": "a67"
     },
     {
      "piso": "P2",
@@ -117,7 +117,7 @@
     },
     {
      "piso": "P1",
-     "ambiente": "a63"
+     "ambiente": "a68"
     },
     {
      "piso": "P2",
@@ -141,7 +141,7 @@
     },
     {
      "piso": "P1",
-     "ambiente": "a60"
+     "ambiente": "a64"
     },
     {
      "piso": "P2",
@@ -166,7 +166,7 @@
     },
     {
      "piso": "P1",
-     "ambiente": "a58"
+     "ambiente": "a62"
     },
     {
      "piso": "P2",
@@ -191,7 +191,7 @@
     },
     {
      "piso": "P1",
-     "ambiente": "a22"
+     "ambiente": "a27"
     }
    ]
   },
@@ -203,7 +203,7 @@
    "paradas": [
     {
      "piso": "P1",
-     "ambiente": "a36"
+     "ambiente": "a52"
     },
     {
      "piso": "P2",
@@ -231,7 +231,7 @@
     },
     {
      "piso": "P1",
-     "ambiente": "a45"
+     "ambiente": "a51"
     },
     {
      "piso": "P2",

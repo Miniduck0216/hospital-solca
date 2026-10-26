@@ -38,14 +38,31 @@
  ],
  "ajustes": {
   "a2": {
-   "si": "Hall Interno · Baño",
+   "si": "Hall Interno",
    "personal": true
   },
-  "a60": {
+  "a56": {
+   "si": "Sala Reuniones",
+   "personal": true
+  },
+  "a57": {
+   "si": "Jefatura",
+   "personal": true
+  },
+  "a53": {
+   "si": "B",
+   "nombre": "Escalera de emergencia",
+   "cat": "escaleras"
+  },
+  "a1": {
+   "si": "Hab. 17 · Terraza N + 3.95",
+   "nombre": "Hab. 17"
+  },
+  "a64": {
    "si": "Ascensores",
    "personal": true
   },
-  "a58": {
+  "a62": {
    "si": "Ascensores",
    "personal": true
   }

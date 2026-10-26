@@ -38,7 +38,13 @@ AJUSTES = {
         ('Baño', (129.6, 102.4), 'personal'),
         ('Baños', (97.5, 99.5), 'personal'),
     ],
-    'P1': [('Hall Interno · Baño', (80.7, 32.1), 'personal')],
+    # bloque administrativo norte (hall interno, TICs, jefatura, sala de reuniones): no es de pacientes
+    'P1': [('Hall Interno', (80.7, 32.8), 'personal'), ('Sala Reuniones', (82.5, 25.6), 'personal'),
+           ('Jefatura', (79.0, 25.6), 'personal'),
+           # escalera de emergencia del extremo oeste (rotulada «b» en el plano)
+           ('B', (0.7, 92.0), {'nombre': 'Escalera de emergencia', 'cat': 'escaleras'}),
+           # la habitación 17 se abre a la terraza sin puerta dibujada: queda un solo ambiente
+           ('Hab. 17 · Terraza N + 3.95', (0, 0), {'nombre': 'Hab. 17'})],
 }
 
 
