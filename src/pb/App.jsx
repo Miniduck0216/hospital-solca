@@ -225,7 +225,9 @@ export default function App() {
   const onPaso = (p) => conPiso((cp) => ({ ...cp, pasos: [...cp.pasos, p] }))
   const onQuitarPaso = (i) => conPiso((cp) => ({ ...cp, pasos: cp.pasos.filter((_, k) => k !== i) }))
   const onRestablecer = () => {
-    if (!MODO_ADMIN) { try { localStorage.removeItem(CLAVE_LOCAL) } catch { /* nada que borrar */ } }
+    // en OM3 se vuelve a lo guardado allá (OM3 responde con mapa-borrador); fuera, se borra todo lo local
+    if (MODO_ADMIN) { setPick(null); window.parent.postMessage({ tipo: 'mapa-descartar' }, PADRE); return }
+    try { localStorage.removeItem(CLAVE_LOCAL) } catch { /* nada que borrar */ }
     guardar(aFormato2(null))
   }
   const redondo = (v) => Math.round(v * 100) / 100
