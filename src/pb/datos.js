@@ -31,6 +31,7 @@ export function compilarConfig(c = {}) {
     ajustes: c.ajustes || {},
     // lugares sin cuarto propio (mostradores, zonas de un hall): un punto con nombre, como los del administrador
     lugares: c.lugares || [],
+    pasos: c.pasos || [],
   }
 }
 
@@ -65,7 +66,7 @@ export async function cargarDatos(cambiosLocales = null, opciones = {}) {
   d.cambiosPasos = []
   const ajustes = Object.fromEntries(Object.entries(d.cfg.ajustes)
     .filter(([id, c]) => d.ambientes.find((x) => x.id === id)?.nombre === c.si))
-  aplicarCambios(d, { ambientes: ajustes, lugares: d.cfg.lugares })
+  aplicarCambios(d, { ambientes: ajustes, lugares: d.cfg.lugares, pasos: d.cfg.pasos })
   aplicarCambios(d, cambiosDelPiso(publicados, piso.id))
   aplicarCambios(d, cambiosDelPiso(cambiosLocales, piso.id))
   // solo personal: por regla del piso o marcado por el administrador

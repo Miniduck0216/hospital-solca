@@ -33,12 +33,32 @@ from shapely import affinity  # noqa: E402
 # están dibujados como detalle (capas de ejes y gradas), sin muros alrededor
 EXTRA = {
     'P1': [('ASCENSOR', box(47.97, 93.25, 51.07, 95.59)),
-           ('ESCALERA', box(46.4, 91.7, 51.3, 97.8).difference(box(47.97, 93.25, 51.07, 95.59)))],
+           ('ESCALERA', box(46.4, 91.7, 51.3, 97.8).difference(box(47.97, 93.25, 51.07, 95.59))),
+           # bloque de servicio del ala oeste: las puertas de cada cuarto no están dibujadas como bloque, así que el
+           # dibujo los junta con el pasillo angosto de su lado (orden de arriba abajo del PDF)
+           ('BAÑO MUJERES', box(28.05, 84.45, 29.35, 85.9)),
+           ('BAÑO HOMBRES', box(28.05, 82.85, 29.35, 84.35)),
+           ('UTILERÍA SUCIA', box(28.05, 81.25, 29.35, 82.75)),
+           ('LAVACHATA', box(28.05, 79.75, 29.35, 81.15)),
+           ('LIMPIEZA', box(28.05, 78.3, 29.35, 79.65)),
+           ('PASILLO', box(29.42, 78.45, 30.12, 86.0)),
+           # baños públicos del bloque central de la torre (se entra desde los pasillos de cada lado)
+           ('SS.HH.', box(72.38, 99.32, 73.62, 100.42)),
+           ('SS.HH.', box(73.72, 99.32, 74.98, 100.42)),
+           # terraza del extremo oeste (con baranda), al lado de la habitación 17
+           ('TERRAZA', box(4.15, 76.75, 6.0, 84.95))],
 }
 # pasos que el dibujo tapa con un detalle (marco de la planta baja): en el piso 1, el puente vidriado entre el ala oeste
 # y la torre tiene un tragaluz triangular dibujado con la capa de paredes; se camina a su alrededor
 PASOS_LIBRES = {
     'P1': [LineString([(57.8, 86.25), (69.3, 86.25)])],
+}
+# exterior encerrado por el dibujo: en el piso 1, el rincón entre la fachada norte, el ducto diagonal y los baños del
+# hall interno (en el PDF no tiene muros que lo cierren)
+EXTERIOR = {
+    'P1': [box(76.8, 40.9, 81.0, 45.7),
+           box(2.4, 89.9, 3.95, 95.6),
+           box(3.5, 75.3, 50.6, 77.0)],   # franja de jardineras y pérgola entre el ventanal sur y la fachada   # balcón con baranda entre la escalera de emergencia y la habitación 16
 }
 NOMBRES_PISO = {'SB': 'Subsuelo 1', 'PB': 'Planta baja', 'P1': 'Piso 1', 'P2': 'Piso 2', 'P3': 'Piso 3'}
 CIRCULACION = ('PASILLO', 'HALL', 'CIRCULACION', 'CORREDOR', 'ESPERA', 'VESTIBULO', 'RECEPCION', 'ESTAR')
@@ -172,7 +192,7 @@ def exportar(m, piso, salida):
         for a in m.ambientes:
             if a['poligono'].intersects(g) and not a.get('extra'):
                 for q in lista_polis(a['poligono'].difference(g)):
-                    if q.area > 0.5:
+                    if q.area > 0.5 and q.buffer(-0.25).area > 0.2:   # sin las rendijas que deja el corte
                         quedan.append(dict(a, poligono=q, area=q.area))
             else:
                 quedan.append(a)
@@ -186,6 +206,10 @@ def exportar(m, piso, salida):
     # un patio o parqueadero cerrado por el contorno del dibujo, con solo el rótulo de una puerta: es exterior
     m.ambientes = [a for a in m.ambientes if not (re.fullmatch(r'PUERTA \d+|PARQUEADERO.*|TERRAZA.*', (a['nombre'] or '').upper())
                                                   and a['area'] > 150)]
+    # espacios que el dibujo cierra pero que en el plano revisado son exterior (marco local)
+    for g in EXTERIOR.get(piso, []):
+        g = affinity.translate(g, -ox, -oy)
+        m.ambientes = [a for a in m.ambientes if a['poligono'].intersection(g).area < 0.5 * a['poligono'].area]
     hu = huella_real(m)
     m.ambientes = [a for a in m.ambientes if a['poligono'].intersection(hu).area > 0.5 * a['poligono'].area]
     pasillos(m)

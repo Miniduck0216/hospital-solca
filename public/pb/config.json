@@ -153,7 +153,132 @@
   "a269": {
    "si": "Ascensores",
    "personal": true
+  },
+  "a278": {
+   "si": "",
+   "nombre": "Baño",
+   "cat": "banos",
+   "personal": true
+  },
+  "a288": {
+   "si": "",
+   "cat": "circulacion"
+  },
+  "a301": {
+   "si": "",
+   "nombre": "Baño",
+   "cat": "banos",
+   "personal": true
+  },
+  "a339": {
+   "si": "",
+   "cat": "circulacion"
+  },
+  "a349": {
+   "si": "",
+   "cat": "circulacion"
+  },
+  "a350": {
+   "si": "",
+   "cat": "circulacion"
+  },
+  "a54": {
+   "si": "SS.HH. Mujeres",
+   "personal": false
+  },
+  "a55": {
+   "si": "SS.HH. Mujeres",
+   "personal": false
+  },
+  "a56": {
+   "si": "SS.HH. Hombres",
+   "personal": false
+  },
+  "a62": {
+   "si": "SS.HH. Personal",
+   "personal": false
+  },
+  "a74": {
+   "si": "SS.HH.",
+   "personal": false
+  },
+  "a77": {
+   "si": "SS.HH.",
+   "personal": false
+  },
+  "a78": {
+   "si": "SS.HH.",
+   "personal": false
+  },
+  "a83": {
+   "si": "SS.HH. Hombres",
+   "personal": true
+  },
+  "a90": {
+   "si": "Minusválidos",
+   "personal": false
+  },
+  "a91": {
+   "si": "Minusválidos",
+   "personal": false
+  },
+  "a99": {
+   "si": "SS.HH.",
+   "personal": true
+  },
+  "a267": {
+   "si": "Baños",
+   "personal": true
+  },
+  "a302": {
+   "si": "Baño",
+   "personal": true
+  },
+  "a309": {
+   "si": "Baño",
+   "personal": false
+  },
+  "a318": {
+   "si": "Baño",
+   "personal": false
+  },
+  "a319": {
+   "si": "Baño",
+   "personal": true
+  },
+  "a322": {
+   "si": "Baño",
+   "personal": false
+  },
+  "a323": {
+   "si": "Baño",
+   "personal": false
+  },
+  "a328": {
+   "si": "SS.HH.",
+   "personal": false
+  },
+  "a335": {
+   "si": "SS.HH.",
+   "personal": false
+  },
+  "a338": {
+   "si": "SS.HH.",
+   "personal": false
+  },
+  "a341": {
+   "si": "SS.HH.",
+   "personal": true
+  },
+  "a342": {
+   "si": "SS.HH.",
+   "personal": true
+  },
+  "a344": {
+   "si": "SS.HH.",
+   "personal": false
   }
  },
- "lugares": []
+ "lugares": [],
+ "pasos": []
 }

@@ -75,11 +75,13 @@
     90.82,
     52.18
    ],
-   "ventanilla": true
+   "ventanilla": true,
+   "personal": false
   },
   "a52": {
    "si": "Mujeres",
-   "cat": "banos"
+   "cat": "banos",
+   "personal": false
   },
   "a38": {
    "si": "Oficina Nutricionista",
@@ -104,7 +106,52 @@
   "a121": {
    "si": "SS.HH.",
    "personal": true
+  },
+  "a92": {
+   "si": "SS.HH.",
+   "personal": false
+  },
+  "a100": {
+   "si": "SS.HH.",
+   "personal": true
+  },
+  "a108": {
+   "si": "SS.HH.",
+   "personal": true
+  },
+  "a128": {
+   "si": "SS.HH.",
+   "personal": false
+  },
+  "a129": {
+   "si": "SS.HH.",
+   "personal": true
+  },
+  "a131": {
+   "si": "SS.HH.",
+   "personal": true
+  },
+  "a134": {
+   "si": "SS.HH.",
+   "personal": true
+  },
+  "a135": {
+   "si": "SS.HH.",
+   "personal": true
+  },
+  "a137": {
+   "si": "SS.HH.",
+   "personal": false
+  },
+  "a138": {
+   "si": "SS.HH.",
+   "personal": false
+  },
+  "a139": {
+   "si": "SS.HH.",
+   "personal": true
   }
  },
- "lugares": []
+ "lugares": [],
+ "pasos": []
 }
