@@ -43,6 +43,7 @@ AJUSTES = {
     'P1': [('Hall Interno', (80.7, 32.8), {'nombre': 'Recepción · Hall Interno · TICs', 'personal': True}),   # un espacio, tres rótulos
            ('U.l', (0, 0), {'nombre': 'U.L'}),   # así está en el plano
            ('Baño', (79.48, 39.78), 'personal'),
+           ('Terraza', (17.25, 77.9), 'personal'),   # se entra por Almacén
            ('Preparación Médica', (73.5, 70.5), 'personal'),   # baño del hall interno (el otro sale solo por la regla)
            # el segundo baño chico del bloque central de la torre se abre al pasillo (el dibujo deja su puerta dentro del muro)
            ('Baño', (74.21, 99.38), {'publico': True}),
@@ -54,7 +55,9 @@ AJUSTES = {
            ('Hab. 17 · Terraza N + 3.95', (0, 0), {'nombre': 'Hab. 17'}),
            # «Sala Rauniones» (torre) y «Sala Reuniones» (bloque administrativo): como en el plano, para diferenciarlas
            ('Sala Reuniones', (82.5, 25.6), 'personal'),
-           ('Sala de Espera · Hall', (0, 0), {'nombre': 'Sala de Espera'}),
+           # el gran espacio de circulación (pasillos, recepción, hall de la torre) es «HALL» en el plano; la sala de espera
+           # es solo la del ala oeste (lugar)
+           ('Sala de Espera · Hall', (0, 0), {'nombre': 'Hall'}),
            # baños públicos junto a la escalera del ala oeste (en el PDF, con los íconos de hombre y mujer)
            ('', (47.0, 90.8), {'nombre': 'Baño Hombres', 'cat': 'banos', 'personal': False}),
            ('', (50.3, 90.7), {'nombre': 'Baño Mujeres', 'cat': 'banos', 'personal': False}),
@@ -89,7 +92,6 @@ PASOS = {
 
 LUGARES = {
     'P1': [
-        ('L-p1-cafeteria', 'Cafetería', 'otro', (53.5, 83.5)),
         ('L-p1-recepcion', 'Recepción', 'administracion', (54.1, 91.0)),
         ('L-p1-estacion-oeste', 'Estación de Enfermería', 'otro', (29.8, 90.1)),
         ('L-p1-preparacion-oeste', 'Preparación de Medicinas', 'otro', (30.9, 91.9)),
