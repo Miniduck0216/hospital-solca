@@ -92,15 +92,18 @@ function cajones(pts) {
 export function Exterior({ d }) {
   const datos = useMemo(() => {
     const rnd = azar(11)
-    const huellas = d.huella.map((pg) => pg[0])
+    // en los pisos altos el suelo es el perfil del hospital (planta baja): los árboles van afuera de él, no
+    // alrededor del piso (que cae sobre la planta baja)
+    const suelo = d.perfil?.length ? d.perfil : d.huella
+    const huellas = suelo.map((pg) => pg[0])
     const parqueos = d.parqueos.map((p) => p.ll.map(([lo, la]) => dePlano(lo, la)))
     const dentroEdif = (p) => huellas.some((h) => enPoli(p, h))
     const enParqueo = (p, m = 0) => parqueos.some((q) => enPoli(p, m ? ensanchar(q, m) : q))
     const cercaEntrada = (p, r) => d.entradas.some((e) => Math.hypot(p[0] - e.x, p[1] - e.y) < r)
 
     // base del edificio (canto de maqueta) y vereda
-    const base = d.huella.map((pg) => losa(forma(ensanchar(pg[0], 0.3)), 0.55))
-    const vereda = d.huella.map((pg) => losa(forma(ensanchar(pg[0], 2.6)), 0.3))
+    const base = suelo.map((pg) => losa(forma(ensanchar(pg[0], 0.3)), 0.55))
+    const vereda = suelo.map((pg) => losa(forma(ensanchar(pg[0], 2.6)), 0.3))
     // parqueaderos
     const asfalto = parqueos.map((q) => losa(forma(q), 0.12))
     const borde = parqueos.map((q) => losa(forma(ensanchar(q, 0.7), [q.slice().reverse()]), 0.22))

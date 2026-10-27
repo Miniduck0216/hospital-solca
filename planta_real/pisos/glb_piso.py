@@ -62,10 +62,10 @@ def main():
     __main__.ModeloPiso = modelo_piso.ModeloPiso
     m = pickle.load(open(f'/tmp/modelo_{piso}.pkl', 'rb'))
     ox, oy = m.origen
-    for a in m.ambientes:
-        a['nombre'] = EP.limpiar_nombre(a['nombre'])
-    # barras entre tramos de escalera: parapeto de 1 m en lugar de tabique de altura completa
-    m.parapetos = list(getattr(m, 'parapetos', [])) + EP.barandas(m)
+    # las mismas correcciones del plano que el 2D (muros, puertas, ventanas, mobiliario, escaleras, ambientes)
+    EP.preparar(m, piso)
+    # barandas (barra entre tramos de escalera y las del plano): parapeto de 1 m
+    m.parapetos = list(getattr(m, 'parapetos', [])) + list(m.barandas)
     zona = EP.huella_real(m).buffer(0.6, join_style=2)
     if fuera:
         dv = json.load(open(fuera))

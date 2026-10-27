@@ -46,7 +46,13 @@ EXTRA = {
            ('PREPARACIÓN MÉDICA', box(72.16, 69.15, 74.84, 73.3)),
            ('DUCTOS', box(72.16, 76.2, 75.02, 78.54)),
            # terraza del extremo oeste (con baranda), al lado de la habitación 17
-           ('TERRAZA', box(4.15, 76.75, 6.0, 84.95))],
+           ('TERRAZA', box(4.15, 76.75, 6.0, 84.95)),
+           # terraza de la jardinera al sur de las habitaciones 13 y 11: se entra por la puerta de Almacén
+           ('TERRAZA', box(16.6, 77.25, 26.88, 78.55)),
+           # cafetería: cerrada contra el techo del este y contra su terraza (muro con puerta doble); la terraza tiene
+           # su borde de ventanas
+           ('CAFETERÍA', box(50.42, 77.25, 58.72, 85.15)),
+           ('', box(50.42, 74.12, 58.72, 77.15))],
     # piso 2, bloque central: la preparación médica se abre a la estación de enfermería por el mostrador (el dibujo
     # la junta con el pasillo) y el cuarto de ductos queda como hueco entre sus tres ductos
     'P2': [('PREPARACIÓN MÉDICA', box(72.16, 69.15, 74.84, 73.3)),
@@ -62,8 +68,64 @@ BANOS_HUECO = {'P1', 'P2', 'P3'}
 # muros dobles que el dibujo deja huecos por dentro (marco de la planta baja): en el piso 2, el muro entre las
 # habitaciones 207 y 205
 MUROS_EXTRA = {
-    'P1': [box(63.2, 67.84, 69.9, 68.37)],   # entre las habitaciones 109 y 107
+    'P1': [box(63.2, 67.84, 69.9, 68.37),   # entre las habitaciones 109 y 107
+           # tabiques con puerta doble que cierran el pasillo del ala oeste (hacia las habitaciones) y el paso de la
+           # recepción y la cafetería hacia el hall de las habitaciones de la torre
+           box(48.15, 86.8, 48.25, 87.1), box(48.15, 89.1, 48.25, 89.8),
+           box(57.55, 85.2, 57.65, 85.83), box(57.55, 87.85, 57.65, 88.97),
+           # cafetería: muro con puerta doble hacia su terraza y muro contra el techo de la planta baja (lado este)
+           box(50.35, 77.15, 52.18, 77.25), box(53.47, 77.15, 58.8, 77.25), box(58.72, 77.2, 58.86, 85.15),
+           # el balcón se cierra contra la escalera del Bloque A (se entra solo por la oficina)
+           box(51.0, 97.97, 51.12, 99.55)],
     'P2': [box(63.2, 67.85, 69.9, 68.37)],
+}
+# muros que el dibujo trae y el plano no tiene (marco de la planta baja): la línea entre los dos mesones de
+# Abastecimiento y Preparación Médica es el respaldo de los mesones, no un muro
+QUITAR_MUROS = {
+    'P1': [box(72.17, 73.25, 74.83, 73.5)],
+    'P2': [box(72.17, 73.25, 74.83, 73.5)],
+}
+# ventanas que no son ventanas: el borde de la jardinera y la pérgola al sur del ala oeste (piso 1)
+QUITAR_VENTANAS = {
+    'P1': [box(3.9, 75.4, 50.7, 75.8), box(16.5, 77.55, 50.3, 77.75), box(45.3, 72.7, 45.7, 75.4)],
+}
+# ventanas que faltan: el borde de la terraza de la cafetería (piso 1)
+VENTANAS_EXTRA = {
+    'P1': [box(50.28, 74.0, 58.86, 74.12), box(58.74, 74.0, 58.86, 77.2), box(50.28, 74.0, 50.4, 77.15)],
+}
+# barandas de 1 m (no dejan pasar, no son muros): eje de la escalera de emergencia del ala oeste, borde de la escalera
+# del Bloque A hacia la sala del balcón, borde de la terraza junto a Almacén
+BARANDAS_EXTRA = {
+    'P1': [box(0.65, 90.02, 0.85, 93.01), box(51.03, 95.47, 51.14, 97.97), box(16.6, 77.15, 26.9, 77.25)],
+}
+# puertas que el dibujo no trae como bloque: (a, b, doble)
+PUERTAS_EXTRA = {
+    'P1': [((48.2, 87.1), (48.2, 89.1), True), ((57.6, 85.83), (57.6, 87.85), True),
+           ((52.18, 77.2), (53.47, 77.2), True),
+           ((54.87, 95.42), (55.84, 95.42), False),    # oficina, desde la recepción
+           ((54.82, 98.65), (54.82, 99.5), False)],    # oficina, hacia el balcón
+}
+# partes de un ambiente que son exterior: al este de la cafetería, el techo de la planta baja (N +3.95)
+RECORTES = {
+    'P1': [box(58.86, 73.0, 63.0, 85.1)],
+}
+# mesas redondas con dos sillas (centro), en lugar del bloque que el dibujo hace con la mesa y sus sillas
+MESAS = {
+    'P1': [(54.85, 81.8), (56.35, 81.69), (54.85, 84.47), (56.3, 84.47),
+           (51.7, 75.48), (53.81, 75.48), (55.92, 75.48), (58.03, 75.48)],
+}
+ZONA_MESAS = {'P1': box(50.4, 74.1, 58.72, 85.3)}
+# mesón de la cafetería (barra con lavadero) que el dibujo deja como contorno
+MESONES_EXTRA = {'P1': [box(57.45, 77.25, 58.7, 80.05)]}
+# escaleras dibujadas como detalle (capa P0 - Gradas) que el modelo no arma: tramos en orden de subida
+# (zona del tramo, eje de las gradas, sentido) y descansos entre tramos
+ESCALERAS_EXTRA = {
+    'P1': [
+        dict(tramos=[(box(0.84, 90.0, 1.97, 93.03), 'y', 1), (box(-0.46, 90.0, 0.66, 93.03), 'y', -1)],
+             descansos=[box(-0.45, 93.01, 1.95, 94.35)]),
+        dict(tramos=[(box(47.7, 91.74, 50.46, 93.12), 'x', -1), (box(46.38, 93.08, 47.77, 95.82), 'y', 1)],
+             descansos=[box(46.4, 91.76, 47.75, 93.1)]),
+    ],
 }
 # pasos que el dibujo tapa con un detalle (marco de la planta baja): en el piso 1, el puente vidriado entre el ala oeste
 # y la torre tiene un tragaluz triangular dibujado con la capa de paredes; se camina a su alrededor
@@ -172,6 +234,44 @@ def barandas(m):
     return m.barandas
 
 
+def sin_guias(m):
+    """Guías del dibujo que no son objetos reales: el círculo de giro de 1,5 m de los baños para silla de ruedas (en el
+    modelo salía como un mesón redondo) y los trazos delgados que lo cruzan (salían como escritorios). Se quitan."""
+    if getattr(m, '_sin_guias', False):
+        return
+    def circulo(g):
+        x0, y0, x1, y1 = g.bounds
+        w, h = x1 - x0, y1 - y0
+        return 1.1 < w < 1.8 and 1.1 < h < 1.8 and abs(w - h) < 0.2 and 0.7 < g.area / (w * h) < 0.86
+    def delgado(g):
+        rr = list(g.minimum_rotated_rectangle.exterior.coords)
+        return min(math.dist(rr[i], rr[i + 1]) for i in range(4)) < 0.25
+    circ = [mu['poligono'] for mu in m.muebles if circulo(mu['poligono'])] + [e for e in m.escritorios if circulo(e)]
+    if circ:
+        zona = unary_union(circ).buffer(0.05)
+        quitar = lambda g: circulo(g) or (delgado(g) and g.intersects(zona))
+        m.muebles = [mu for mu in m.muebles if not quitar(mu['poligono'])]
+        m.escritorios = [e for e in m.escritorios if not quitar(e)]
+    print('guías quitadas', len(circ))
+    m._sin_guias = True
+
+
+def marcos(m):
+    """Grosor del vano de cada puerta: el modelo lo mide en la jamba y, cuando la puerta está al final de un tabique
+    perpendicular (cuartos del bloque de servicio, baños de la torre), mide el largo del tabique (60 cm). El marco
+    salía como un bloque grueso y el corte del vano se comía el tabique: se deja en 20 cm alrededor de su centro."""
+    if getattr(m, '_marcos', False):
+        return
+    for p in m.puertas:
+        if p['t1'] - p['t0'] > 0.3:
+            c = (p['t0'] + p['t1']) / 2
+            p['t0'], p['t1'] = c - 0.1, c + 0.1
+            a, b, nrm = np.array(p['a']), np.array(p['b']), p['nrm']
+            p['rect'] = Polygon([tuple(a + nrm * p['t0']), tuple(b + nrm * p['t0']), tuple(b + nrm * p['t1']),
+                                 tuple(a + nrm * p['t1'])])
+    m._marcos = True
+
+
 def es_circulacion(nombre, area):
     n = (nombre or '').upper()
     if not n:
@@ -244,8 +344,134 @@ def pasillos(m):
             a['reparte'] = True
 
 
-def exportar(m, piso, salida):
+def puerta_nueva(a, b, doble):
+    a, b = np.array(a, float), np.array(b, float)
+    d = (b - a) / np.linalg.norm(b - a)
+    nrm = np.array([-d[1], d[0]])
+    t0, t1 = -0.06, 0.06
+    return dict(a=a, b=b, ancho=float(np.linalg.norm(b - a)), doble=doble, tipo='P-IZ', t0=t0, t1=t1, dir=d, nrm=nrm,
+                rect=Polygon([tuple(a + nrm * t0), tuple(b + nrm * t0), tuple(b + nrm * t1), tuple(a + nrm * t1)]))
+
+
+def gradas_extra(m, piso):
+    """Escaleras de ESCALERAS_EXTRA: cada par de gradas seguidas (capa P0 - Gradas) es una huella; las alturas suben
+    tramo tras tramo (contrahuella: altura del piso / número de gradas + 1)."""
     ox, oy = m.origen
+    lineas = []
+    for e in m.planos:
+        if e[0] == 'P0 - Gradas' and len(e[2]) >= 2:
+            lineas.append(LineString([(x / 1000, y / 1000) for x, y in e[2]]))
+    m.gradas_extra = []
+    for esc in ESCALERAS_EXTRA.get(piso, []):
+        tramos = []
+        for zona, eje, sentido in esc['tramos']:
+            k = 1 if eje == 'y' else 0
+            vals = sorted({round(l.coords[0][k], 2) for l in lineas if zona.contains(l)
+                           and abs(l.coords[0][k] - l.coords[-1][k]) < 0.01 and l.length > 0.2})
+            if sentido < 0:
+                vals = vals[::-1]
+            x0, y0, x1, y1 = zona.bounds
+            pasos = []
+            for v0, v1 in zip(vals[:-1], vals[1:]):
+                lo, hi = min(v0, v1), max(v0, v1)
+                pasos.append(box(x0 + 0.01, lo, x1 - 0.01, hi) if eje == 'y' else box(lo, y0 + 0.01, hi, y1 - 0.01))
+            for v in vals:
+                m.gradas_extra.append(LineString([(x0, v), (x1, v)]) if eje == 'y' else LineString([(v, y0), (v, y1)]))
+            tramos.append(pasos)
+        n = sum(len(t) for t in tramos)
+        if not n:
+            continue
+        r = 3.84 / (n + 1)
+        T = lambda g: affinity.translate(g, -ox, -oy)
+        pasos, descansos, k = [], [], 0
+        for i, t in enumerate(tramos):
+            for q in t:
+                k += 1
+                pasos.append((T(q), k * r))
+            if i < len(esc['descansos']):
+                descansos.append((T(esc['descansos'][i]), k * r))
+        m.escaleras = list(getattr(m, 'escaleras', [])) + [dict(pasos=pasos, descansos=descansos)]
+        print('escalera agregada', n, 'gradas')
+    m.gradas_extra = [affinity.translate(l, -ox, -oy) for l in m.gradas_extra]
+
+
+def obra(m, piso):
+    """Correcciones de muros, ventanas, barandas, puertas, mobiliario y escaleras revisadas con el plano."""
+    if getattr(m, '_obra', False):
+        return
+    ox, oy = m.origen
+    T = lambda g: affinity.translate(g, -ox, -oy)
+    for g in QUITAR_MUROS.get(piso, []):
+        g = T(g)
+        m.muros_raw = m.muros_raw.difference(g)
+        m.muros = [q for w in m.muros for q in lista_polis(w.difference(g)) if q.area > 0.005]
+        m.tabiques = [dict(t, poligono=q) for t in m.tabiques for q in lista_polis(t['poligono'].difference(g))
+                      if q.area > 0.005]
+    for g in MUROS_EXTRA.get(piso, []):
+        g = T(g)
+        m.muros_raw = unary_union([m.muros_raw, g])
+        m.muros = list(m.muros) + [g]
+    for g in QUITAR_VENTANAS.get(piso, []):
+        g = T(g)
+        m.ventanas = [q for v in m.ventanas for q in lista_polis(v.difference(g)) if q.area > 0.01]
+    m.ventanas = list(m.ventanas) + [T(g) for g in VENTANAS_EXTRA.get(piso, [])]
+    m.barandas = list(barandas(m)) + [T(g) for g in BARANDAS_EXTRA.get(piso, [])]
+    for a, b, doble in PUERTAS_EXTRA.get(piso, []):
+        m.puertas.append(puerta_nueva(np.array(a) - (ox, oy), np.array(b) - (ox, oy), doble))
+    if piso in ZONA_MESAS:
+        z = T(ZONA_MESAS[piso])
+        def bloque(g):   # mesa con sus sillas dibujada como un solo bloque (alargado, ~0,7 x 2 m)
+            x0, y0, x1, y1 = g.bounds
+            return z.contains(g.centroid) and max(x1 - x0, y1 - y0) > 1.7 and min(x1 - x0, y1 - y0) < 2.3 \
+                and not (1.4 < x1 - x0 < 1.7)   # los sillones miden 1,6 m
+        quitar = lambda g: bloque(g) or (z.contains(g.centroid) and g.area < 0.2 and g.bounds[0] > 58.3 - ox)
+        m.muebles = [mu for mu in m.muebles if not (mu['nombre'] in ('Escritorio', 'Panel divisorio') and quitar(mu['poligono']))
+                     and not (mu['nombre'] == 'Panel divisorio' and z.contains(mu['poligono'].centroid)
+                              and mu['poligono'].bounds[2] > 58.6 - ox)]
+        m.escritorios = [e for e in m.escritorios if not quitar(e)]
+        for x, y in MESAS[piso]:
+            c = Point(x - ox, y - oy)
+            m.muebles.append(dict(nombre='Mesa', cat='mueble', altura=0.75, poligono=c.buffer(0.32, 24)))
+            for s in (-1, 1):
+                cy = c.y + s * 0.72
+                m.muebles.append(dict(nombre='Silla', cat='silla', altura=0.46, poligono=box(c.x - 0.22, cy - 0.2, c.x + 0.22, cy + 0.2)))
+                ry = cy + s * 0.17
+                m.muebles.append(dict(nombre='Respaldo de silla', cat='silla', altura=0.92, z0=0.46,
+                                      poligono=box(c.x - 0.22, ry - 0.03, c.x + 0.22, ry + 0.03)))
+    for g in MESONES_EXTRA.get(piso, []):
+        m.muebles.append(dict(nombre='Mesón', cat='mueble', altura=0.9, poligono=T(g)))
+    gradas_extra(m, piso)
+    m._obra = True
+
+
+def rellenar_banos(m):
+    """Rendijas sin piso ni muro pegadas a un baño (ductos, encuentros de muros del bloque de baños de la torre): en el
+    3D se veían como huecos en la pared. Se rellenan como muro."""
+    banos = [a['poligono'] for a in m.ambientes if re.search(r'BAÑO|SS\.? ?HH', (a['nombre'] or '').upper())]
+    if not banos:
+        return
+    amb = unary_union([a['poligono'] for a in m.ambientes])
+    env = amb.buffer(1.0, join_style=2).buffer(-1.0, join_style=2)
+    duro = unary_union([m.muros_raw] + m.columnas + [t['poligono'] for t in m.tabiques])
+    resto = env.difference(amb).difference(duro)
+    vanos = unary_union([p['rect'].buffer(0.15) for p in m.puertas])
+    B = unary_union(banos).buffer(0.08)
+    n = 0
+    for q in lista_polis(resto):
+        if 0.01 < q.area < 0.9 and q.intersects(B) and not q.intersects(vanos):
+            m.muros_raw = unary_union([m.muros_raw, q.buffer(0.01)])
+            m.muros = list(m.muros) + [q.buffer(0.01)]
+            n += 1
+    print('rendijas de baños rellenas', n)
+
+
+def preparar(m, piso):
+    """Todo lo que el plano revisado corrige del modelo; lo usan el 2D (exportar) y el 3D (glb_piso)."""
+    if getattr(m, '_preparado', False):
+        return
+    ox, oy = m.origen
+    marcos(m)
+    sin_guias(m)
     for a in m.ambientes:
         a['nombre'] = limpiar_nombre(a['nombre'])
     habitaciones(m)
@@ -255,11 +481,17 @@ def exportar(m, piso, salida):
         for a in m.ambientes:
             if a['poligono'].intersects(g) and not a.get('extra'):
                 for q in lista_polis(a['poligono'].difference(g)):
-                    if q.area > 0.5 and q.buffer(-0.25).area > 0.2:   # sin las rendijas que deja el corte
+                    # sin las rendijas que deja el corte (también las tiras en L alrededor del recorte)
+                    if q.area > 0.5 and q.buffer(-0.25).area > max(0.2, 0.25 * q.area):
                         quedan.append(dict(a, poligono=q, area=q.area))
             else:
                 quedan.append(a)
         m.ambientes = quedan + [dict(poligono=g, nombre=nombre, area=g.area, extra=True)]
+    for g in RECORTES.get(piso, []):
+        g = affinity.translate(g, -ox, -oy)
+        m.ambientes = [dict(a, poligono=q, area=q.area) for a in m.ambientes
+                       for q in lista_polis(a['poligono'].difference(g))
+                       if q.area > 0.5 and q.buffer(-0.25).area > max(0.2, 0.25 * q.area)]
     if piso in BANOS_HUECO:
         banos_hueco(m)
     # escaleras: ambientes sin nombre (o con la nota del piso) que contienen tramos de gradas
@@ -278,6 +510,16 @@ def exportar(m, piso, salida):
         m.ambientes = [a for a in m.ambientes if a['poligono'].intersection(g).area < 0.5 * a['poligono'].area]
     hu = huella_real(m)
     m.ambientes = [a for a in m.ambientes if a['poligono'].intersection(hu).area > 0.5 * a['poligono'].area]
+    obra(m, piso)
+    if piso in BANOS_HUECO:
+        rellenar_banos(m)
+    m._preparado = True
+
+
+def exportar(m, piso, salida):
+    ox, oy = m.origen
+    preparar(m, piso)
+    hu = huella_real(m)
     pasillos(m)
     amb = []
     for i, a in enumerate(sorted(m.ambientes, key=lambda a: -a['area'])):
@@ -328,6 +570,7 @@ def exportar(m, piso, salida):
         for q in ED.poli(e, 0.01):
             muebles.append(dict(t='mueble', pg=q))
     gradas = [ED.anillo(l.coords) for tr in getattr(m, 'tramos', []) for l in tr if hu.buffer(1).intersects(l)]
+    gradas += [ED.anillo(l.coords) for l in getattr(m, 'gradas_extra', [])]
 
     # entradas desde la calle: solo en los pisos con puertas al exterior (subsuelo y planta baja)
     ent = []
