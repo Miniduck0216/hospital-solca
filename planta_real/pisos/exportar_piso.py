@@ -42,9 +42,9 @@ EXTRA = {
            ('LAVACHATA', box(28.05, 79.75, 29.35, 81.15)),
            ('LIMPIEZA', box(28.05, 78.3, 29.35, 79.65)),
            ('PASILLO', box(29.42, 78.45, 30.12, 86.0)),
-           # baños públicos del bloque central de la torre (se entra desde los pasillos de cada lado)
-           ('SS.HH.', box(72.38, 99.32, 73.62, 100.42)),
-           ('SS.HH.', box(73.72, 99.32, 74.98, 100.42)),
+           # torre: igual que el piso 2 (preparación médica abierta a la estación por el mostrador; cuarto de ductos)
+           ('PREPARACIÓN MÉDICA', box(72.16, 69.15, 74.84, 73.3)),
+           ('DUCTOS', box(72.16, 76.2, 75.02, 78.54)),
            # terraza del extremo oeste (con baranda), al lado de la habitación 17
            ('TERRAZA', box(4.15, 76.75, 6.0, 84.95))],
     # piso 2, bloque central: la preparación médica se abre a la estación de enfermería por el mostrador (el dibujo
@@ -58,10 +58,11 @@ EXTRA = {
 }
 # pisos donde los baños con inodoro que el dibujo deja sin ambiente (el inodoro de cada habitación, los dos baños
 # chicos del bloque central) se suman como ambiente «BAÑO»
-BANOS_HUECO = {'P2', 'P3'}
+BANOS_HUECO = {'P1', 'P2', 'P3'}
 # muros dobles que el dibujo deja huecos por dentro (marco de la planta baja): en el piso 2, el muro entre las
 # habitaciones 207 y 205
 MUROS_EXTRA = {
+    'P1': [box(63.2, 67.84, 69.9, 68.37)],   # entre las habitaciones 109 y 107
     'P2': [box(63.2, 67.85, 69.9, 68.37)],
 }
 # pasos que el dibujo tapa con un detalle (marco de la planta baja): en el piso 1, el puente vidriado entre el ala oeste
@@ -135,7 +136,10 @@ def banos_hueco(m):
     ino = [mu['poligono'] for mu in m.muebles if mu['nombre'] == 'Inodoro']
     n = 0
     for q in lista_polis(resto):
-        if 0.8 <= q.area <= 5 and not q.buffer(-0.25).is_empty and any(q.intersects(i) for i in ino):
+        rr = list(q.minimum_rotated_rectangle.exterior.coords)
+        largo = max(math.dist(rr[i], rr[i + 1]) for i in range(4))
+        # largo hasta 2,5 m: más largo es el inodoro junto con la entrada de la habitación (no se cierra como baño)
+        if 0.8 <= q.area <= 5 and largo <= 2.5 and not q.buffer(-0.25).is_empty and any(q.intersects(i) for i in ino):
             m.ambientes.append(dict(poligono=q, nombre='BAÑO', area=q.area, extra=True))
             n += 1
     print('baños sin ambiente', n)

@@ -39,9 +39,26 @@
  "ajustes": {
   "a1": {
    "si": "Hall Interno",
+   "nombre": "Recepción · Hall Interno · TICs",
+   "personal": true
+  },
+  "a76": {
+   "si": "U.l",
+   "nombre": "U.L"
+  },
+  "a100": {
+   "si": "Baño",
    "personal": true
   },
   "a57": {
+   "si": "Preparación Médica",
+   "personal": true
+  },
+  "a129": {
+   "si": "Baño",
+   "personal": false
+  },
+  "a58": {
    "si": "Jefatura",
    "personal": true
   },
@@ -67,117 +84,174 @@
    "si": "Sala de Espera · Hall",
    "nombre": "Sala de Espera"
   },
-  "a116": {
+  "a119": {
    "si": "",
    "nombre": "Baño Hombres",
    "cat": "banos",
-   "personal": false
+   "personal": false,
+   "dest": [
+    46.97,
+    98.4
+   ],
+   "ventanilla": true
   },
-  "a104": {
+  "a106": {
    "si": "",
    "nombre": "Baño Mujeres",
    "cat": "banos",
    "personal": false
   },
-  "a65": {
+  "a66": {
    "si": "",
    "cat": "circulacion"
   },
-  "a106": {
+  "a108": {
    "si": "SS.HH.",
    "personal": true
   },
-  "a105": {
+  "a107": {
    "si": "SS.HH.",
    "personal": true
   },
-  "a64": {
+  "a65": {
    "si": "Ascensores",
    "personal": true
   },
-  "a62": {
+  "a63": {
    "si": "Ascensores",
-   "personal": true
-  },
-  "a90": {
-   "si": "",
-   "nombre": "Baño",
-   "cat": "banos",
    "personal": true
   },
   "a92": {
    "si": "",
    "nombre": "Baño",
    "cat": "banos",
-   "personal": true
-  },
-  "a84": {
-   "si": "",
-   "nombre": "Baño",
-   "cat": "banos",
-   "personal": true
-  },
-  "a89": {
-   "si": "",
-   "nombre": "Baño",
-   "cat": "banos",
-   "personal": true
+   "personal": false,
+   "dest": [
+    40.89,
+    89.39
+   ],
+   "ventanilla": true
   },
   "a94": {
    "si": "",
-   "cat": "circulacion"
+   "nombre": "Baño",
+   "cat": "banos",
+   "personal": false,
+   "dest": [
+    37.5,
+    86.56
+   ],
+   "ventanilla": true
   },
-  "a123": {
+  "a86": {
+   "si": "",
+   "nombre": "Baño",
+   "cat": "banos",
+   "personal": false,
+   "dest": [
+    16.36,
+    89.29
+   ],
+   "ventanilla": true
+  },
+  "a91": {
+   "si": "",
+   "nombre": "Baño",
+   "cat": "banos",
+   "personal": false,
+   "dest": [
+    23.25,
+    90.85
+   ],
+   "ventanilla": true
+  },
+  "a96": {
    "si": "",
    "cat": "circulacion"
   },
-  "a72": {
-   "si": "Baño",
-   "personal": true
+  "a131": {
+   "si": "",
+   "cat": "circulacion"
   },
-  "a78": {
+  "a75": {
    "si": "Baño",
-   "personal": true
+   "personal": false,
+   "dest": [
+    22.18,
+    86.23
+   ],
+   "ventanilla": true
   },
-  "a81": {
+  "a80": {
    "si": "Baño",
-   "personal": true
-  },
-  "a82": {
-   "si": "SS.HH.",
-   "personal": false
+   "personal": false,
+   "dest": [
+    11.72,
+    85.27
+   ],
+   "ventanilla": true
   },
   "a83": {
+   "si": "Baño",
+   "personal": false,
+   "dest": [
+    35.37,
+    85.83
+   ],
+   "ventanilla": true
+  },
+  "a84": {
    "si": "SS.HH.",
    "personal": false
   },
   "a85": {
-   "si": "Baño",
-   "personal": true
+   "si": "SS.HH.",
+   "personal": false
   },
-  "a86": {
+  "a87": {
    "si": "Baño",
-   "personal": true
+   "personal": false,
+   "dest": [
+    22.23,
+    86.48
+   ],
+   "ventanilla": true
   },
   "a88": {
    "si": "Baño",
-   "personal": true
+   "personal": false,
+   "dest": [
+    9.97,
+    85.93
+   ],
+   "ventanilla": true
   },
-  "a91": {
+  "a90": {
    "si": "Baño",
-   "personal": true
+   "personal": false,
+   "dest": [
+    17.57,
+    89.36
+   ],
+   "ventanilla": true
   },
   "a93": {
    "si": "Baño",
-   "personal": true
+   "personal": false,
+   "dest": [
+    35.62,
+    90.81
+   ],
+   "ventanilla": true
   },
-  "a96": {
+  "a95": {
    "si": "Baño",
-   "personal": true
-  },
-  "a97": {
-   "si": "Baño",
-   "personal": true
+   "personal": false,
+   "dest": [
+    7.07,
+    89.35
+   ],
+   "ventanilla": true
   },
   "a98": {
    "si": "Baño",
@@ -185,55 +259,221 @@
   },
   "a99": {
    "si": "Baño",
-   "personal": true
-  },
-  "a100": {
-   "si": "Baño",
-   "personal": true
+   "personal": false,
+   "dest": [
+    9.59,
+    89.37
+   ],
+   "ventanilla": true
   },
   "a101": {
    "si": "Baño",
-   "personal": true
+   "personal": false,
+   "dest": [
+    46.96,
+    98.91
+   ],
+   "ventanilla": true
+  },
+  "a102": {
+   "si": "Baño",
+   "personal": false,
+   "dest": [
+    43.39,
+    87.36
+   ],
+   "ventanilla": true
   },
   "a103": {
    "si": "Baño",
-   "personal": true
+   "personal": false,
+   "dest": [
+    51.0,
+    82.7
+   ],
+   "ventanilla": true
   },
-  "a110": {
-   "si": "Baño Hombres",
-   "personal": false
-  },
-  "a112": {
-   "si": "SS.HH.",
-   "personal": true
-  },
-  "a113": {
-   "si": "Baño Mujeres",
-   "personal": false
-  },
-  "a114": {
+  "a105": {
    "si": "Baño",
    "personal": true
   },
-  "a115": {
+  "a112": {
+   "si": "Baño Hombres",
+   "personal": false
+  },
+  "a114": {
    "si": "SS.HH.",
+   "personal": false,
+   "dest": [
+    76.5,
+    73.69
+   ],
+   "ventanilla": true
+  },
+  "a115": {
+   "si": "Baño Mujeres",
+   "personal": false
+  },
+  "a116": {
+   "si": "Baño",
+   "personal": false
+  },
+  "a117": {
+   "si": "Baño",
    "personal": true
   },
   "a118": {
    "si": "SS.HH.",
-   "personal": true
+   "personal": false,
+   "dest": [
+    70.56,
+    54.94
+   ],
+   "ventanilla": true
   },
   "a120": {
-   "si": "SS.HH.",
-   "personal": true
+   "si": "Baño",
+   "personal": false,
+   "dest": [
+    70.57,
+    57.06
+   ],
+   "ventanilla": true
   },
   "a121": {
-   "si": "SS.HH.",
-   "personal": false
+   "si": "Baño",
+   "personal": false,
+   "dest": [
+    70.55,
+    60.22
+   ],
+   "ventanilla": true
   },
-  "a122": {
+  "a123": {
+   "si": "Baño",
+   "personal": false,
+   "dest": [
+    76.4,
+    67.73
+   ],
+   "ventanilla": true
+  },
+  "a124": {
    "si": "SS.HH.",
-   "personal": false
+   "personal": false,
+   "dest": [
+    70.42,
+    102.97
+   ],
+   "ventanilla": true
+  },
+  "a126": {
+   "si": "SS.HH.",
+   "personal": false,
+   "dest": [
+    70.54,
+    67.71
+   ],
+   "ventanilla": true
+  },
+  "a127": {
+   "si": "Baño",
+   "personal": false,
+   "dest": [
+    70.6,
+    75.68
+   ],
+   "ventanilla": true
+  },
+  "a128": {
+   "si": "Baño",
+   "personal": false,
+   "dest": [
+    70.52,
+    68.45
+   ],
+   "ventanilla": true
+  },
+  "a130": {
+   "si": "Baño",
+   "personal": false,
+   "dest": [
+    76.44,
+    68.48
+   ],
+   "ventanilla": true
+  },
+  "a132": {
+   "si": "Baño",
+   "personal": false,
+   "dest": [
+    76.38,
+    89.81
+   ],
+   "ventanilla": true
+  },
+  "a133": {
+   "si": "Baño",
+   "personal": false,
+   "dest": [
+    76.38,
+    83.49
+   ],
+   "ventanilla": true
+  },
+  "a134": {
+   "si": "Baño",
+   "personal": false,
+   "dest": [
+    70.58,
+    99.51
+   ],
+   "ventanilla": true
+  },
+  "a135": {
+   "si": "Baño",
+   "personal": false,
+   "dest": [
+    70.63,
+    95.98
+   ],
+   "ventanilla": true
+  },
+  "a136": {
+   "si": "Baño",
+   "personal": false,
+   "dest": [
+    70.58,
+    94.44
+   ],
+   "ventanilla": true
+  },
+  "a137": {
+   "si": "Baño",
+   "personal": false,
+   "dest": [
+    76.38,
+    96.31
+   ],
+   "ventanilla": true
+  },
+  "a138": {
+   "si": "Baño",
+   "personal": false,
+   "dest": [
+    70.57,
+    88.51
+   ],
+   "ventanilla": true
+  },
+  "a139": {
+   "si": "Baño",
+   "personal": false,
+   "dest": [
+    76.38,
+    102.58
+   ],
+   "ventanilla": true
   }
  },
  "lugares": [
@@ -291,6 +531,22 @@
    "cat": "administracion",
    "x": 71.4,
    "y": 46.4,
+   "personal": false
+  },
+  {
+   "id": "L-p1-sala-espera-oeste",
+   "nombre": "Sala de Espera",
+   "cat": "espera",
+   "x": 27.6,
+   "y": 95.3,
+   "personal": false
+  },
+  {
+   "id": "L-p1-balcon",
+   "nombre": "Balcón",
+   "cat": "otro",
+   "x": 53.2,
+   "y": 98.9,
    "personal": false
   }
  ],
