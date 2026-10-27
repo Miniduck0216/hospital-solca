@@ -113,6 +113,10 @@ def lineas(carpeta, zona, solo=None, colores=NEGROS, minimo=0.3):
             for it in d['items']:
                 if it[0] == 'c' or (it[0] == 'l' and en_marco(it[1], it[2])):
                     continue
+                if it[0] in ('re', 'qu'):   # el marco de la hoja también viene como un rectángulo
+                    pp = _puntos(it)
+                    if max(q.x for q in pp) - min(q.x for q in pp) > 0.6 * (x1 - x0):
+                        continue
                 pts = [_tf(r, p.x, p.y) for p in _puntos(it)]
                 if it[0] in ('re', 'qu'):
                     pts = pts + [pts[0]]

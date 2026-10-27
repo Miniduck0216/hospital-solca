@@ -29,6 +29,8 @@ export function compilarConfig(c = {}) {
     letreros: c.letreros || [],
     // ajustes por ambiente (ver planta_real/pisos/ajustes.py): se aplican solo si el ambiente conserva el nombre «si»
     ajustes: c.ajustes || {},
+    // lugares sin cuarto propio (mostradores, zonas de un hall): un punto con nombre, como los del administrador
+    lugares: c.lugares || [],
   }
 }
 
@@ -63,7 +65,7 @@ export async function cargarDatos(cambiosLocales = null, opciones = {}) {
   d.cambiosPasos = []
   const ajustes = Object.fromEntries(Object.entries(d.cfg.ajustes)
     .filter(([id, c]) => d.ambientes.find((x) => x.id === id)?.nombre === c.si))
-  aplicarCambios(d, { ambientes: ajustes })
+  aplicarCambios(d, { ambientes: ajustes, lugares: d.cfg.lugares })
   aplicarCambios(d, cambiosDelPiso(publicados, piso.id))
   aplicarCambios(d, cambiosDelPiso(cambiosLocales, piso.id))
   // solo personal: por regla del piso o marcado por el administrador

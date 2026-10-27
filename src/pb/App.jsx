@@ -292,10 +292,17 @@ export default function App() {
   useEffect(() => {
     if (!lugares.length) return
     const e = delEnlace.current
+    const disponibles = (d?.edificio?.pisos || []).filter((p) => p.disponible).length
+    const todos = Object.keys(pisos).length >= disponibles
     if (e.origen && porId[e.origen]) { setOrigen(porId[e.origen]); e.origen = null }
-    else setOrigen((o) => o || lugares.find((l) => l.id === 'entrada-puerta-1') || lugares.find((l) => l.entrada))
+    else if (!e.origen || todos) {
+      // sin origen en el enlace (o uno que no existe): la Puerta 1, cuando ya cargó la planta baja
+      const p1 = lugares.find((l) => l.id === 'entrada-puerta-1') || (todos ? lugares.find((l) => l.entrada) : null)
+      setOrigen((o) => o || p1 || null)
+      if (todos) e.origen = null
+    }
     if (e.destino && porId[e.destino]) { setDestino(porId[e.destino]); e.destino = null }
-  }, [lugares, porId])
+  }, [lugares, porId, pisos, d])
 
   useEffect(() => setRecorrer(false), [origen, destino])
   // ruta completa (puede tener tramos en dos pisos): { tramos: [{ piso, pts, metros, pasos }], metros, vertical, alternativa }
