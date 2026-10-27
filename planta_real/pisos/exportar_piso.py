@@ -51,10 +51,14 @@ EXTRA = {
     # la junta con el pasillo) y el cuarto de ductos queda como hueco entre sus tres ductos
     'P2': [('PREPARACIÓN MÉDICA', box(72.16, 69.15, 74.84, 73.3)),
            ('DUCTOS', box(72.16, 76.2, 75.02, 78.54))],
+    # piso 3: Apoyo se abre a la estación de enfermería por el mostrador (el dibujo lo junta con el pasillo); entre
+    # Jefatura y Aseo, el paso que une los dos pasillos queda como hueco
+    'P3': [('APOYO', box(72.16, 65.35, 74.84, 68.0)),
+           ('PASILLO', box(72.35, 81.42, 74.63, 82.58))],
 }
 # pisos donde los baños con inodoro que el dibujo deja sin ambiente (el inodoro de cada habitación, los dos baños
 # chicos del bloque central) se suman como ambiente «BAÑO»
-BANOS_HUECO = {'P2'}
+BANOS_HUECO = {'P2', 'P3'}
 # muros dobles que el dibujo deja huecos por dentro (marco de la planta baja): en el piso 2, el muro entre las
 # habitaciones 207 y 205
 MUROS_EXTRA = {

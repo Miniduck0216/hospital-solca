@@ -66,8 +66,11 @@ AJUSTES = {
            ('Preparación Médica', (73.5, 70.5), 'personal'),
            # Usados y Camillas son un solo espacio (el plano tiene los dos rótulos)
            ('Usados', (82.6, 48.0), {'nombre': 'Usados · Camillas'})],
-    'P3': [('SS.HH.', (78.36, 61.7), 'personal'), ('SS.HH.', (78.38, 63.04), 'personal'),
-           ('Baños', (73.18, 90.28), 'personal')],   # dentro del área de aislamiento (se entra por las esclusas)
+    'P3': [('SS.HH.', (78.36, 61.7), 'personal'), ('SS.HH.', (78.38, 63.04), 'personal'),   # baños de los residentes
+           # un solo espacio con los dos rótulos del plano
+           ('Usados', (82.6, 48.0), {'nombre': 'Usados · Camillas'}),
+           ('Oficina', (73.48, 83.96), {'nombre': 'Oficina · Jefatura'}),
+           ('Apoyo', (73.49, 66.67), 'personal')],
 }
 
 
@@ -75,6 +78,7 @@ AJUSTES = {
 # pasos abiertos (puertas que el dibujo no tiene): [punto, punto] a través del muro
 PASOS = {
     'P1': [[[28.95, 83.6], [29.85, 83.6]]],   # puerta del baño de hombres del bloque de servicio
+    'P3': [[[74.3, 87.33], [75.5, 87.33]]],      # vano entre el filtro de pacientes y los baños de Trasplantes
 }
 
 LUGARES = {
@@ -90,10 +94,15 @@ LUGARES = {
     'P2': [
         ('L-p2-estacion', 'Estación Enfermería', 'otro', (73.5, 65.0)),
     ],
+    'P3': [
+        ('L-p3-estacion', 'Estación Enfermería', 'otro', (73.5, 63.0)),
+        ('L-p3-estacion-trasplantes', 'Estación Enfermería Trasplantes', 'otro', (73.4, 92.2)),
+        ('L-p3-trabajo-social', 'Trabajo Social', 'administracion', (71.2, 46.6)),
+    ],
 }
 # pisos donde todos los baños son para pacientes (también el de cada habitación y el de quimioterapia), salvo los que
 # AJUSTES marca como del personal
-BANOS_PACIENTES = {'P2'}
+BANOS_PACIENTES = {'P2', 'P3'}
 
 
 def nombres_pdf(piso, d):
