@@ -17,6 +17,16 @@ const PLANO = { circulacion: '#F6F8FB', espera: '#E2F1E6' }
 const ALTO = 2.6
 const esPlano = (a) => !!PLANO[a.cat] || (!a.nombre && a.area >= 30)
 const TINTA_RUTA = '#1E2A4A'
+
+// Con el mapa inclinado, un punto a h metros de altura se ve h·sen(inclinación)/(metros por píxel) más arriba que su
+// pie. Los rótulos y los íconos de los bloques se suben eso para quedar sobre el techo (y no por debajo, en el piso).
+function alzarSobreTechos(map, marcas = []) {
+  const lat = map.getCenter().lat
+  const mpp = (40075016.686 * Math.cos((lat * Math.PI) / 180)) / (512 * 2 ** map.getZoom())
+  const px = Math.round(((ALTO + 0.12) * Math.sin((map.getPitch() * Math.PI) / 180)) / mpp)
+  if (map.getLayer('rotulos-techo')) map.setPaintProperty('rotulos-techo', 'text-translate', [0, -px])
+  for (const m of marcas) if (m._sobreTecho) m.setOffset([0, -px])
+}
 // ambientes que llevan ícono en el mapa (los mismos que arma App.jsx): su nombre va justo debajo del ícono
 const conPin = (a) => ['banos', 'escaleras', 'ascensores', 'farmacia'].includes(a.cat) || ['caja', 'informacion', 'capilla'].includes(a.icono)
 const anillos = (pg) => pg.map((r) => r.map(([x, y]) => aLonLat(x, y)))
@@ -30,7 +40,7 @@ function capas(d) {
     geometry: { type: 'Polygon', coordinates: anillos(a.pg) },
   })))
   const rotulos = FC(d.ambientes.filter((a) => a.nombre && (a.area >= 1.2 || a.nuevo)).map((a) => ({
-    type: 'Feature', properties: { nombre: a.nombre, area: a.area, orden: -a.area, pasillo: a.cat === 'circulacion' ? 1 : 0, pin: conPin(a) ? 1 : 0 },
+    type: 'Feature', properties: { nombre: a.nombre, area: a.area, orden: -a.area, pasillo: a.cat === 'circulacion' ? 1 : 0, pin: conPin(a) ? 1 : 0, techo: esPlano(a) ? 0 : 1 },
     geometry: { type: 'Point', coordinates: aLonLat(a.lbl[0], a.lbl[1]) },
   })))
   const parqueos = FC(d.parqueos.map((p) => ({ type: 'Feature', properties: { nombre: p.nombre }, geometry: { type: 'Polygon', coordinates: [[...p.ll, p.ll[0]]] } })))
@@ -152,13 +162,20 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
         'line-color': ['match', ['get', 'tipo'], 'cerrar', '#C0392B', 'abrir', '#2E9D5B', '#1B95BD'], 'line-width': 4, 'line-dasharray': [2, 1] } })
       map.addLayer({ id: 'trazo-puntos', type: 'circle', source: 'trazo', filter: ['==', ['geometry-type'], 'Point'], paint: { 'circle-radius': 5, 'circle-color': '#fff', 'circle-stroke-width': 2, 'circle-stroke-color': '#1E2A4A' } })
       if (fuente) {
-        map.addLayer({ id: 'rotulos', type: 'symbol', source: 'rotulos', minzoom: 16.8, filter: ['any', ['>=', ['get', 'area'], 60], ['>=', ['zoom'], ['case', ['>=', ['get', 'area'], 15], 17.8, 18.8]]], layout: {
+        // el nombre va sobre el techo del bloque (2,6 m): con el mapa inclinado, el techo se ve más arriba que el piso,
+        // así que los rótulos de los bloques se suben en pantalla (ver alzarSobreTechos); los de pasillos quedan en el piso
+        const rot = (id, techo) => ({ id, type: 'symbol', source: 'rotulos', minzoom: 16.8, filter: ['all', ['==', ['get', 'techo'], techo], ['any', ['>=', ['get', 'area'], 60], ['>=', ['zoom'], ['case', ['>=', ['get', 'area'], 15], 17.8, 18.8]]]], layout: {
           'text-field': ['get', 'nombre'], 'text-font': fuente,
           'text-size': ['interpolate', ['linear'], ['zoom'], 17, ['case', ['>=', ['get', 'area'], 150], 12, 10], 20, ['case', ['>=', ['get', 'area'], 60], 16, 12.5]],
           'text-max-width': 7, 'text-line-height': 1.1, 'symbol-sort-key': ['get', 'orden'], 'text-padding': 2,
           'text-rotation-alignment': 'viewport', 'text-letter-spacing': 0.01,
           'text-anchor': ['case', ['==', ['get', 'pin'], 1], 'top', 'center'], 'text-offset': ['case', ['==', ['get', 'pin'], 1], ['literal', [0, 1.1]], ['literal', [0, 0]]],
-        }, paint: { 'text-color': ['case', ['==', ['get', 'pasillo'], 1], '#7487A3', '#22314D'], 'text-halo-color': 'rgba(255,255,255,0.92)', 'text-halo-width': 1.5 } })
+        }, paint: { 'text-color': ['case', ['==', ['get', 'pasillo'], 1], '#7487A3', '#22314D'], 'text-halo-color': 'rgba(255,255,255,0.92)', 'text-halo-width': 1.5,
+          'text-translate-anchor': 'viewport' } })
+        map.addLayer(rot('rotulos', 0))
+        map.addLayer(rot('rotulos-techo', 1))
+        alzarSobreTechos(map, marcas.current)
+        map.on('move', () => alzarSobreTechos(map, marcas.current))
       }
       // interacción: resaltar al pasar el cursor y elegir con clic
       let hoverId = null
@@ -215,8 +232,11 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
       el.innerHTML = renderToStaticMarkup(<span className="pb-pin-c"><Icono nombre={l.icono} size={14} color="#fff" grosor={2.2} /></span>)
         + (l.entrada ? `<span class="pb-pin-t">${l.nombre}</span>` : '')   // el nombre de los demás lo pone la capa de rótulos, debajo del ícono
       el.addEventListener('click', (ev) => { ev.stopPropagation(); cb.current.onElegir?.(l.id, null) })
-      marcas.current.push(new maplibregl.Marker({ element: el }).setLngLat(aLonLat(l.x, l.y)).addTo(map))
+      const mk = new maplibregl.Marker({ element: el }).setLngLat(aLonLat(l.x, l.y)).addTo(map)
+      mk._sobreTecho = !l.entrada && !['circulacion', 'espera'].includes(l.cat)   // ícono de un bloque: va sobre su techo
+      marcas.current.push(mk)
     }
+    alzarSobreTechos(map, marcas.current)
     const zoomClase = () => {
       ref.current?.classList.toggle('pb-cerca', map.getZoom() >= 18.6)
       ref.current?.classList.toggle('pb-medio', map.getZoom() >= 17.6)

@@ -191,7 +191,7 @@
     },
     {
      "piso": "P1",
-     "ambiente": "a27"
+     "ambiente": "a26"
     }
    ]
   },
@@ -203,7 +203,7 @@
    "paradas": [
     {
      "piso": "P1",
-     "ambiente": "a52"
+     "ambiente": "a51"
     },
     {
      "piso": "P2",
@@ -231,7 +231,7 @@
     },
     {
      "piso": "P1",
-     "ambiente": "a51"
+     "ambiente": "a50"
     },
     {
      "piso": "P2",
