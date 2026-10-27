@@ -52,8 +52,8 @@ AJUSTES = {
            ('B', (0.7, 92.0), {'nombre': 'Escalera de emergencia', 'cat': 'escaleras'}),
            # la habitación 17 se abre a la terraza sin puerta dibujada: queda un solo ambiente
            ('Hab. 17 · Terraza N + 3.95', (0, 0), {'nombre': 'Hab. 17'}),
-           ('Sala Rauniones', (0, 0), {'nombre': 'Sala de Reuniones'}),   # así viene escrito en el plano
-           ('Sala Reuniones', (82.5, 25.6), {'nombre': 'Sala de Reuniones', 'personal': True}),
+           # «Sala Rauniones» (torre) y «Sala Reuniones» (bloque administrativo): como en el plano, para diferenciarlas
+           ('Sala Reuniones', (82.5, 25.6), 'personal'),
            ('Sala de Espera · Hall', (0, 0), {'nombre': 'Sala de Espera'}),
            # baños públicos junto a la escalera del ala oeste (en el PDF, con los íconos de hombre y mujer)
            ('', (47.0, 90.8), {'nombre': 'Baño Hombres', 'cat': 'banos', 'personal': False}),
@@ -271,6 +271,9 @@ def frente(d, a):
 
 def main():
     edificio = json.load(open(os.path.join(RAIZ, 'public', 'edificio.json')))
+    # perfil del hospital: contorno de la planta baja, que los planos de los pisos altos traen como referencia
+    pb = json.load(open(os.path.join(RAIZ, 'public', 'pb', 'datos.json')))
+    json.dump({'huella': pb['huella']}, open(os.path.join(RAIZ, 'public', 'perfil.json'), 'w'), separators=(',', ':'))
     personales = {}
     for c in edificio['conectores']:
         if c.get('personal'):

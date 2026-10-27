@@ -135,11 +135,17 @@ def banos_hueco(m):
     resto = env.difference(amb.buffer(0.02)).difference(duro.buffer(0.02))
     ino = [mu['poligono'] for mu in m.muebles if mu['nombre'] == 'Inodoro']
     n = 0
-    for q in lista_polis(resto):
+    def largo(q):
         rr = list(q.minimum_rotated_rectangle.exterior.coords)
-        largo = max(math.dist(rr[i], rr[i + 1]) for i in range(4))
-        # largo hasta 2,5 m: más largo es el inodoro junto con la entrada de la habitación (no se cierra como baño)
-        if 0.8 <= q.area <= 5 and largo <= 2.5 and not q.buffer(-0.25).is_empty and any(q.intersects(i) for i in ino):
+        return max(math.dist(rr[i], rr[i + 1]) for i in range(4))
+    for q in lista_polis(resto):
+        if largo(q) > 2.5 and any(q.intersects(i) for i in ino):
+            # el compartimento del inodoro unido a la franja angosta de la entrada de la habitación (Hab 108 y 115 del
+            # piso 1): se quita la franja (menos de 25 cm de ancho) y queda el compartimento
+            sin = [p for p in lista_polis(q.buffer(-0.12, join_style=2).buffer(0.12, join_style=2))
+                   if any(p.intersects(i) for i in ino)]
+            q = max(sin, key=lambda p: p.area) if sin else q
+        if 0.8 <= q.area <= 5 and largo(q) <= 2.5 and not q.buffer(-0.25).is_empty and any(q.intersects(i) for i in ino):
             m.ambientes.append(dict(poligono=q, nombre='BAÑO', area=q.area, extra=True))
             n += 1
     print('baños sin ambiente', n)

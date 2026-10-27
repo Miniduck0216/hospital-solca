@@ -28,7 +28,9 @@ function alzarSobreTechos(map, marcas = []) {
   for (const m of marcas) if (m._sobreTecho) m.setOffset([0, -px])
 }
 // ambientes que llevan ícono en el mapa (los mismos que arma App.jsx): su nombre va justo debajo del ícono
-const conPin = (a) => ['banos', 'escaleras', 'ascensores', 'farmacia'].includes(a.cat) || ['caja', 'informacion', 'capilla'].includes(a.icono)
+// ícono en el mapa: los baños solo si dan a la circulación (el de cada habitación se busca, pero no se marca: serían decenas)
+const conPin = (a) => (a.cat === 'banos' ? !a.personal && !a.ventanilla
+  : ['escaleras', 'ascensores', 'farmacia'].includes(a.cat) || ['caja', 'informacion', 'capilla'].includes(a.icono))
 const anillos = (pg) => pg.map((r) => r.map(([x, y]) => aLonLat(x, y)))
 const polis = (lista, props = () => ({})) => FC(lista.map((pg, i) => ({ type: 'Feature', properties: props(pg, i), geometry: { type: 'Polygon', coordinates: anillos(pg) } })))
 const lineas = (lista) => FC(lista.map((l) => ({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: l.map(([x, y]) => aLonLat(x, y)) } })))
@@ -46,6 +48,7 @@ function capas(d) {
   const parqueos = FC(d.parqueos.map((p) => ({ type: 'Feature', properties: { nombre: p.nombre }, geometry: { type: 'Polygon', coordinates: [[...p.ll, p.ll[0]]] } })))
   return {
     huella: polis(d.huella),
+    perfil: polis(d.perfil || []),
     ambientes: amb,
     rotulos,
     muros: polis(d.muros),
@@ -134,6 +137,9 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
       if (fuente) map.addLayer({ id: 'parqueos-txt', type: 'symbol', source: 'parqueos', layout: { 'text-field': ['concat', 'P  ', ['get', 'nombre']], 'text-font': fuente, 'text-size': 12, 'text-allow-overlap': false }, paint: { 'text-color': '#3F5A80', 'text-halo-color': '#fff', 'text-halo-width': 1.4 } })
       // edificio: losa clara con sombra suave
       map.addLayer({ id: 'viseras', type: 'fill', source: 'viseras', paint: { 'fill-color': '#E9ECF1', 'fill-opacity': 0.8 } })
+      // perfil del hospital (planta baja) bajo los pisos altos: losa gris clara con su borde
+      map.addLayer({ id: 'perfil', type: 'fill', source: 'perfil', paint: { 'fill-color': '#E3E7ED', 'fill-opacity': 0.9 } })
+      map.addLayer({ id: 'perfil-borde', type: 'line', source: 'perfil', paint: { 'line-color': '#9AA6B6', 'line-width': 1.2 } })
       map.addLayer({ id: 'huella-sombra', type: 'line', source: 'huella', paint: { 'line-color': '#4A5D78', 'line-width': 14, 'line-opacity': 0.14, 'line-blur': 10, 'line-translate': [0, 4] } })
       map.addLayer({ id: 'huella', type: 'fill', source: 'huella', paint: { 'fill-color': '#F6F8FB' } })
       // piso de cada ambiente (plano): pasillos y salas de espera se ven aquí; es también la capa que recibe el clic

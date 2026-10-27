@@ -74,7 +74,9 @@ function armarLugaresPiso(d) {
         if (dd < m) { m = dd; cerca = z.nombre }
       }
     }
-    lugares.push({ id: a.id, nombre: a.nombre, cat: a.cat, area: a.area, x: a.dest[0], y: a.dest[1], lbl: a.lbl, cerca, icono: ICONO_LUGAR[a.icono] || ICONO_CAT[a.cat] })
+    // baño dentro de una habitación (la ruta llega a la puerta de la habitación): se busca, pero sin ícono en el mapa
+    const enCuarto = a.cat === 'banos' && !!a.ventanilla
+    lugares.push({ id: a.id, nombre: a.nombre, cat: a.cat, area: a.area, x: a.dest[0], y: a.dest[1], lbl: a.lbl, cerca, enCuarto, icono: ICONO_LUGAR[a.icono] || ICONO_CAT[a.cat] })
   }
   for (const e of d.entradas) {
     lugares.push({ id: e.id, nombre: e.nombre === 'Puerta 1' ? 'Puerta 1 · Entrada principal' : e.nombre, cat: 'entrada', x: e.x, y: e.y, lbl: [e.x, e.y], entrada: true, icono: 'salida' })
@@ -366,7 +368,7 @@ export default function App() {
     history.replaceState(null, '', `${location.pathname}?${p}`)
   }, [origen, destino, accesible, via])
 
-  const lugaresIcono = useMemo(() => lugares.filter((l) => l.piso === pisoId).filter((l) => l.entrada || ['banos', 'escaleras', 'ascensores', 'farmacia'].includes(l.cat) || ['caja', 'info', 'capilla'].includes(l.icono))
+  const lugaresIcono = useMemo(() => lugares.filter((l) => l.piso === pisoId && !l.enCuarto).filter((l) => l.entrada || ['banos', 'escaleras', 'ascensores', 'farmacia'].includes(l.cat) || ['caja', 'info', 'capilla'].includes(l.icono))
     .map((l) => ({ ...l, id: l.local, x: l.entrada ? l.x : l.lbl[0], y: l.entrada ? l.y : l.lbl[1], color: l.entrada ? TINTA : '#FFFFFF' })), [lugares, pisoId])
 
   const elegirDesdeMapa = (id) => {

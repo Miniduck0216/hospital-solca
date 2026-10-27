@@ -54,7 +54,7 @@
    "si": "Preparación Médica",
    "personal": true
   },
-  "a129": {
+  "a130": {
    "si": "Baño",
    "personal": false
   },
@@ -71,13 +71,8 @@
    "si": "Hab. 17 · Terraza N + 3.95",
    "nombre": "Hab. 17"
   },
-  "a6": {
-   "si": "Sala Rauniones",
-   "nombre": "Sala de Reuniones"
-  },
   "a56": {
    "si": "Sala Reuniones",
-   "nombre": "Sala de Reuniones",
    "personal": true
   },
   "a0": {
@@ -169,7 +164,7 @@
    "si": "",
    "cat": "circulacion"
   },
-  "a131": {
+  "a132": {
    "si": "",
    "cat": "circulacion"
   },
@@ -367,7 +362,16 @@
    ],
    "ventanilla": true
   },
-  "a126": {
+  "a125": {
+   "si": "Baño",
+   "personal": false,
+   "dest": [
+    76.42,
+    75.65
+   ],
+   "ventanilla": true
+  },
+  "a127": {
    "si": "SS.HH.",
    "personal": false,
    "dest": [
@@ -376,7 +380,7 @@
    ],
    "ventanilla": true
   },
-  "a127": {
+  "a128": {
    "si": "Baño",
    "personal": false,
    "dest": [
@@ -385,7 +389,7 @@
    ],
    "ventanilla": true
   },
-  "a128": {
+  "a129": {
    "si": "Baño",
    "personal": false,
    "dest": [
@@ -394,7 +398,7 @@
    ],
    "ventanilla": true
   },
-  "a130": {
+  "a131": {
    "si": "Baño",
    "personal": false,
    "dest": [
@@ -403,7 +407,7 @@
    ],
    "ventanilla": true
   },
-  "a132": {
+  "a133": {
    "si": "Baño",
    "personal": false,
    "dest": [
@@ -412,7 +416,7 @@
    ],
    "ventanilla": true
   },
-  "a133": {
+  "a134": {
    "si": "Baño",
    "personal": false,
    "dest": [
@@ -421,7 +425,7 @@
    ],
    "ventanilla": true
   },
-  "a134": {
+  "a135": {
    "si": "Baño",
    "personal": false,
    "dest": [
@@ -430,7 +434,7 @@
    ],
    "ventanilla": true
   },
-  "a135": {
+  "a136": {
    "si": "Baño",
    "personal": false,
    "dest": [
@@ -439,7 +443,7 @@
    ],
    "ventanilla": true
   },
-  "a136": {
+  "a137": {
    "si": "Baño",
    "personal": false,
    "dest": [
@@ -448,7 +452,7 @@
    ],
    "ventanilla": true
   },
-  "a137": {
+  "a138": {
    "si": "Baño",
    "personal": false,
    "dest": [
@@ -457,7 +461,16 @@
    ],
    "ventanilla": true
   },
-  "a138": {
+  "a139": {
+   "si": "Baño",
+   "personal": false,
+   "dest": [
+    70.58,
+    81.89
+   ],
+   "ventanilla": true
+  },
+  "a140": {
    "si": "Baño",
    "personal": false,
    "dest": [
@@ -466,7 +479,7 @@
    ],
    "ventanilla": true
   },
-  "a139": {
+  "a141": {
    "si": "Baño",
    "personal": false,
    "dest": [
