@@ -137,6 +137,27 @@ def banos_hueco(m):
     print('baños sin ambiente', n)
 
 
+def barandas(m):
+    """Barra entre los tramos de una escalera (dibujada como tabique): es baranda de 1 m, no muro. Se saca de los
+    tabiques y queda en m.barandas (sigue siendo obstáculo para la ruta)."""
+    if hasattr(m, 'barandas'):
+        return m.barandas
+    tramos = [unary_union(t).convex_hull for t in getattr(m, 'tramos', [])]
+    esc = [a['poligono'].convex_hull.buffer(-0.15) for a in m.ambientes
+           if sum(a['poligono'].intersection(h).area for h in tramos) >= 0.4 * a['area']]
+    m.barandas, quedan = [], []
+    for t in m.tabiques:
+        g = t['poligono']
+        rr = list(g.minimum_rotated_rectangle.exterior.coords)
+        lados = sorted(math.dist(rr[i], rr[i + 1]) for i in range(4))
+        if lados[0] <= 0.35 and lados[-1] >= 1.5 and any(g.intersection(e).area >= 0.9 * g.area for e in esc if not e.is_empty):
+            m.barandas.append(g)
+        else:
+            quedan.append(t)
+    m.tabiques = quedan
+    return m.barandas
+
+
 def es_circulacion(nombre, area):
     n = (nombre or '').upper()
     if not n:
@@ -233,6 +254,7 @@ def exportar(m, piso, salida):
             continue
         if any(a['poligono'].intersection(unary_union(tr).convex_hull).area > 0.5 for tr in getattr(m, 'tramos', [])):
             a['nombre'] = 'ESCALERA'
+    print('barandas', len(barandas(m)))
     # un patio o parqueadero cerrado por el contorno del dibujo, con solo el rótulo de una puerta: es exterior
     m.ambientes = [a for a in m.ambientes if not (re.fullmatch(r'PUERTA \d+|PARQUEADERO.*|TERRAZA.*', (a['nombre'] or '').upper())
                                                   and a['area'] > 150)]
@@ -338,7 +360,7 @@ def exportar(m, piso, salida):
                     cv2.fillPoly(img, [np.array([[(x - x0) / RES, (y - y0) / RES] for x, y in h_.coords], np.int32)], 0)
         return img > 0
     interior = ras([a['poligono'] for a in m.ambientes])
-    obst = ras([duro, vent] + [mu['poligono'] for mu in m.muebles if mu['nombre'] not in ('Tope de puerta',)] +
+    obst = ras([duro, vent] + list(m.barandas) + [mu['poligono'] for mu in m.muebles if mu['nombre'] not in ('Tope de puerta',)] +
                list(m.escritorios))
     libre = interior & ~ndimage.binary_dilation(obst, iterations=1)
     vanos = []
@@ -409,6 +431,7 @@ def exportar(m, piso, salida):
         fuente='Planos actualizados HOSPITAL SOLCA QUITO 2025 (DWG del edificio)',
         geo=ED.GEO, altura=3.84,
         huella=ED.poli(hu, 0.05), ambientes=amb, muros=ED.poli(muros, 0.015), ventanas=ED.poli(vent, 0.015),
+        barandas=ED.poli(unary_union(m.barandas), 0.015) if m.barandas else [],
         puertas=[dict(a=[r2(v) for v in p['a']], b=[r2(v) for v in p['b']], c=round(float((p['t0'] + p['t1']) / 2), 3),
                       doble=bool(p['doble']), ducto=p['tipo'].startswith('P-DUC')) for p in m.puertas
                  # puertas sueltas lejos del edificio (en el piso 2, una 50 m al este)
@@ -440,7 +463,7 @@ def trasladar(d, ox, oy):
         a['lbl'] = par(a['lbl'])
         if a.get('dest'):
             a['dest'] = par(a['dest'])
-    for k in ('muros', 'ventanas', 'trazos_puertas', 'trazos', 'gradas'):
+    for k in ('muros', 'ventanas', 'barandas', 'trazos_puertas', 'trazos', 'gradas'):
         d[k] = anillos(d[k])
     for p in d['puertas']:
         p['a'], p['b'] = par(p['a']), par(p['b'])

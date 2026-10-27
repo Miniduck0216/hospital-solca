@@ -73,7 +73,7 @@
   },
   "a64": {
    "si": "SS.HH.",
-   "personal": false
+   "personal": true
   },
   "a65": {
    "si": "SS.HH.",

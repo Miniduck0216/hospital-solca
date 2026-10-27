@@ -63,7 +63,9 @@ AJUSTES = {
            ('', (66.4, 77.3), {'nombre': 'Hab 211'}),
            ('', (73.5, 83.8), {'nombre': 'Examen Tratamiento'}),   # se entra por dos puertas, una de cada pasillo
            ('', (82.3, 61.9), {'nombre': 'Dormitorio Residente', 'personal': True}),
-           ('Preparación Médica', (73.5, 70.5), 'personal')],
+           ('Preparación Médica', (73.5, 70.5), 'personal'),
+           # Usados y Camillas son un solo espacio (el plano tiene los dos rótulos)
+           ('Usados', (82.6, 48.0), {'nombre': 'Usados · Camillas'})],
     'P3': [('SS.HH.', (78.36, 61.7), 'personal'), ('SS.HH.', (78.38, 63.04), 'personal'),
            ('Baños', (73.18, 90.28), 'personal')],   # dentro del área de aislamiento (se entra por las esclusas)
 }
