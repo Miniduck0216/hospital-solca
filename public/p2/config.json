@@ -281,7 +281,12 @@
   },
   "a78": {
    "si": "SS.HH.",
-   "personal": false
+   "personal": false,
+   "dest": [
+    70.58,
+    86.74
+   ],
+   "ventanilla": true
   },
   "a79": {
    "si": "Baño",

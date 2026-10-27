@@ -40,7 +40,13 @@ AJUSTES = {
         ('Baños', (97.5, 99.5), 'personal'),
     ],
     # bloque administrativo norte (hall interno, TICs, jefatura, sala de reuniones): no es de pacientes
-    'P1': [('Hall Interno', (80.7, 32.8), 'personal'), 
+    'P1': [('Hall Interno', (80.7, 32.8), {'nombre': 'Recepción · Hall Interno · TICs', 'personal': True}),   # un espacio, tres rótulos
+           ('U.l', (0, 0), {'nombre': 'U.L'}),   # así está en el plano
+           ('Baño', (79.48, 39.78), 'personal'),
+           ('Preparación Médica', (73.5, 70.5), 'personal'),   # baño del hall interno (el otro sale solo por la regla)
+           # el segundo baño chico del bloque central de la torre se abre al pasillo (el dibujo deja su puerta dentro del muro)
+           ('Baño', (74.21, 99.38), {'publico': True}),
+
            ('Jefatura', (79.0, 25.6), 'personal'),
            # escalera de emergencia del extremo oeste (rotulada «b» en el plano)
            ('B', (0.7, 92.0), {'nombre': 'Escalera de emergencia', 'cat': 'escaleras'}),
@@ -90,6 +96,8 @@ LUGARES = {
         ('L-p1-cuarto-electrico', 'Cuarto Eléctrico', 'apoyo', (52.2, 85.4), True),
         ('L-p1-estacion-torre', 'Estación de Enfermería', 'otro', (74.8, 64.5)),
         ('L-p1-trabajo-social', 'Trabajo Social', 'administracion', (71.4, 46.4)),
+        ('L-p1-sala-espera-oeste', 'Sala de Espera', 'espera', (27.6, 95.3)),
+        ('L-p1-balcon', 'Balcón', 'otro', (53.2, 98.9)),
     ],
     'P2': [
         ('L-p2-estacion', 'Estación Enfermería', 'otro', (73.5, 65.0)),
@@ -102,7 +110,7 @@ LUGARES = {
 }
 # pisos donde todos los baños son para pacientes (también el de cada habitación y el de quimioterapia), salvo los que
 # AJUSTES marca como del personal
-BANOS_PACIENTES = {'P2', 'P3'}
+BANOS_PACIENTES = {'P1', 'P2', 'P3'}
 
 
 def nombres_pdf(piso, d):
@@ -138,7 +146,7 @@ def nombres_pdf(piso, d):
     return out
 
 
-def banos_y_huecos(d, aj, todos_publicos=False):
+def banos_y_huecos(d, aj, todos_publicos=False, solo_personal=()):
     """Reglas generales para todos los pisos:
     - cuarto sin nombre con un inodoro adentro: es un baño
     - un baño es para pacientes si una puerta lo une a un pasillo, hall o sala de espera (directo o pasando por la
@@ -201,11 +209,15 @@ def banos_y_huecos(d, aj, todos_publicos=False):
                     break
                 if cat(b) == 'banos':
                     cola.append(j)
-        if not puertas:
+        contacto = [amb[j] for j in vistos if j != a['id'] and cat(amb[j]) != 'banos']
+        if aj.get(a['id'], {}).pop('publico', False):
+            publico = True   # su puerta da al pasillo aunque el dibujo no la deje medir
+        elif not puertas:
             # sin puerta dibujada: se mira con qué colinda (más de 0,6 m de borde común con un pasillo o hall)
             g = polis.get(a['id'])
             junto = [amb[i] for i, h in polis.items() if i != a['id'] and g is not None and g.buffer(0.3).intersection(h).area > 0.15]
             publico = any(abierto(b) for b in junto) and not any(cuarto(b) for b in junto)
+            contacto = [b for b in junto if cat(b) != 'banos']
         aj.setdefault(a['id'], {'si': a['nombre']})
         aj[a['id']].setdefault('personal', False if todos_publicos else not publico)
         if todos_publicos and not publico and not aj[a['id']]['personal']:
@@ -217,8 +229,14 @@ def banos_y_huecos(d, aj, todos_publicos=False):
                 dentro = sorted((b for i, b in amb.items() if i in polis and i != a['id'] and cuarto(b)
                                  and g.buffer(0.3).intersection(polis[i]).area > 0.15),
                                 key=lambda b: -g.buffer(0.3).intersection(polis[b['id']]).area)
+            del_personal = lambda b: aj.get(b['id'], {}).get('personal') or \
+                any(re.search(r, nombre(b), re.I) for r in solo_personal)
             p = frente(d, dentro[0]) if dentro else None
-            if p:
+            p = p or frente(d, a)   # el cuarto no toca el pasillo (lo tapa su propio baño): frente al baño
+            if contacto and all(del_personal(b) for b in contacto):
+                # solo se llega desde un área del personal (hall interno, residencia): es del personal
+                aj[a['id']]['personal'] = True
+            elif p:
                 aj[a['id']].update(dest=p, ventanilla=True)
             else:
                 print('baño sin cuarto ni pasillo:', a['id'], a['nombre'])
@@ -292,7 +310,7 @@ def main():
             aj[i] = {'si': a['nombre'], 'personal': True}
         for i, c in nombres_pdf(piso, d).items():
             aj.setdefault(i, c)
-        banos_y_huecos(d, aj, piso in BANOS_PACIENTES)
+        banos_y_huecos(d, aj, piso in BANOS_PACIENTES, cfg.get('soloPersonal', []))
         lug = []
         for l in LUGARES.get(piso, []):
             lid, nombre, cat, (x, y) = l[:4]
