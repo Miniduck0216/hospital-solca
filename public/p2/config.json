@@ -35,69 +35,287 @@
   "^Cocina"
  ],
  "ajustes": {
-  "a52": {
+  "a54": {
    "si": "",
    "personal": true,
    "nombre": "Baño",
    "cat": "banos"
   },
-  "a51": {
-   "si": "SS.HH.",
-   "personal": true
-  },
   "a53": {
    "si": "SS.HH.",
    "personal": true
   },
-  "a36": {
-   "si": "Ascensores",
-   "personal": true
+  "a2": {
+   "si": "",
+   "nombre": "Quimioterapia Ambulatoria"
   },
   "a38": {
+   "si": "",
+   "nombre": "Examen Tratamiento"
+  },
+  "a33": {
+   "si": "",
+   "nombre": "Dormitorio Residente",
+   "personal": true
+  },
+  "a34": {
+   "si": "Preparación Médica",
+   "personal": true
+  },
+  "a37": {
    "si": "Ascensores",
    "personal": true
   },
-  "a47": {
-   "si": "SS.HH.",
-   "personal": false
-  },
-  "a48": {
-   "si": "SS.HH.",
-   "personal": false
-  },
-  "a54": {
-   "si": "SS.HH.",
+  "a39": {
+   "si": "Ascensores",
    "personal": true
+  },
+  "a49": {
+   "si": "SS.HH.",
+   "personal": false
+  },
+  "a50": {
+   "si": "SS.HH.",
+   "personal": false
   },
   "a55": {
-   "si": "SS.HH.",
-   "personal": true
+   "si": "Baño",
+   "personal": false,
+   "dest": [
+    70.52,
+    101.38
+   ],
+   "ventanilla": true
   },
   "a56": {
-   "si": "SS.HH.",
-   "personal": true
+   "si": "Baño",
+   "personal": false
   },
   "a57": {
-   "si": "SS.HH.",
-   "personal": true
+   "si": "Baño",
+   "personal": false,
+   "dest": [
+    70.53,
+    82.21
+   ],
+   "ventanilla": true
   },
   "a58": {
-   "si": "SS.HH.",
-   "personal": true
+   "si": "Baño",
+   "personal": false,
+   "dest": [
+    70.57,
+    57.07
+   ],
+   "ventanilla": true
   },
   "a59": {
    "si": "SS.HH.",
-   "personal": true
+   "personal": false,
+   "dest": [
+    70.58,
+    49.13
+   ],
+   "ventanilla": true
   },
   "a60": {
-   "si": "SS.HH.",
-   "personal": true
+   "si": "Baño",
+   "personal": false,
+   "dest": [
+    76.42,
+    67.74
+   ],
+   "ventanilla": true
   },
   "a61": {
+   "si": "Baño",
+   "personal": false,
+   "dest": [
+    70.55,
+    60.23
+   ],
+   "ventanilla": true
+  },
+  "a62": {
    "si": "SS.HH.",
-   "personal": true
+   "personal": false,
+   "dest": [
+    70.54,
+    67.72
+   ],
+   "ventanilla": true
+  },
+  "a63": {
+   "si": "Baño",
+   "personal": false
+  },
+  "a64": {
+   "si": "Baño",
+   "personal": false,
+   "dest": [
+    76.47,
+    82.24
+   ],
+   "ventanilla": true
+  },
+  "a65": {
+   "si": "Baño",
+   "personal": false,
+   "dest": [
+    76.47,
+    88.64
+   ],
+   "ventanilla": true
+  },
+  "a66": {
+   "si": "Baño",
+   "personal": false,
+   "dest": [
+    76.45,
+    68.47
+   ],
+   "ventanilla": true
+  },
+  "a67": {
+   "si": "Baño",
+   "personal": false,
+   "dest": [
+    76.45,
+    75.89
+   ],
+   "ventanilla": true
+  },
+  "a68": {
+   "si": "Baño",
+   "personal": false,
+   "dest": [
+    70.44,
+    75.67
+   ],
+   "ventanilla": true
+  },
+  "a69": {
+   "si": "Baño",
+   "personal": false,
+   "dest": [
+    70.52,
+    68.46
+   ],
+   "ventanilla": true
+  },
+  "a70": {
+   "si": "Baño",
+   "personal": false,
+   "dest": [
+    70.53,
+    82.21
+   ],
+   "ventanilla": true
+  },
+  "a71": {
+   "si": "Baño",
+   "personal": false,
+   "dest": [
+    70.52,
+    101.38
+   ],
+   "ventanilla": true
+  },
+  "a72": {
+   "si": "SS.HH.",
+   "personal": false,
+   "dest": [
+    76.47,
+    82.24
+   ],
+   "ventanilla": true
+  },
+  "a73": {
+   "si": "SS.HH.",
+   "personal": false,
+   "dest": [
+    76.47,
+    88.64
+   ],
+   "ventanilla": true
+  },
+  "a74": {
+   "si": "SS.HH.",
+   "personal": false,
+   "dest": [
+    76.47,
+    95.03
+   ],
+   "ventanilla": true
+  },
+  "a75": {
+   "si": "SS.HH.",
+   "personal": false,
+   "dest": [
+    76.47,
+    95.03
+   ],
+   "ventanilla": true
+  },
+  "a76": {
+   "si": "SS.HH.",
+   "personal": false,
+   "dest": [
+    70.53,
+    95.01
+   ],
+   "ventanilla": true
+  },
+  "a77": {
+   "si": "SS.HH.",
+   "personal": false,
+   "dest": [
+    70.53,
+    95.01
+   ],
+   "ventanilla": true
+  },
+  "a78": {
+   "si": "SS.HH.",
+   "personal": false
+  },
+  "a79": {
+   "si": "Baño",
+   "personal": false,
+   "dest": [
+    70.43,
+    75.6
+   ],
+   "ventanilla": true
+  },
+  "a80": {
+   "si": "Baño",
+   "personal": false,
+   "dest": [
+    76.45,
+    75.89
+   ],
+   "ventanilla": true
+  },
+  "a81": {
+   "si": "Baño",
+   "personal": false,
+   "dest": [
+    76.42,
+    101.7
+   ],
+   "ventanilla": true
   }
  },
- "lugares": [],
+ "lugares": [
+  {
+   "id": "L-p2-estacion",
+   "nombre": "Estación Enfermería",
+   "cat": "otro",
+   "x": 73.5,
+   "y": 65.0,
+   "personal": false
+  }
+ ],
  "pasos": []
 }
