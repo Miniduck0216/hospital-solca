@@ -26,8 +26,6 @@
   "^Computadora",
   "^Central de",
   "^Filtro Personal",
-  "^SS\\.HH\\.",
-  "^Baño",
   "^Sala Medicos",
   "^Oficina",
   "^Estar",
@@ -37,6 +35,18 @@
   "^Cocina"
  ],
  "ajustes": {
+  "a56": {
+   "si": "SS.HH.",
+   "personal": true
+  },
+  "a55": {
+   "si": "SS.HH.",
+   "personal": true
+  },
+  "a40": {
+   "si": "Baños",
+   "personal": true
+  },
   "a38": {
    "si": "Ascensores",
    "personal": true
@@ -44,7 +54,48 @@
   "a39": {
    "si": "Ascensores",
    "personal": true
+  },
+  "a48": {
+   "si": "SS.HH.",
+   "personal": false
+  },
+  "a49": {
+   "si": "SS.HH.",
+   "personal": false
+  },
+  "a62": {
+   "si": "SS.HH.",
+   "personal": true
+  },
+  "a63": {
+   "si": "SS.HH.",
+   "personal": true
+  },
+  "a64": {
+   "si": "SS.HH.",
+   "personal": false
+  },
+  "a65": {
+   "si": "SS.HH.",
+   "personal": true
+  },
+  "a66": {
+   "si": "SS.HH.",
+   "personal": true
+  },
+  "a67": {
+   "si": "SS.HH.",
+   "personal": true
+  },
+  "a69": {
+   "si": "SS.HH.",
+   "personal": true
+  },
+  "a70": {
+   "si": "SS.HH.",
+   "personal": true
   }
  },
- "lugares": []
+ "lugares": [],
+ "pasos": []
 }

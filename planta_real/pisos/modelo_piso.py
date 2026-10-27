@@ -47,6 +47,8 @@ CORRECCIONES = {
         dict(tipo='capa', zona=box(-3, 70, 61.25, 100.45), de='P0 - Ventanas', a='VE'),
         # bloque suelto al este de la torre: no está en el plano del piso 1 que revisó el hospital
         dict(tipo='borrar', zona=box(92, 85, 112, 106)),
+        # cierre de la habitación 17 contra la terraza (el muro del PDF llega al ventanal; el dibujo deja una rendija)
+        dict(tipo='muro', zona=box(6.0, 76.95, 6.25, 77.95)),
     ],
 }
 
@@ -64,6 +66,9 @@ def corregir(piso, planos, bloques, textos):
                     planos[i] = (c['a'],) + tuple(e[1:])
                     n += 1
             print(piso, 'capa', c['de'], '->', c['a'], n)
+            continue
+        if c['tipo'] == 'muro':
+            planos.append(('P0 - Paredes', 'LWPOLYLINE', [(x * 1000, y * 1000) for x, y in z.exterior.coords], True))
             continue
         if c['tipo'] == 'ventanas_pdf':
             vs = pdf_zonas.bandas_ventana(c['carpeta'], z, c.get('solo'), minimo=1.5, direcciones=(True,))
