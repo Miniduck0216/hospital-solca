@@ -56,8 +56,14 @@ AJUSTES = {
            ('', (26.9, 98.84), {'cat': 'circulacion'}),
            # baños de los dormitorios de residentes (se entra por su vestíbulo): son del personal
            ('SS.HH.', (78.36, 61.69), 'personal'), ('SS.HH.', (78.38, 63.03), 'personal')],
-    'P2': [('', (78.36, 61.7), 'personal'), ('SS.HH.', (78.38, 63.04), 'personal'),
-           ('SS.HH.', (69.08, 51.93), 'personal')],   # baño de la habitación junto a la sala de reuniones
+    'P2': [('', (78.36, 61.7), 'personal'), ('SS.HH.', (78.38, 63.04), 'personal'),   # baños de los residentes
+           # cuartos que el dibujo deja sin rótulo: el nombre es el texto del plano
+           ('', (65.82, 47.0), {'nombre': 'Quimioterapia Ambulatoria'}),
+           ('', (66.4, 93.2), {'nombre': 'Hab 221'}),
+           ('', (66.4, 77.3), {'nombre': 'Hab 211'}),
+           ('', (73.5, 83.8), {'nombre': 'Examen Tratamiento'}),   # se entra por dos puertas, una de cada pasillo
+           ('', (82.3, 61.9), {'nombre': 'Dormitorio Residente', 'personal': True}),
+           ('Preparación Médica', (73.5, 70.5), 'personal')],
     'P3': [('SS.HH.', (78.36, 61.7), 'personal'), ('SS.HH.', (78.38, 63.04), 'personal'),
            ('Baños', (73.18, 90.28), 'personal')],   # dentro del área de aislamiento (se entra por las esclusas)
 }
@@ -79,7 +85,13 @@ LUGARES = {
         ('L-p1-estacion-torre', 'Estación de Enfermería', 'otro', (74.8, 64.5)),
         ('L-p1-trabajo-social', 'Trabajo Social', 'administracion', (71.4, 46.4)),
     ],
+    'P2': [
+        ('L-p2-estacion', 'Estación Enfermería', 'otro', (73.5, 65.0)),
+    ],
 }
+# pisos donde todos los baños son para pacientes (también el de cada habitación y el de quimioterapia), salvo los que
+# AJUSTES marca como del personal
+BANOS_PACIENTES = {'P2'}
 
 
 def nombres_pdf(piso, d):
@@ -115,7 +127,7 @@ def nombres_pdf(piso, d):
     return out
 
 
-def banos_y_huecos(d, aj):
+def banos_y_huecos(d, aj, todos_publicos=False):
     """Reglas generales para todos los pisos:
     - cuarto sin nombre con un inodoro adentro: es un baño
     - un baño es para pacientes si una puerta lo une a un pasillo, hall o sala de espera (directo o pasando por la
@@ -184,7 +196,21 @@ def banos_y_huecos(d, aj):
             junto = [amb[i] for i, h in polis.items() if i != a['id'] and g is not None and g.buffer(0.3).intersection(h).area > 0.15]
             publico = any(abierto(b) for b in junto) and not any(cuarto(b) for b in junto)
         aj.setdefault(a['id'], {'si': a['nombre']})
-        aj[a['id']].setdefault('personal', not publico)
+        aj[a['id']].setdefault('personal', False if todos_publicos else not publico)
+        if todos_publicos and not publico and not aj[a['id']]['personal']:
+            # baño dentro de un cuarto (habitación, quimioterapia, procedimientos): la ruta de pacientes no cruza
+            # cuartos, así que llega a la puerta del cuarto que lo contiene
+            g = polis.get(a['id'])
+            dentro = [amb[j] for j in vistos if j != a['id'] and cuarto(amb[j])]
+            if not dentro and g is not None:
+                dentro = sorted((b for i, b in amb.items() if i in polis and i != a['id'] and cuarto(b)
+                                 and g.buffer(0.3).intersection(polis[i]).area > 0.15),
+                                key=lambda b: -g.buffer(0.3).intersection(polis[b['id']]).area)
+            p = frente(d, dentro[0]) if dentro else None
+            if p:
+                aj[a['id']].update(dest=p, ventanilla=True)
+            else:
+                print('baño sin cuarto ni pasillo:', a['id'], a['nombre'])
 
 
 def poligono(a):
@@ -255,7 +281,7 @@ def main():
             aj[i] = {'si': a['nombre'], 'personal': True}
         for i, c in nombres_pdf(piso, d).items():
             aj.setdefault(i, c)
-        banos_y_huecos(d, aj)
+        banos_y_huecos(d, aj, piso in BANOS_PACIENTES)
         lug = []
         for l in LUGARES.get(piso, []):
             lid, nombre, cat, (x, y) = l[:4]

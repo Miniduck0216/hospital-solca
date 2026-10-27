@@ -47,6 +47,18 @@ EXTRA = {
            ('SS.HH.', box(73.72, 99.32, 74.98, 100.42)),
            # terraza del extremo oeste (con baranda), al lado de la habitación 17
            ('TERRAZA', box(4.15, 76.75, 6.0, 84.95))],
+    # piso 2, bloque central: la preparación médica se abre a la estación de enfermería por el mostrador (el dibujo
+    # la junta con el pasillo) y el cuarto de ductos queda como hueco entre sus tres ductos
+    'P2': [('PREPARACIÓN MÉDICA', box(72.16, 69.15, 74.84, 73.3)),
+           ('DUCTOS', box(72.16, 76.2, 75.02, 78.54))],
+}
+# pisos donde los baños con inodoro que el dibujo deja sin ambiente (el inodoro de cada habitación, los dos baños
+# chicos del bloque central) se suman como ambiente «BAÑO»
+BANOS_HUECO = {'P2'}
+# muros dobles que el dibujo deja huecos por dentro (marco de la planta baja): en el piso 2, el muro entre las
+# habitaciones 207 y 205
+MUROS_EXTRA = {
+    'P2': [box(63.2, 67.85, 69.9, 68.37)],
 }
 # pasos que el dibujo tapa con un detalle (marco de la planta baja): en el piso 1, el puente vidriado entre el ala oeste
 # y la torre tiene un tragaluz triangular dibujado con la capa de paredes; se camina a su alrededor
@@ -68,7 +80,7 @@ r2 = ED.r2
 import re  # noqa: E402
 # rótulos que no son nombres de ambiente: códigos de red y de cuarto (C2-L1-089, G1-11), luminarias (L8), zonas,
 # rutas de evacuación y notas de nivel
-RUIDO = re.compile(r'^(?:[A-Z]\d-[A-Z]\d(?:-\d+[A-Z]?)?|[A-Z]\d-\d+|L\d+|ZONA \d+|\(?(PRIMER|SEGUNDO|TERCER) +PISO\)?|'
+RUIDO = re.compile(r'^(?:[A-Z]\d-[A-Z]\d(?:-\d+[A-Z]?)?|[A-Z]\d-\d+|[A-Z]-\d-\d+|L\d+|ZONA \d+|\(?(PRIMER|SEGUNDO|TERCER) +PISO\)?|'
                    r'PISO \d|PLANTA BAJA|PLANTA|SUBSUELO \d?|N ?[=+] ?[\d.,]+|MC-[\w-]+|\d+ ESCALO[MN]ES.*|'
                    r'GRADAS DE EMERGENCIA.*|\d+ ?(?:ER|DO|RO|TO|O)\.? PISO|PUNTO DE ENCUENTRO|PARQUEADERO \d*|HACIA PB|DE PISO|S)$', re.I)
 
@@ -107,6 +119,22 @@ def habitaciones(m):
         if len(cand) == 1:
             a['nombre'] = cand.pop()
             hab = [(t, p) for t, p in hab if t != a['nombre']]
+
+
+def banos_hueco(m):
+    """Baños que el dibujo no cierra como ambiente: espacio libre de 0,8 a 5 m², rodeado por los ambientes del piso
+    (también en los bordes de la fachada) y con un inodoro adentro."""
+    amb = unary_union([a['poligono'] for a in m.ambientes])
+    env = amb.buffer(2.0, join_style=2).buffer(-2.0, join_style=2)
+    duro = unary_union([m.muros_raw] + m.columnas + [t['poligono'] for t in m.tabiques])
+    resto = env.difference(amb.buffer(0.02)).difference(duro.buffer(0.02))
+    ino = [mu['poligono'] for mu in m.muebles if mu['nombre'] == 'Inodoro']
+    n = 0
+    for q in lista_polis(resto):
+        if 0.8 <= q.area <= 5 and not q.buffer(-0.25).is_empty and any(q.intersects(i) for i in ino):
+            m.ambientes.append(dict(poligono=q, nombre='BAÑO', area=q.area, extra=True))
+            n += 1
+    print('baños sin ambiente', n)
 
 
 def es_circulacion(nombre, area):
@@ -197,6 +225,8 @@ def exportar(m, piso, salida):
             else:
                 quedan.append(a)
         m.ambientes = quedan + [dict(poligono=g, nombre=nombre, area=g.area, extra=True)]
+    if piso in BANOS_HUECO:
+        banos_hueco(m)
     # escaleras: ambientes sin nombre (o con la nota del piso) que contienen tramos de gradas
     for a in m.ambientes:
         if a['nombre']:
@@ -228,7 +258,8 @@ def exportar(m, piso, salida):
         if a.get('reparte') or a.get('circula'):
             amb[-1]['paso'] = True
     duro = unary_union([m.muros_raw] + m.columnas + [t['poligono'] for t in m.tabiques] +
-                       list(getattr(m, 'parapetos', [])) + list(getattr(m, 'foso', [])))
+                       list(getattr(m, 'parapetos', [])) + list(getattr(m, 'foso', [])) +
+                       [affinity.translate(g, -ox, -oy) for g in MUROS_EXTRA.get(piso, [])])
     vent = unary_union(m.ventanas + list(getattr(m, 'vidrios', [])) + list(getattr(m, 'ventanillas', [])))
     puertas = unary_union([p['rect'] for p in m.puertas]) if m.puertas else Polygon()
     muros = duro.difference(vent.buffer(0.005)).difference(puertas.buffer(0.01)).intersection(hu.buffer(0.6))
@@ -379,7 +410,9 @@ def exportar(m, piso, salida):
         geo=ED.GEO, altura=3.84,
         huella=ED.poli(hu, 0.05), ambientes=amb, muros=ED.poli(muros, 0.015), ventanas=ED.poli(vent, 0.015),
         puertas=[dict(a=[r2(v) for v in p['a']], b=[r2(v) for v in p['b']], c=round(float((p['t0'] + p['t1']) / 2), 3),
-                      doble=bool(p['doble']), ducto=p['tipo'].startswith('P-DUC')) for p in m.puertas],
+                      doble=bool(p['doble']), ducto=p['tipo'].startswith('P-DUC')) for p in m.puertas
+                 # puertas sueltas lejos del edificio (en el piso 2, una 50 m al este)
+                 if hu.buffer(2).contains(Point(*((np.array(p['a']) + np.array(p['b'])) / 2)))],
         trazos_puertas=trazos_p, trazos=trazos_s, muebles=muebles, gradas=gradas,
         viseras=[], entradas=ent, nav=nav, parqueos=[], poi=[],
     )
