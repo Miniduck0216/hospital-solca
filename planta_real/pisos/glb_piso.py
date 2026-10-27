@@ -64,6 +64,8 @@ def main():
     ox, oy = m.origen
     for a in m.ambientes:
         a['nombre'] = EP.limpiar_nombre(a['nombre'])
+    # barras entre tramos de escalera: parapeto de 1 m en lugar de tabique de altura completa
+    m.parapetos = list(getattr(m, 'parapetos', [])) + EP.barandas(m)
     zona = EP.huella_real(m).buffer(0.6, join_style=2)
     if fuera:
         dv = json.load(open(fuera))

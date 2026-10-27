@@ -62,6 +62,10 @@
    "si": "Preparación Médica",
    "personal": true
   },
+  "a3": {
+   "si": "Usados",
+   "nombre": "Usados · Camillas"
+  },
   "a37": {
    "si": "Ascensores",
    "personal": true

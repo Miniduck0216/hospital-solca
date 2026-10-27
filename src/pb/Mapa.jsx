@@ -49,6 +49,8 @@ function capas(d) {
     ambientes: amb,
     rotulos,
     muros: polis(d.muros),
+    // barandas de las escaleras (barra entre tramos): bajas, no muros
+    barandas: polis(d.barandas || []),
     gradas: lineas(d.gradas),
     // pasos abiertos por el administrador (puertas que el plano no tiene)
     pasos: lineas(d.pasosAbiertos || []),
@@ -148,6 +150,7 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
       } })
       // muros blancos un poco más altos que los bloques: el borde blanco de cada cuarto
       map.addLayer({ id: 'muros', type: 'fill-extrusion', source: 'muros', paint: { 'fill-extrusion-color': '#FBFCFE', 'fill-extrusion-height': ALTO + 0.12, 'fill-extrusion-base': 0, 'fill-extrusion-opacity': 0.96 } })
+      map.addLayer({ id: 'barandas', type: 'fill-extrusion', source: 'barandas', paint: { 'fill-extrusion-color': '#B8C2D0', 'fill-extrusion-height': 1.0, 'fill-extrusion-base': 0, 'fill-extrusion-opacity': 0.96 } })
       map.addLayer({ id: 'viseras-3d', type: 'fill-extrusion', source: 'viseras', paint: { 'fill-extrusion-color': '#E9ECF1', 'fill-extrusion-height': 4.2, 'fill-extrusion-base': 3.7, 'fill-extrusion-opacity': 0.6 } })
       // ruta: una fila de puntos oscuros que avanza (ver el efecto de la ruta)
       map.addLayer({ id: 'ruta-halo', type: 'line', source: 'ruta', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': TINTA_RUTA, 'line-opacity': 0.1, 'line-width': ['interpolate', ['linear'], ['zoom'], 17, 8, 20, 18] } })
