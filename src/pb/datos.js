@@ -51,6 +51,8 @@ export async function cargarDatos(cambiosLocales = null, opciones = {}) {
   d.edificio = edificio
   d.piso = piso
   d.cfg = compilarConfig((piso.config && (await pedirJson(`${BASE}${piso.config}?v=${__VERSION__}`))) || {})
+  // pisos altos: el perfil del hospital (contorno de la planta baja) se dibuja debajo, como en el plano de cada piso
+  d.perfil = piso.nivel > 0 ? ((await pedirJson(`${BASE}perfil.json?v=${__VERSION__}`))?.huella || []) : []
   // cambios del administrador publicados: en OM3 (cambiosUrl) o, si no, en el repositorio
   // (en el editor de OM3 el borrador ya es el estado completo: no se suman los publicados)
   const publicados = opciones.sinPublicados ? null : await pedirJson(opciones.cambiosUrl || `${BASE}pb/cambios.json?v=${__VERSION__}`)
