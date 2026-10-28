@@ -48,6 +48,29 @@ EXTRA = {
         ('BIOPSIAS', box(117.35, 95.9, 121.95, 97.95)), ('BIOPSIAS', box(117.35, 93.83, 121.95, 95.8)),
         ('BIOPSIAS', box(117.35, 91.75, 121.95, 93.73)), ('CAMILLAS', box(120.3, 98.1, 121.95, 101.1)),
         ('GINECOLOGIA', box(126.7, 98.1, 130.5, 101.15)),
+        # hospitalización de medicina nuclear, junto a la estación de enfermería: ascensores, comedor (entre el
+        # mostrador en L y el cuarto C3-L1-03) y el cuarto chico C3-L1-01 (puerta desde el comedor)
+        ('ASCENSORES', box(141.32, 33.72, 144.5, 36.55)),
+        ('COMEDOR', unary_union([box(144.6, 32.2, 147.2, 33.62), box(144.6, 33.6, 145.0, 36.55),
+                                 box(145.5, 33.6, 146.75, 36.0), box(146.25, 35.95, 146.75, 36.55)])),
+        ('', box(147.47, 32.2, 148.38, 33.52)),
+        # U.C.I.: la habitación 06 es cuarto como la 04 y la 05; lavachatas, utilería sucia y cafetería separadas
+        ('HAB. 06', box(137.42, 75.72, 140.88, 78.82)),
+        ('LAVACHATAS', box(142.72, 83.45, 147.42, 85.05)),
+        ('UTILERIA SUCIA', box(142.72, 78.32, 147.42, 83.15).difference(box(145.5, 78.0, 147.5, 79.5))),
+        ('CAFETERIA', box(140.9, 75.2, 145.6, 78.12)),
+        # gastroenterología: sala 03 (cortina hacia procedimientos), sala de procedimientos, lencería, U.U. y sala 01
+        ('GASTROENTEROLOGIA 03', box(103.02, 49.95, 106.42, 54.95)),
+        ('SALA PROCEDIMIENTOS', box(106.55, 49.95, 108.85, 54.95)), ('GASTROENTEROLOGIA 02', box(109.05, 49.95, 112.3, 54.95)),
+        ('LENC.', box(103.02, 55.05, 104.25, 56.2)), ('U.U.', box(104.4, 55.05, 106.45, 56.2)),
+        ('GASTROENTEROLOGIA 01', box(109.05, 56.65, 112.3, 62.55)),
+        # toma de muestras: la secretaría (mostrador al pasillo) y el vestíbulo de biología molecular, aparte del pasillo
+        ('SECRETARIA', box(89.9, 91.75, 93.55, 94.5)), ('BIOLOGIA MOLECULAR', box(84.6, 91.8, 88.2, 94.45)),
+        ('', box(147.05, 33.72, 148.45, 36.85)),   # cuarto C3-L1-03 junto al comedor (el dibujo lo rellena como muro)
+        # toma de muestras (laboratorio): utilería usada y limpia, abiertas al pasillo
+        ('U. USADA', box(102.97, 16.37, 104.3, 17.6)), ('U. LIMPIA', box(102.97, 15.17, 104.3, 16.13)),
+        # centro quirúrgico: utilería limpia entre la circulación blanca y recuperación
+        ('U. LIMPIA', box(130.95, 63.8, 135.25, 66.45)),
         ],
     'P1': [('ASCENSOR', box(47.97, 93.25, 51.07, 95.59)),
            ('ESCALERA', box(46.4, 91.7, 51.3, 97.8).difference(box(47.97, 93.25, 51.07, 95.59))),
@@ -96,6 +119,12 @@ EXTRA = {
 # espacio libre sin ambiente que es paso (marco de la planta baja): en el subsuelo, los laberintos de entrada de los
 # búnkeres de los aceleradores (el dibujo los deja entre muros y sin piso)
 HUECOS_PASO = {'SB': [box(141.2, 60.3, 159.4, 66.7)]}
+# contornos de muebles que el dibujo cierra como ambiente (punto dentro): vuelven al ambiente vecino más grande.
+# U.C.I.: el mesón rotulado «U.C.I.»
+FUSIONAR = {'PB': [(127.0, 78.8), (134.0, 78.7)]}
+# cuartos que reparten a otros (la ruta los cruza): la sala de procedimientos de gastroenterología da a las salas 02
+# y 03
+REPARTE = {'PB': [(107.7, 52.0), (86.4, 93.1)]}
 # pisos donde los baños con inodoro que el dibujo deja sin ambiente (el inodoro de cada habitación, los dos baños
 # chicos del bloque central) se suman como ambiente «BAÑO»
 BANOS_HUECO = {'SB', 'P1', 'P2', 'P3'}
@@ -106,7 +135,13 @@ MUROS_EXTRA = {
              ((146.1, 57.4), (150.85, 57.4), (155.65, 57.4), (165.15, 57.4), (143.05, 51.7), (146.35, 48.1),
               (151.1, 48.1), (155.6, 52.8))],
            box(156.72, 40.4, 156.87, 56.2),    # medicina nuclear: muro oeste de sala de reuniones, bodega y utilerías
-           box(90.85, -20.96, 106.85, -20.82)],  # bodegas: frente de las oficinas de la fila sur (puertas dobles)
+           box(90.85, -20.96, 106.85, -20.82),  # bodegas: frente de las oficinas de la fila sur (puertas dobles)
+           # ascensores junto a la estación de enfermería (puerta hacia la estación) y el mostrador en L del comedor
+           box(144.5, 33.62, 144.62, 36.62), box(141.25, 33.6, 144.62, 33.72),
+           box(141.25, 36.5, 141.95, 36.66), box(143.85, 36.5, 144.62, 36.66),
+           box(145.05, 33.65, 145.45, 36.4), box(145.05, 36.0, 146.2, 36.4),
+           # cuarto C3-L1-01: muro hacia el comedor (con su puerta) y hacia el cuarto C3-L1-03
+           box(147.25, 33.25, 147.45, 33.62), box(147.25, 33.52, 148.4, 33.68)],
     'P1': [box(63.2, 67.84, 69.9, 68.37),   # entre las habitaciones 109 y 107
            # tabiques con puerta doble que cierran el pasillo del ala oeste (hacia las habitaciones) y el paso de la
            # recepción y la cafetería hacia el hall de las habitaciones de la torre
@@ -123,7 +158,9 @@ MUROS_EXTRA = {
 QUITAR_MUROS = {
     # tragaluces de la dirección y de quimioterapia: el DWG los rellena como si fueran muro; son patios de luz
     'PB': [box(58.0, 27.8, 62.6, 37.0), box(90.4, 27.85, 99.4, 32.95),
-           box(141.4, 72.4, 155.3, 72.8)],   # línea del borde de la losa junto a las centrales de gases: no es muro
+           box(141.4, 72.4, 155.3, 72.8),   # línea del borde de la losa junto a las centrales de gases: no es muro
+           box(141.95, 36.45, 143.85, 36.75),   # puerta de los ascensores hacia la estación de enfermería
+           box(147.05, 33.72, 148.45, 36.85)],   # interior del cuarto C3-L1-03
     'P1': [box(72.17, 73.25, 74.83, 73.5)],
     'P2': [box(72.17, 73.25, 74.83, 73.5)],
 }
@@ -131,6 +168,8 @@ QUITAR_MUROS = {
 QUITAR_VENTANAS = {
     'P1': [box(3.9, 75.4, 50.7, 75.8), box(16.5, 77.55, 50.3, 77.75), box(45.3, 72.7, 45.7, 75.4)],
 }
+# ventanas que en el plano son muros (doble línea de la capa de vidrios): las centrales de gases de la U.C.I.
+VENTANAS_A_MUROS = {'PB': [box(146.5, 76.3, 156.1, 86.5)]}
 # ventanas que faltan: el borde de la terraza de la cafetería (piso 1)
 VENTANAS_EXTRA = {
     'P1': [box(50.28, 74.0, 58.86, 74.12), box(58.74, 74.0, 58.86, 77.2), box(50.28, 74.0, 50.4, 77.15)],
@@ -147,7 +186,8 @@ PUERTAS_EXTRA = {
            # bodegas, fila sur: puerta doble de cada oficina
            ((91.6, -20.89), (93.2, -20.89), True), ((94.95, -20.89), (96.5, -20.89), True),
            ((98.15, -20.89), (99.75, -20.89), True), ((101.2, -20.89), (102.8, -20.89), True),
-           ((104.5, -20.89), (106.1, -20.89), True)],
+           ((104.5, -20.89), (106.1, -20.89), True),
+           ((147.35, 32.22), (147.35, 33.22), False)],   # cuarto C3-L1-01, desde el comedor
     # subsuelo: vanos del auditorio hacia el hall
     'SB': [((62.9, 51.45), (62.9, 53.0), True), ((62.9, 46.3), (62.9, 48.0), True), ((62.9, 40.4), (62.9, 41.85), True),
            # laberinto del Acelerador Lineal 2: puerta blindada desde el pasillo y paso hacia el búnker
@@ -189,7 +229,11 @@ AREAS_LIBRES = {
     'PB': [Polygon([(141.45, 40.55), (156.7, 40.55), (156.7, 56.55), (172.3, 56.55), (172.3, 66.5), (165.2, 66.5),
                     (165.2, 70.1), (159.6, 70.1), (159.6, 72.55), (141.45, 72.55)]),
            # circulación técnica (pasillo de servicio entre quimioterapia, gastroenterología y genética)
-           ('CIRCULACION TECNICA', box(84.4, 46.55, 109.3, 49.85).union(box(102.75, 20.4, 105.9, 46.7)))],
+           ('CIRCULACION TECNICA', box(84.4, 46.55, 109.3, 49.85).union(box(102.75, 20.4, 105.9, 46.7))),
+           # pasillos entre la planta vieja y la nueva (rótulos C1-L1-084, 102, 106, 123, 124 y C1-L1-107, C1-L3-047):
+           # el dibujo los juntaba con la sala de espera vieja y se perdían al unir
+           box(80.25, 40.35, 84.45, 104.75), box(84.4, 85.6, 109.3, 88.65),
+           ('OFICINA', box(77.3, 1.85, 83.0, 5.25))],
 }
 PASOS_LIBRES = {
     # patio entre el edificio y el ala de la clínica de heridas y la morgue: veredas exteriores hasta sus puertas
@@ -204,7 +248,8 @@ PASOS_LIBRES = {
 EXTERIOR = {
     # tragaluces (patios de luz con aspa en el plano): sin piso ni paso
     'PB': [box(58.0, 27.8, 62.6, 37.0), box(90.4, 27.85, 99.4, 32.95), box(128.35, 30.35, 134.95, 33.55),
-           box(88.2, 49.8, 90.4, 53.1)],   # franja entre los dos vacíos de gastroenterología
+           box(88.2, 49.8, 90.4, 53.1),   # franja entre los dos vacíos de gastroenterología
+           box(141.3, 32.15, 144.55, 33.6)],   # ducto con aspa bajo los ascensores de la estación de enfermería
     'P1': [box(76.8, 40.9, 81.0, 45.7),
            box(2.4, 89.9, 3.95, 95.6),
            box(3.5, 75.3, 50.6, 77.0)],   # franja de jardineras y pérgola entre el ventanal sur y la fachada   # balcón con baranda entre la escalera de emergencia y la habitación 16
@@ -489,6 +534,12 @@ def obra(m, piso):
         g = T(g)
         m.muros_raw = unary_union([m.muros_raw, g])
         m.muros = list(m.muros) + [g]
+    for g in VENTANAS_A_MUROS.get(piso, []):
+        g = T(g)
+        dentro = [v for v in m.ventanas if g.contains(v.centroid)]
+        m.ventanas = [v for v in m.ventanas if not g.contains(v.centroid)]
+        m.muros_raw = unary_union([m.muros_raw] + dentro)
+        m.muros = list(m.muros) + dentro
     for g in QUITAR_VENTANAS.get(piso, []):
         g = T(g)
         m.ventanas = [q for v in m.ventanas for q in lista_polis(v.difference(g)) if q.area > 0.01]
@@ -693,6 +744,20 @@ def preparar(m, piso):
             else:
                 quedan.append(a)
         m.ambientes = quedan + [dict(poligono=g, nombre=nombre, area=g.area, extra=True)]
+    for x, y in FUSIONAR.get(piso, []):
+        p = Point(x - ox, y - oy)
+        chico = [a for a in m.ambientes if a['poligono'].contains(p) and a['area'] < 8]
+        for c in chico:
+            vec = [a for a in m.ambientes if a is not c and a['poligono'].distance(c['poligono']) < 0.15]
+            if vec:
+                v = max(vec, key=lambda a: a['area'])
+                v['poligono'] = unary_union([v['poligono'], c['poligono'].buffer(0.08)]).buffer(-0.04).buffer(0.04)
+                v['area'] = v['poligono'].area
+                m.ambientes = [a for a in m.ambientes if a is not c]
+    for x, y in REPARTE.get(piso, []):
+        for a in m.ambientes:
+            if a['poligono'].contains(Point(x - ox, y - oy)):
+                a['reparte_fijo'] = True
     for z in HUECOS_PASO.get(piso, []):
         z = affinity.translate(z, -ox, -oy)
         # piezas sin nombre del laberinto que ya eran ambientes: también son paso
@@ -784,7 +849,7 @@ def exportar(m, piso, salida):
                         original=a['nombre'] or '', cat=ED.categoria_web(a['nombre']) if a['nombre'] else 'otro',
                         icono=ED.icono(a['nombre']), area=r2(a['area']), pg=p[0] if p else [],
                         lbl=[r2(lbl.x), r2(lbl.y)]))
-        if a.get('reparte') or a.get('circula') or a.get('paso_forzado'):
+        if a.get('reparte') or a.get('reparte_fijo') or a.get('circula') or a.get('paso_forzado'):
             amb[-1]['paso'] = True
         if a.get('paso_forzado'):
             amb[-1]['cat'] = 'circulacion'

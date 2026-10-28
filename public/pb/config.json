@@ -130,43 +130,43 @@
    "si": "Vestíbulo de Ductos",
    "personal": true
   },
-  "a297": {
+  "a311": {
    "si": "Punciones",
    "personal": true
   },
-  "a308": {
+  "a323": {
    "si": "Seleccion Donantes",
    "personal": true
   },
-  "a318": {
+  "a333": {
    "si": "Baño",
    "personal": true
   },
-  "a320": {
+  "a335": {
    "si": "Baños",
    "personal": true
   },
-  "a406": {
+  "a427": {
    "si": "Gerencia Proyectos",
    "personal": true
   },
-  "a409": {
+  "a430": {
    "si": "Oficina",
    "personal": true
   },
-  "a418": {
+  "a439": {
    "si": "Sala Reuniones",
    "personal": true
   },
-  "a419": {
+  "a440": {
    "si": "Quimioterápicos",
    "personal": true
   },
-  "a420": {
+  "a441": {
    "si": "Nutrición Parental",
    "personal": true
   },
-  "a401": {
+  "a422": {
    "si": "S.H. M.",
    "personal": false
   },
@@ -210,11 +210,11 @@
    "nombre": "Tragaluz",
    "personal": true
   },
-  "a307": {
+  "a322": {
    "si": "Oficina",
    "personal": true
   },
-  "a109": {
+  "a111": {
    "si": "Hab. 02 · Hab. 03",
    "nombre": "U.C.I."
   },
@@ -223,20 +223,21 @@
    "nombre": "Quimioterapia · Estación · Apoyo",
    "cat": "otro"
   },
-  "a132": {
+  "a133": {
    "si": "Laboratorio · Módulo 01",
    "nombre": "Histología · Laboratorio",
    "cat": "apoyo"
   },
-  "a123": {
+  "a124": {
    "si": "Laboratorio · Coagulacion",
    "nombre": "Laboratorio Clínico"
   },
-  "a138": {
+  "a158": {
    "si": "",
-   "nombre": "Estación Enfermería · Comedor"
+   "nombre": "Estación Enfermería",
+   "cat": "circulacion"
   },
-  "a142": {
+  "a141": {
    "si": "Hombres · Vestidor",
    "nombre": "Vestidor Hombres"
   },
@@ -252,96 +253,234 @@
    "si": "Quirofano",
    "nombre": "Quirófano 01"
   },
-  "a164": {
+  "a165": {
    "si": "Elect. Módulo 01 · Elect. Módulo 02",
    "nombre": "Masoterapia · Elect. 01 · Elect. 02"
   },
-  "a165": {
+  "a166": {
    "si": "",
    "nombre": "Acceso Familiares",
    "cat": "circulacion"
   },
-  "a111": {
+  "a116": {
    "si": "Apoyo",
    "nombre": "Gastroenterología"
   },
-  "a195": {
-   "si": "Módulo 02",
-   "nombre": "Gastroenterología 02",
-   "cat": "otro"
+  "a407": {
+   "si": "Lenc.",
+   "personal": true
   },
-  "a255": {
+  "a380": {
+   "si": "U.U.",
+   "personal": true
+  },
+  "a265": {
    "si": "Toma de Muestras · Módulo 01",
    "nombre": "Toma de Muestras 01",
    "cat": "otro"
   },
-  "a259": {
+  "a318": {
    "si": "Módulo 02 · Toma de Muestras",
    "nombre": "Toma de Muestras 02",
    "cat": "otro"
   },
-  "a267": {
+  "a278": {
    "si": "Módulo 03 · Toma de Muestras",
    "nombre": "Toma de Muestras 03",
    "cat": "otro"
   },
-  "a260": {
+  "a271": {
    "si": "Módulo 04 · Toma de Muestras",
    "nombre": "Toma de Muestras 04",
    "cat": "otro"
   },
-  "a266": {
+  "a277": {
    "si": "Módulo 05 · Toma de Muestras",
    "nombre": "Toma de Muestras 05",
    "cat": "otro"
   },
-  "a129": {
-   "si": "Lavachatas · Utileria Sucia",
-   "nombre": "Cafetería · Utilería Sucia · Lavachatas",
+  "a303": {
+   "si": "Lavachatas",
    "personal": true
   },
-  "a120": {
+  "a174": {
+   "si": "Utileria Sucia",
+   "nombre": "Utilería Sucia",
+   "personal": true
+  },
+  "a218": {
+   "si": "Cafeteria",
+   "nombre": "Cafetería",
+   "personal": true
+  },
+  "a143": {
+   "si": "Secretaría",
+   "nombre": "Pasillo",
+   "cat": "circulacion"
+  },
+  "a261": {
+   "si": "Secretaría",
+   "dest": [
+    89.3,
+    92.3
+   ],
+   "ventanilla": true
+  },
+  "a307": {
+   "si": "",
+   "nombre": "SS.HH.",
+   "cat": "banos",
+   "personal": false,
+   "dest": [
+    111.72,
+    97.14
+   ],
+   "ventanilla": true
+  },
+  "a305": {
+   "si": "",
+   "nombre": "SS.HH.",
+   "cat": "banos",
+   "personal": false,
+   "dest": [
+    115.36,
+    87.68
+   ],
+   "ventanilla": true
+  },
+  "a349": {
+   "si": "",
+   "personal": true
+  },
+  "a175": {
+   "si": "Lavachatas · Utileria Sucia",
+   "nombre": "Pasillo",
+   "cat": "circulacion"
+  },
+  "a400": {
+   "si": "U. Usada",
+   "personal": true
+  },
+  "a409": {
+   "si": "U. Limpia",
+   "personal": true
+  },
+  "a221": {
+   "si": "",
+   "nombre": "Apoyo",
+   "personal": true
+  },
+  "a207": {
+   "si": "",
+   "cat": "circulacion"
+  },
+  "a308": {
+   "si": "",
+   "cat": "circulacion"
+  },
+  "a89": {
+   "si": "",
+   "nombre": "Oficina"
+  },
+  "a347": {
+   "si": "",
+   "nombre": "Archivo",
+   "personal": true
+  },
+  "a210": {
+   "si": "",
+   "nombre": "Recepción Limpia",
+   "personal": true
+  },
+  "a369": {
+   "si": "",
+   "nombre": "Vestidor"
+  },
+  "a367": {
+   "si": "",
+   "nombre": "Vestidor"
+  },
+  "a257": {
+   "si": "Recepcion",
+   "nombre": "Recepción · Banco de Sangre"
+  },
+  "a110": {
+   "si": "Pasillo",
+   "nombre": "Imagen",
+   "cat": "circulacion"
+  },
+  "a117": {
+   "si": "Pasillo",
+   "nombre": "Circulación Gris",
+   "cat": "circulacion"
+  },
+  "a107": {
+   "si": "",
+   "nombre": "Hospitalización de Medicina Nuclear",
+   "cat": "circulacion"
+  },
+  "a149": {
+   "si": "Microbiología Bacteriologia",
+   "nombre": "Microbiología · Bacteriología · Micología"
+  },
+  "a163": {
+   "si": "Toma Muestras",
+   "nombre": "Toma Muestras · Cultivos"
+  },
+  "a142": {
+   "si": "Espera · Secretaría",
+   "nombre": "Espera · Secretaría · Información"
+  },
+  "a239": {
+   "si": "U. Limpia",
+   "personal": true
+  },
+  "a344": {
+   "si": "Estacion",
+   "personal": true
+  },
+  "a122": {
    "si": "Clinica de Heridas",
    "cat": "espera"
   },
-  "a121": {
+  "a123": {
    "si": "Hab. 1",
    "nombre": "Hab. 1 – 6",
    "cat": "circulacion"
   },
-  "a229": {
+  "a236": {
    "si": "Mamografia 2 · V",
    "nombre": "Mamografía 2"
   },
-  "a190": {
+  "a196": {
    "si": "Sala · Rauniones",
    "nombre": "Sala Rauniones"
   },
-  "a315": {
+  "a330": {
    "si": "Coordinación",
    "personal": true
   },
-  "a368": {
+  "a384": {
    "si": "Tuberculosis",
    "personal": true
   },
-  "a364": {
+  "a379": {
    "si": "Baño",
    "personal": true
   },
-  "a303": {
+  "a317": {
    "si": "Medicos",
    "personal": true
   },
-  "a319": {
+  "a334": {
    "si": "",
    "cat": "circulacion"
   },
-  "a305": {
+  "a320": {
    "si": "",
    "cat": "circulacion"
   },
-  "a207": {
+  "a213": {
    "si": "",
    "cat": "circulacion"
   },
@@ -349,50 +488,39 @@
    "si": "",
    "cat": "circulacion"
   },
-  "a342": {
+  "a357": {
    "si": "",
    "cat": "circulacion"
   },
-  "a163": {
+  "a164": {
    "si": "Aseo",
    "nombre": "Medicina Física",
    "cat": "circulacion",
    "personal": false
   },
-  "a283": {
+  "a295": {
    "si": "Ascensores",
    "personal": true
   },
-  "a288": {
+  "a301": {
    "si": "Ascensores",
    "personal": true
   },
-  "a299": {
+  "a313": {
    "si": "",
    "nombre": "Baño",
    "cat": "banos",
    "personal": false
   },
-  "a333": {
-   "si": "",
-   "nombre": "Baño",
-   "cat": "banos",
-   "personal": false,
-   "dest": [
-    94.25,
-    20.44
-   ],
-   "ventanilla": true
-  },
-  "a346": {
+  "a361": {
    "si": "",
    "cat": "circulacion"
   },
-  "a347": {
+  "a362": {
    "si": "",
    "cat": "circulacion"
   },
-  "a411": {
+  "a432": {
    "si": "",
    "cat": "circulacion"
   },
@@ -450,7 +578,7 @@
    ],
    "ventanilla": true
   },
-  "a284": {
+  "a296": {
    "si": "Baños",
    "personal": false,
    "dest": [
@@ -459,19 +587,7 @@
    ],
    "ventanilla": true
   },
-  "a334": {
-   "si": "Baño",
-   "personal": true
-  },
   "a348": {
-   "si": "Baño",
-   "personal": false
-  },
-  "a359": {
-   "si": "Baño",
-   "personal": false
-  },
-  "a362": {
    "si": "Baño",
    "personal": false
   },
@@ -479,19 +595,31 @@
    "si": "Baño",
    "personal": false
   },
-  "a367": {
+  "a374": {
+   "si": "Baño",
+   "personal": false
+  },
+  "a377": {
+   "si": "Baño",
+   "personal": false
+  },
+  "a378": {
+   "si": "Baño",
+   "personal": false
+  },
+  "a383": {
    "si": "SS.HH.",
    "personal": false
   },
-  "a376": {
+  "a392": {
    "si": "SS.HH.",
    "personal": false
   },
-  "a380": {
+  "a396": {
    "si": "SS.HH.",
    "personal": false
   },
-  "a382": {
+  "a398": {
    "si": "SS.HH.",
    "personal": false,
    "dest": [
@@ -500,28 +628,23 @@
    ],
    "ventanilla": true
   },
-  "a383": {
-   "si": "SS.HH.",
-   "personal": false,
-   "dest": [
-    94.44,
-    102.15
-   ],
-   "ventanilla": true
-  },
-  "a385": {
-   "si": "SS.HH.",
-   "personal": false
-  },
-  "a398": {
-   "si": "S.H. H.",
-   "personal": false
-  },
   "a399": {
+   "si": "SS.HH.",
+   "personal": false
+  },
+  "a402": {
+   "si": "SS.HH.",
+   "personal": false
+  },
+  "a419": {
    "si": "S.H. H.",
    "personal": false
   },
-  "a413": {
+  "a420": {
+   "si": "S.H. H.",
+   "personal": false
+  },
+  "a434": {
    "si": "SS.HH.",
    "personal": false,
    "dest": [
@@ -530,7 +653,7 @@
    ],
    "ventanilla": true
   },
-  "a414": {
+  "a435": {
    "si": "SS.HH.",
    "personal": false,
    "dest": [
@@ -539,7 +662,7 @@
    ],
    "ventanilla": true
   },
-  "a415": {
+  "a436": {
    "si": "SS.HH.",
    "personal": false,
    "dest": [
@@ -548,7 +671,7 @@
    ],
    "ventanilla": true
   },
-  "a416": {
+  "a437": {
    "si": "SS.HH.",
    "personal": false,
    "dest": [
@@ -581,14 +704,6 @@
    "cat": "otro",
    "x": 131.35,
    "y": 84.54,
-   "personal": false
-  },
-  {
-   "id": "L-pb-uci-06",
-   "nombre": "Hab. 06 · U.C.I.",
-   "cat": "otro",
-   "x": 139.39,
-   "y": 76.12,
    "personal": false
   },
   {
@@ -680,6 +795,46 @@
    "personal": true
   },
   {
+   "id": "L-pb-emergencia-cubiculos",
+   "nombre": "Cubículos",
+   "cat": "otro",
+   "x": 129.0,
+   "y": 91.0,
+   "personal": false
+  },
+  {
+   "id": "L-pb-emergencia-procedimientos",
+   "nombre": "Procedimientos",
+   "cat": "otro",
+   "x": 128.1,
+   "y": 87.0,
+   "personal": false
+  },
+  {
+   "id": "L-pb-emergencia-enfermeria",
+   "nombre": "Enfermería",
+   "cat": "otro",
+   "x": 130.5,
+   "y": 95.0,
+   "personal": true
+  },
+  {
+   "id": "L-pb-imagen-comando",
+   "nombre": "Comando",
+   "cat": "apoyo",
+   "x": 98.0,
+   "y": 78.4,
+   "personal": true
+  },
+  {
+   "id": "L-pb-quimio-informacion",
+   "nombre": "Información · Secretaría",
+   "cat": "otro",
+   "x": 84.9,
+   "y": 24.8,
+   "personal": false
+  },
+  {
    "id": "L-pb-lab-rutina",
    "nombre": "Análisis Rutina",
    "cat": "apoyo",
@@ -744,22 +899,6 @@
    "personal": false
   },
   {
-   "id": "L-pb-gastro-01",
-   "nombre": "Gastroenterología 01",
-   "cat": "otro",
-   "x": 110.7,
-   "y": 60.7,
-   "personal": false
-  },
-  {
-   "id": "L-pb-gastro-03",
-   "nombre": "Gastroenterología 03",
-   "cat": "otro",
-   "x": 104.99,
-   "y": 53.02,
-   "personal": false
-  },
-  {
    "id": "L-pb-gastro-recuperacion",
    "nombre": "Recuperación · Preparación",
    "cat": "otro",
@@ -768,11 +907,11 @@
    "personal": false
   },
   {
-   "id": "L-pb-gastro-procedimientos",
-   "nombre": "Sala Procedimientos",
-   "cat": "otro",
-   "x": 107.0,
-   "y": 50.8,
+   "id": "L-pb-espera-citologia",
+   "nombre": "Espera Citología",
+   "cat": "espera",
+   "x": 80.0,
+   "y": 100.5,
    "personal": false
   },
   {
@@ -808,6 +947,19 @@
     [
      165.1,
      101.0
+    ]
+   ]
+  },
+  {
+   "tipo": "abrir",
+   "puntos": [
+    [
+     146.5,
+     37.0
+    ],
+    [
+     146.5,
+     35.5
     ]
    ]
   }

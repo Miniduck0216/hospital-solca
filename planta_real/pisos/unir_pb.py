@@ -329,7 +329,8 @@ def main():
         if not a['pg']:
             continue
         pg = Polygon(a['pg'][0], a['pg'][1:]).buffer(0)
-        if pg.is_empty or not fuera(pg):
+        # un cuarto con nombre que la vieja solo tapa a medias (la oficina junto a Secretaría Información) también entra
+        if pg.is_empty or not (fuera(pg) or (a['nombre'] and fuera(pg, 0.5))):
             continue
         resto = pg.difference(zona_v)
         partes = a_lista(resto.buffer(0), 0.5)
