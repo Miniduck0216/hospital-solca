@@ -656,6 +656,11 @@ def exportar(m, piso, salida):
     RES = 0.25
     x0, y0, x1, y1 = hu.bounds
     x0, y0 = math.floor(x0) - 2, math.floor(y0) - 2
+    if piso == 'PB':
+        # en el marco de la web la rejilla cae sobre la de la planta baja vieja (múltiplos de 0,25 m): unir_pb la
+        # copia celda por celda, sin remuestrear
+        x0 = math.floor((x0 + ox) / RES) * RES - ox
+        y0 = math.floor((y0 + oy) / RES) * RES - oy
     W, H = int((x1 - x0 + 4) / RES) + 1, int((y1 - y0 + 4) / RES) + 1
 
     def ras(geoms, dil=0.0):

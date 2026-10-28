@@ -60,6 +60,13 @@ AJUSTES = {
         ('Seleccion Donantes', (105.7, 99.5), 'personal'),
         ('Baño', (129.6, 102.4), 'personal'),
         ('Baños', (97.5, 99.5), 'personal'),
+        # dirección y farmacia rehechas con el DWG 2025 (unir_pb.REHACER): cuartos internos del personal
+        ('Gerencia Proyectos', (55.95, 16.6), 'personal'),   # se entra por Gerencia Comercial
+        ('Oficina', (72.0, 14.6), 'personal'),               # dentro del Financiero
+        ('Tragaluz', (60.3, 30.5), 'personal'),
+        ('Sala Reuniones', (63.2, 70.0), 'personal'),        # farmacia: cuartos internos
+        ('Quimioterápicos', (65.9, 71.3), 'personal'),
+        ('Nutrición Parental', (68.2, 69.6), 'personal'),
     ],
     # bloque administrativo norte (hall interno, TICs, jefatura, sala de reuniones): no es de pacientes
     'P1': [('Hall Interno', (80.7, 32.8), {'nombre': 'Recepción · Hall Interno · TICs', 'personal': True}),   # un espacio, tres rótulos
@@ -108,6 +115,7 @@ AJUSTES = {
 # lugares sin cuarto propio (puntos con nombre): mostradores y zonas dentro de un hall, cuartos que el dibujo no cierra
 # pasos abiertos (puertas que el dibujo no tiene): [punto, punto] a través del muro
 PASOS = {
+    'PB': [[[139.95, 91.3], [139.95, 92.5]]],   # emergencia: vestíbulo del baño (la rejilla lo deja cerrado en la esquina)
     'P1': [[[28.95, 83.6], [29.85, 83.6]]],   # puerta del baño de hombres del bloque de servicio
     'P3': [[[74.3, 87.33], [75.5, 87.33]]],      # vano entre el filtro de pacientes y los baños de Trasplantes
 }

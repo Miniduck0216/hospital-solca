@@ -130,55 +130,79 @@
    "si": "Vestíbulo de Ductos",
    "personal": true
   },
-  "a277": {
+  "a276": {
    "si": "Punciones",
    "personal": true
   },
-  "a283": {
+  "a282": {
    "si": "Seleccion Donantes",
    "personal": true
   },
-  "a292": {
+  "a291": {
    "si": "Baño",
    "personal": true
   },
-  "a293": {
+  "a292": {
    "si": "Baños",
    "personal": true
   },
-  "a266": {
+  "a364": {
+   "si": "Gerencia Proyectos",
+   "personal": true
+  },
+  "a367": {
+   "si": "Oficina",
+   "personal": true
+  },
+  "a369": {
+   "si": "Tragaluz",
+   "personal": true
+  },
+  "a376": {
+   "si": "Sala Reuniones",
+   "personal": true
+  },
+  "a377": {
+   "si": "Quimioterápicos",
+   "personal": true
+  },
+  "a378": {
+   "si": "Nutrición Parental",
+   "personal": true
+  },
+  "a265": {
    "si": "Ascensores",
    "personal": true
   },
-  "a269": {
+  "a268": {
    "si": "Ascensores",
    "personal": true
   },
-  "a278": {
+  "a277": {
    "si": "",
    "nombre": "Baño",
    "cat": "banos",
    "personal": true
   },
-  "a288": {
+  "a287": {
    "si": "",
    "cat": "circulacion"
   },
-  "a301": {
+  "a300": {
    "si": "",
    "nombre": "Baño",
    "cat": "banos",
    "personal": true
   },
-  "a339": {
+  "a338": {
+   "si": "",
+   "cat": "circulacion"
+  },
+  "a348": {
    "si": "",
    "cat": "circulacion"
   },
   "a349": {
-   "si": "",
-   "cat": "circulacion"
-  },
-  "a350": {
    "si": "",
    "cat": "circulacion"
   },
@@ -226,59 +250,101 @@
    "si": "SS.HH.",
    "personal": true
   },
-  "a267": {
+  "a266": {
    "si": "Baños",
    "personal": true
   },
-  "a302": {
+  "a301": {
    "si": "Baño",
    "personal": true
   },
-  "a309": {
+  "a308": {
+   "si": "Baño",
+   "personal": false
+  },
+  "a317": {
    "si": "Baño",
    "personal": false
   },
   "a318": {
    "si": "Baño",
-   "personal": false
-  },
-  "a319": {
-   "si": "Baño",
    "personal": true
+  },
+  "a321": {
+   "si": "Baño",
+   "personal": false
   },
   "a322": {
    "si": "Baño",
    "personal": false
   },
-  "a323": {
-   "si": "Baño",
-   "personal": false
-  },
-  "a328": {
+  "a327": {
    "si": "SS.HH.",
    "personal": false
   },
-  "a335": {
+  "a334": {
    "si": "SS.HH.",
    "personal": false
   },
-  "a338": {
+  "a337": {
    "si": "SS.HH.",
    "personal": false
+  },
+  "a340": {
+   "si": "SS.HH.",
+   "personal": true
   },
   "a341": {
    "si": "SS.HH.",
    "personal": true
   },
-  "a342": {
+  "a343": {
+   "si": "SS.HH.",
+   "personal": false
+  },
+  "a356": {
+   "si": "S.H. H.",
+   "personal": false
+  },
+  "a357": {
+   "si": "S.H. H.",
+   "personal": false
+  },
+  "a359": {
+   "si": "S.H. M.",
+   "personal": true
+  },
+  "a371": {
    "si": "SS.HH.",
    "personal": true
   },
-  "a344": {
+  "a372": {
    "si": "SS.HH.",
-   "personal": false
+   "personal": true
+  },
+  "a373": {
+   "si": "SS.HH.",
+   "personal": true
+  },
+  "a374": {
+   "si": "SS.HH.",
+   "personal": true
   }
  },
  "lugares": [],
- "pasos": []
+ "pasos": [
+  {
+   "tipo": "abrir",
+   "puntos": [
+    [
+     139.95,
+     91.3
+    ],
+    [
+     139.95,
+     92.5
+    ]
+   ]
+  }
+ ]
 }
