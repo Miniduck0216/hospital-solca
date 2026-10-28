@@ -103,6 +103,16 @@ AJUSTES = {
         # y sus habitaciones abiertas (cada una en LUGARES)
         ('Mamografia 2 · V', (86.29, 83.62), {'nombre': 'Mamografía 2'}),
         ('Sala · Rauniones', (85.37, 17.05), {'nombre': 'Sala Rauniones'}),   # así está en el plano
+        # cuartos internos del laboratorio (se entra por Preparación) y de la clínica de heridas
+        ('Coordinación', (110.15, 15.47), 'personal'), ('Tuberculosis', (111.6, 10.69), 'personal'),
+        ('Baño', (110.75, 17.05), 'personal'), ('Medicos', (159.97, 104.17), 'personal'),
+        # pasillo junto a la fachada de la clínica de heridas (entre la sala de entrada y las habitaciones)
+        ('', (163.2, 103.3), {'cat': 'circulacion'}), ('', (166.2, 100.0), {'cat': 'circulacion'}),
+        ('', (168.8, 97.0), {'cat': 'circulacion'}),
+        ('', (157.6, 99.3), {'cat': 'circulacion'}),   # vestíbulo central de la clínica (entre la entrada y la sala)
+        ('', (108.6, 81.8), {'cat': 'circulacion'}),   # imagen: vestíbulo de los S.H.
+        # medicina física: el pasillo entre masoterapia y mecanoterapia lleva el rótulo de la zona
+        ('Aseo', (108.04, 100.28), {'nombre': 'Medicina Física', 'cat': 'circulacion', 'personal': False}),
     ],
     # bloque administrativo norte (hall interno, TICs, jefatura, sala de reuniones): no es de pacientes
     'P1': [('Hall Interno', (80.7, 32.8), {'nombre': 'Recepción · Hall Interno · TICs', 'personal': True}),   # un espacio, tres rótulos
@@ -151,7 +161,8 @@ AJUSTES = {
 # lugares sin cuarto propio (puntos con nombre): mostradores y zonas dentro de un hall, cuartos que el dibujo no cierra
 # pasos abiertos (puertas que el dibujo no tiene): [punto, punto] a través del muro
 PASOS = {
-    'PB': [[[139.95, 91.3], [139.95, 92.5]]],   # emergencia: vestíbulo del baño (la rejilla lo deja cerrado en la esquina)
+    'PB': [[[139.95, 91.3], [139.95, 92.5]],
+           [[163.4, 102.8], [165.1, 101.0]]],   # clínica de heridas: puerta del pasillo junto a la fachada (frente a Triaje)   # emergencia: vestíbulo del baño (la rejilla lo deja cerrado en la esquina)
     'P1': [[[28.95, 83.6], [29.85, 83.6]]],   # puerta del baño de hombres del bloque de servicio
     'P3': [[[74.3, 87.33], [75.5, 87.33]]],      # vano entre el filtro de pacientes y los baños de Trasplantes
 }

@@ -50,6 +50,11 @@ CORRECCIONES = {
         # cierre de la habitación 17 contra la terraza (el muro del PDF llega al ventanal; el dibujo deja una rendija)
         dict(tipo='muro', zona=box(6.0, 76.95, 6.25, 77.95)),
     ],
+    'PB': [
+        # tabiques del DWG 2025 dibujados como pares de líneas en las capas NO y TA (laboratorio de genética, medicina
+        # nuclear, emergencia, dirección…): en el plano son muros; el modelo solo tomaba los de la capa de paredes
+        dict(tipo='pares', zona=box(0, -45, 200, 130), capas={'NO', 'TA'}, dmin=0.06, dmax=0.3, minimo=0.5),
+    ],
     'SB': [
         # búnkeres de los aceleradores, del tomógrafo y de radioterapia: muros de hormigón de 0,3 a 2,4 m dibujados como
         # pares de líneas en la capa de columnas (el modelo solo empareja muros delgados)
@@ -85,13 +90,17 @@ def corregir(piso, planos, bloques, textos):
                 nuevos = [l.buffer(0.05, cap_style=2) for l in ls]
             else:
                 import numpy as np
+                from shapely.strtree import STRtree
+                arbol = STRtree(ls)
                 usado = set()
                 for i, l1 in enumerate(ls):
                     (x1, y1), (x2, y2) = l1.coords
                     u = np.array([x2 - x1, y2 - y1]) / l1.length
                     n = np.array([-u[1], u[0]])
                     mejor = None
-                    for j, l2 in enumerate(ls):
+                    for j in arbol.query(l1.buffer(c['dmax'] + 0.01)):
+                        j = int(j)
+                        l2 = ls[j]
                         if j == i:
                             continue
                         (a1, b1), (a2, b2) = l2.coords
