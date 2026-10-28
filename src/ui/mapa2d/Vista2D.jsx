@@ -111,7 +111,10 @@ export function Vista2D() {
               <Icono nombre="buscar" size={18} />
               <span>{destino2d ? destino2d.nombre : 'Buscar en SOLCA'}</span>
             </button>
-            <div className="barra-logo" aria-label="Hospital SOLCA Quito"><b>SOLCA</b><small>Quito</small></div>
+            <picture className="barra-logo" aria-label="SOLCA Núcleo de Quito">
+                <source media="(max-width: 560px)" srcSet={`${import.meta.env.BASE_URL}marca/solca-emblema.png`} />
+                <img src={`${import.meta.env.BASE_URL}marca/solca-logo.png`} alt="SOLCA Núcleo de Quito" />
+              </picture>
           </div>
           <div className="chips" aria-label="Categorías">
             {CHIPS.map((c) => (

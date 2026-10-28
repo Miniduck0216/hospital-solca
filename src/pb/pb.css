@@ -32,7 +32,7 @@ body { background: #E9EDF1; }
 /* columna izquierda */
 .pb-col { position: absolute; top: 14px; left: 14px; width: min(410px, calc(100% - 92px)); display: flex; flex-direction: column; gap: 10px; z-index: 5; max-height: calc(100% - 28px); }
 .pb-app .barra { background: #fff; border-radius: 20px; box-shadow: var(--m-sombra); padding: 8px 8px 6px; }
-.pb-app .barra-logo { background: #D7443A; min-width: 62px; }
+.pb-app .barra-logo { background: none; }
 .pb-app .chip-cat.on { background: var(--m-tinta); border-color: var(--m-tinta); color: #fff; }
 .pb-app .tarjeta { position: relative; background: #fff; border-radius: 20px; box-shadow: var(--m-sombra); }
 .hoja { display: flex; flex-direction: column; min-height: 0; overflow: hidden; animation: entrar .2s ease-out; }
