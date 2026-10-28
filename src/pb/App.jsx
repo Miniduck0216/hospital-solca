@@ -408,7 +408,10 @@ export default function App() {
         <div className="pb-col">
           <div className="barra">
             <div className="barra-fila">
-              <div className="barra-logo" aria-label="SOLCA Quito"><b>SOLCA</b><small>Quito</small></div>
+              <picture className="barra-logo" aria-label="SOLCA Núcleo de Quito">
+                <source media="(max-width: 560px)" srcSet={`${import.meta.env.BASE_URL}marca/solca-emblema.png`} />
+                <img src={`${import.meta.env.BASE_URL}marca/solca-logo.png`} alt="SOLCA Núcleo de Quito" />
+              </picture>
               <button className="barra-buscar" onClick={() => setBuscando({ modo: 'destino' })}>
                 <Icono nombre="buscar" size={18} />
                 <span>{destino ? destino.nombre : '¿A dónde quieres ir?'}</span>
