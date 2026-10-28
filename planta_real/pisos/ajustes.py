@@ -20,6 +20,28 @@ RAIZ = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 # (nombre, punto aproximado del rótulo, ajuste)
 AJUSTES = {
     'SB': [
+        # nombres del plano: un espacio con varios rótulos los lleva juntos; las zonas de servicio que el dibujo junta
+        # en un solo espacio llevan el nombre de la zona
+        ('Dietas · Estacion Carros Thermo', (0, 0), {'nombre': 'Alimentación y Dietética'}),
+        ('Reloj', (0, 0), {'nombre': 'Despacho'}),
+        ('Vestidor', (93.26, -24.66), {'nombre': 'Mantenimiento'}),
+        ('Registro Nacional Tumores', (0, 0), {'nombre': 'Estadística · Registro Nacional Tumores'}),
+        ('Despacho', (99.6, 15.13), {'nombre': 'Bodega Central'}),
+        ('Despacho', (125.91, 43.15), {'nombre': 'Depósito Ropa Limpia'}),
+        ('Aula 1', (0, 0), {'nombre': 'Aula 1 · Aula 2'}),
+        ('Nuclear', (0, 0), {'nombre': 'Medicina Nuclear'}),
+        ('Comando', (150.92, 52.97), {'nombre': 'Comando · Simulador'}),
+        ('Talento', (0, 0), {'nombre': 'Talento Humano'}),   # si el dibujo no lo nombra solo
+        ('Pasillo', (70.79, 17.85), {'nombre': 'Talento Humano'}),   # el rótulo del plano está en esta área abierta
+        ('Comedor', (77.49, 36.89), {'nombre': 'Comedor Especial'}),
+        ('Cafetería', (92.38, 36.69), {'nombre': 'Comedor Personal'}),
+        ('Bodega · Control 2', (0, 0), {'nombre': 'Radioterapia'}),
+        ('Abastecim. · Costura', (0, 0), {'nombre': 'Lavandería', 'personal': True}),
+        ('Area Equipos', (113.72, 38.05), {'nombre': 'Esterilización', 'personal': True}),
+        # antesala de las salas de Inserciones (se entra por ella desde el pasillo de radioterapia)
+        ('Comando · Lavabo Quirurgico', (0, 0), {'personal': False, 'cat': 'circulacion'}),
+        # baños dentro de los vestidores de la unidad de inserciones
+        ('Baño', (161.15, 53.83), 'personal'), ('Baño', (160.92, 54.99), 'personal'),
         ('Información', (133.2, 38.6), 'ventanilla'),
         ('Recepcion', (104.5, 29.0), 'ventanilla'),
         # baño de mujeres: el cuarto de inodoros se llega por la antesala (también rotulada «Mujeres»)
@@ -112,7 +134,7 @@ LUGARES = {
 }
 # pisos donde todos los baños son para pacientes (también el de cada habitación y el de quimioterapia), salvo los que
 # AJUSTES marca como del personal
-BANOS_PACIENTES = {'P1', 'P2', 'P3'}
+BANOS_PACIENTES = {'SB', 'P1', 'P2', 'P3'}
 
 
 def nombres_pdf(piso, d):

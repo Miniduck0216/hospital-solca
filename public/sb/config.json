@@ -52,7 +52,86 @@
   "^Montacargas"
  ],
  "ajustes": {
-  "a83": {
+  "a1": {
+   "si": "Dietas · Estacion Carros Thermo",
+   "nombre": "Alimentación y Dietética"
+  },
+  "a7": {
+   "si": "Reloj",
+   "nombre": "Despacho"
+  },
+  "a127": {
+   "si": "Reloj",
+   "nombre": "Despacho"
+  },
+  "a17": {
+   "si": "Vestidor",
+   "nombre": "Mantenimiento"
+  },
+  "a8": {
+   "si": "Registro Nacional Tumores",
+   "nombre": "Estadística · Registro Nacional Tumores"
+  },
+  "a10": {
+   "si": "Despacho",
+   "nombre": "Bodega Central"
+  },
+  "a42": {
+   "si": "Despacho",
+   "nombre": "Depósito Ropa Limpia"
+  },
+  "a12": {
+   "si": "Aula 1",
+   "nombre": "Aula 1 · Aula 2"
+  },
+  "a20": {
+   "si": "Nuclear",
+   "nombre": "Medicina Nuclear"
+  },
+  "a27": {
+   "si": "Comando",
+   "nombre": "Comando · Simulador"
+  },
+  "a15": {
+   "si": "Pasillo",
+   "nombre": "Talento Humano"
+  },
+  "a19": {
+   "si": "Comedor",
+   "nombre": "Comedor Especial"
+  },
+  "a6": {
+   "si": "Cafetería",
+   "nombre": "Comedor Personal"
+  },
+  "a3": {
+   "si": "Bodega · Control 2",
+   "nombre": "Radioterapia"
+  },
+  "a5": {
+   "si": "Abastecim. · Costura",
+   "nombre": "Lavandería",
+   "personal": true
+  },
+  "a14": {
+   "si": "Area Equipos",
+   "nombre": "Esterilización",
+   "personal": true
+  },
+  "a70": {
+   "si": "Comando · Lavabo Quirurgico",
+   "personal": false,
+   "cat": "circulacion"
+  },
+  "a173": {
+   "si": "Baño",
+   "personal": true
+  },
+  "a188": {
+   "si": "Baño",
+   "personal": true
+  },
+  "a101": {
    "si": "Información",
    "dest": [
     131.54,
@@ -60,15 +139,15 @@
    ],
    "ventanilla": true
   },
-  "a91": {
+  "a112": {
    "si": "Recepcion",
    "dest": [
-    102.19,
-    29.05
+    102.15,
+    28.05
    ],
    "ventanilla": true
   },
-  "a45": {
+  "a66": {
    "si": "Mujeres",
    "cat": "banos",
    "dest": [
@@ -78,78 +157,227 @@
    "ventanilla": true,
    "personal": false
   },
-  "a52": {
+  "a67": {
    "si": "Mujeres",
    "cat": "banos",
    "personal": false
   },
-  "a38": {
+  "a50": {
    "si": "Oficina Nutricionista",
    "personal": true
   },
-  "a72": {
+  "a89": {
    "si": "Oficina Economo",
    "personal": true
   },
-  "a93": {
+  "a114": {
    "si": "Oficina",
    "personal": true
   },
-  "a109": {
+  "a130": {
    "si": "Aire Acondic.",
    "personal": true
   },
-  "a120": {
+  "a146": {
    "si": "SS.HH.",
    "personal": true
   },
-  "a121": {
+  "a149": {
    "si": "SS.HH.",
    "personal": true
   },
-  "a92": {
+  "a68": {
+   "si": "SS.HH.",
+   "personal": false,
+   "dest": [
+    144.51,
+    63.12
+   ],
+   "ventanilla": true
+  },
+  "a110": {
+   "si": "SS.HH.",
+   "personal": true
+  },
+  "a111": {
    "si": "SS.HH.",
    "personal": false
   },
-  "a100": {
+  "a122": {
    "si": "SS.HH.",
-   "personal": true
+   "personal": false,
+   "dest": [
+    76.46,
+    54.36
+   ],
+   "ventanilla": true
   },
-  "a108": {
-   "si": "SS.HH.",
-   "personal": true
-  },
-  "a128": {
+  "a157": {
    "si": "SS.HH.",
    "personal": false
   },
-  "a129": {
+  "a160": {
    "si": "SS.HH.",
+   "personal": false,
+   "dest": [
+    144.51,
+    63.12
+   ],
+   "ventanilla": true
+  },
+  "a162": {
+   "si": "SS.HH.",
+   "personal": false,
+   "dest": [
+    144.51,
+    63.12
+   ],
+   "ventanilla": true
+  },
+  "a166": {
+   "si": "Baño",
+   "personal": false,
+   "dest": [
+    122.85,
+    46.83
+   ],
+   "ventanilla": true
+  },
+  "a167": {
+   "si": "Baño",
+   "personal": false,
+   "dest": [
+    138.13,
+    44.14
+   ],
+   "ventanilla": true
+  },
+  "a168": {
+   "si": "Baño",
    "personal": true
   },
-  "a131": {
+  "a169": {
    "si": "SS.HH.",
-   "personal": true
+   "personal": false,
+   "dest": [
+    144.51,
+    63.12
+   ],
+   "ventanilla": true
   },
-  "a134": {
+  "a170": {
    "si": "SS.HH.",
-   "personal": true
+   "personal": false,
+   "dest": [
+    144.51,
+    63.12
+   ],
+   "ventanilla": true
   },
-  "a135": {
+  "a172": {
    "si": "SS.HH.",
-   "personal": true
+   "personal": false,
+   "dest": [
+    144.51,
+    63.12
+   ],
+   "ventanilla": true
   },
-  "a137": {
+  "a174": {
+   "si": "Baño",
+   "personal": false,
+   "dest": [
+    144.51,
+    63.12
+   ],
+   "ventanilla": true
+  },
+  "a175": {
+   "si": "Baño",
+   "personal": false,
+   "dest": [
+    144.51,
+    63.12
+   ],
+   "ventanilla": true
+  },
+  "a176": {
+   "si": "Baño",
+   "personal": false,
+   "dest": [
+    144.51,
+    63.12
+   ],
+   "ventanilla": true
+  },
+  "a177": {
+   "si": "SS.HH.",
+   "personal": false,
+   "dest": [
+    138.13,
+    44.14
+   ],
+   "ventanilla": true
+  },
+  "a180": {
    "si": "SS.HH.",
    "personal": false
   },
-  "a138": {
+  "a181": {
    "si": "SS.HH.",
    "personal": false
   },
-  "a139": {
+  "a182": {
    "si": "SS.HH.",
+   "personal": false,
+   "dest": [
+    138.13,
+    44.14
+   ],
+   "ventanilla": true
+  },
+  "a189": {
+   "si": "Baño",
+   "personal": false,
+   "dest": [
+    102.15,
+    37.96
+   ],
+   "ventanilla": true
+  },
+  "a190": {
+   "si": "Baño",
    "personal": true
+  },
+  "a191": {
+   "si": "Baño",
+   "personal": true
+  },
+  "a193": {
+   "si": "Baño",
+   "personal": true
+  },
+  "a194": {
+   "si": "Baño",
+   "personal": true
+  },
+  "a196": {
+   "si": "Baño",
+   "personal": false,
+   "dest": [
+    135.41,
+    44.99
+   ],
+   "ventanilla": true
+  },
+  "a197": {
+   "si": "Baño",
+   "personal": false,
+   "dest": [
+    138.13,
+    44.14
+   ],
+   "ventanilla": true
   }
  },
  "lugares": [],

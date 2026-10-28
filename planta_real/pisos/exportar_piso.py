@@ -53,6 +53,20 @@ EXTRA = {
            # su borde de ventanas
            ('CAFETERÍA', box(50.42, 77.25, 58.72, 85.15)),
            ('', box(50.42, 74.12, 58.72, 77.15))],
+    # subsuelo: cuartos que se abren a la circulación sin puerta dibujada (el dibujo los junta con el pasillo)
+    'SB': [('AUDITORIO', box(44.95, 40.45, 62.8, 52.95)),
+           ('CAFETERÍA', box(96.95, 27.45, 99.6, 42.7)),
+           ('CONTROL 1', box(144.3, 58.6, 146.7, 60.3)), ('CONTROL 2', box(153.6, 58.6, 156.1, 60.3)),
+           ('BODEGA', box(156.15, 58.6, 157.1, 60.3)), ('CONTROL', box(161.45, 58.6, 163.85, 60.3)),
+           ('BODEGA', box(163.9, 58.6, 164.7, 60.3)),
+           ('RECUPERACIÓN', box(147.75, 34.8, 154.15, 42.9)),
+           ('ABASTECIMIENTO', box(143.05, 33.6, 145.05, 35.25)), ('R. FARM.', box(145.1, 35.3, 147.55, 36.75)),
+           # bloque sur: dos bodegas de Estadística y el vestidor que el dibujo junta con el pasillo de Mantenimiento
+           ('BODEGA ESTADÍSTICA', box(101.3, -32.7, 104.2, -26.6)), ('BODEGA ESTADÍSTICA', box(104.5, -32.7, 107.3, -26.6)),
+           ('VESTIDOR', box(94.75, -23.45, 97.9, -20.5)),
+           # pasillo que une Lactancia y Call Center con la cafetería y el despacho (el dibujo lo junta con el comedor)
+           ('PASILLO', unary_union([box(90.35, 42.85, 102.75, 44.25), box(99.9, 27.45, 102.75, 44.25),
+                                    box(84.75, 40.15, 90.4, 42.85), Polygon([(90.4, 40.2), (92.6, 42.85), (90.4, 42.85)])]))],
     # piso 2, bloque central: la preparación médica se abre a la estación de enfermería por el mostrador (el dibujo
     # la junta con el pasillo) y el cuarto de ductos queda como hueco entre sus tres ductos
     'P2': [('PREPARACIÓN MÉDICA', box(72.16, 69.15, 74.84, 73.3)),
@@ -62,9 +76,12 @@ EXTRA = {
     'P3': [('APOYO', box(72.16, 65.35, 74.84, 68.0)),
            ('PASILLO', box(72.35, 81.42, 74.63, 82.58))],
 }
+# espacio libre sin ambiente que es paso (marco de la planta baja): en el subsuelo, los laberintos de entrada de los
+# búnkeres de los aceleradores (el dibujo los deja entre muros y sin piso)
+HUECOS_PASO = {'SB': [box(141.2, 60.3, 159.4, 66.7)]}
 # pisos donde los baños con inodoro que el dibujo deja sin ambiente (el inodoro de cada habitación, los dos baños
 # chicos del bloque central) se suman como ambiente «BAÑO»
-BANOS_HUECO = {'P1', 'P2', 'P3'}
+BANOS_HUECO = {'SB', 'P1', 'P2', 'P3'}
 # muros dobles que el dibujo deja huecos por dentro (marco de la planta baja): en el piso 2, el muro entre las
 # habitaciones 207 y 205
 MUROS_EXTRA = {
@@ -100,6 +117,10 @@ BARANDAS_EXTRA = {
 }
 # puertas que el dibujo no trae como bloque: (a, b, doble)
 PUERTAS_EXTRA = {
+    # subsuelo: vanos del auditorio hacia el hall
+    'SB': [((62.9, 51.45), (62.9, 53.0), True), ((62.9, 46.3), (62.9, 48.0), True), ((62.9, 40.4), (62.9, 41.85), True),
+           # laberinto del Acelerador Lineal 2: puerta blindada desde el pasillo y paso hacia el búnker
+           ((157.35, 61.3), (158.1, 62.05), False), ((156.2, 64.15), (157.9, 64.15), True)],
     'P1': [((48.2, 87.1), (48.2, 89.1), True), ((57.6, 85.83), (57.6, 87.85), True),
            ((52.18, 77.2), (53.47, 77.2), True),
            ((54.87, 95.42), (55.84, 95.42), False),    # oficina, desde la recepción
@@ -208,6 +229,14 @@ def banos_hueco(m):
                    if any(p.intersects(i) for i in ino)]
             q = max(sin, key=lambda p: p.area) if sin else q
         if 0.8 <= q.area <= 5 and largo(q) <= 2.5 and not q.buffer(-0.25).is_empty and any(q.intersects(i) for i in ino):
+            # cubículo dentro de un baño grande (SS.HH. con varios inodoros): es parte de ese baño
+            grande = [a for a in m.ambientes if a['area'] > 3 and re.search(r'BAÑO|SS\.? ?HH|MUJERES|HOMBRES', (a['nombre'] or '').upper())
+                      and a['poligono'].distance(q) < 0.2]
+            if grande:
+                u = unary_union([grande[0]['poligono'], q.buffer(0.12, join_style=2)]).buffer(-0.1, join_style=2)
+                if u.geom_type == 'Polygon':
+                    grande[0]['poligono'], grande[0]['area'] = u, u.area
+                    continue
             m.ambientes.append(dict(poligono=q, nombre='BAÑO', area=q.area, extra=True))
             n += 1
     print('baños sin ambiente', n)
@@ -417,7 +446,12 @@ def obra(m, piso):
     m.ventanas = list(m.ventanas) + [T(g) for g in VENTANAS_EXTRA.get(piso, [])]
     m.barandas = list(barandas(m)) + [T(g) for g in BARANDAS_EXTRA.get(piso, [])]
     for a, b, doble in PUERTAS_EXTRA.get(piso, []):
-        m.puertas.append(puerta_nueva(np.array(a) - (ox, oy), np.array(b) - (ox, oy), doble))
+        p = puerta_nueva(np.array(a) - (ox, oy), np.array(b) - (ox, oy), doble)
+        m.puertas.append(p)
+        # el vano corta el muro (cuando el dibujo lo cerró)
+        hueco = p['rect'].buffer(0.12, cap_style=2, join_style=2)
+        m.muros_raw = m.muros_raw.difference(hueco)
+        m.muros = [q for w in m.muros for q in lista_polis(w.difference(hueco)) if q.area > 0.005]
     if piso in ZONA_MESAS:
         z = T(ZONA_MESAS[piso])
         def bloque(g):   # mesa con sus sillas dibujada como un solo bloque (alargado, ~0,7 x 2 m)
@@ -479,7 +513,7 @@ def preparar(m, piso):
         g = affinity.translate(g, -ox, -oy)
         quedan = []
         for a in m.ambientes:
-            if a['poligono'].intersects(g) and not a.get('extra'):
+            if a['poligono'].intersects(g):
                 for q in lista_polis(a['poligono'].difference(g)):
                     # sin las rendijas que deja el corte (también las tiras en L alrededor del recorte)
                     if q.area > 0.5 and q.buffer(-0.25).area > max(0.2, 0.25 * q.area):
@@ -487,6 +521,17 @@ def preparar(m, piso):
             else:
                 quedan.append(a)
         m.ambientes = quedan + [dict(poligono=g, nombre=nombre, area=g.area, extra=True)]
+    for z in HUECOS_PASO.get(piso, []):
+        z = affinity.translate(z, -ox, -oy)
+        # piezas sin nombre del laberinto que ya eran ambientes: también son paso
+        for a in m.ambientes:
+            if not a['nombre'] and a['poligono'].intersection(z).area > 0.8 * a['poligono'].area:
+                a['paso_forzado'] = True
+        amb = unary_union([a['poligono'] for a in m.ambientes])
+        duro = unary_union([m.muros_raw] + m.columnas + [t['poligono'] for t in m.tabiques])
+        for q in lista_polis(z.difference(amb.buffer(0.02)).difference(duro.buffer(0.02))):
+            if q.area > 0.5 and not q.buffer(-0.2).is_empty:
+                m.ambientes.append(dict(poligono=q, nombre='', area=q.area, extra=True, paso_forzado=True))
     for g in RECORTES.get(piso, []):
         g = affinity.translate(g, -ox, -oy)
         m.ambientes = [dict(a, poligono=q, area=q.area) for a in m.ambientes
@@ -511,7 +556,10 @@ def preparar(m, piso):
     hu = huella_real(m)
     m.ambientes = [a for a in m.ambientes if a['poligono'].intersection(hu).area > 0.5 * a['poligono'].area]
     obra(m, piso)
-    if piso in BANOS_HUECO:
+    # «ambientes» que son el interior de un muro grueso (búnkeres): fuera
+    duro = unary_union([m.muros_raw] + m.columnas)
+    m.ambientes = [a for a in m.ambientes if a['poligono'].intersection(duro).area < 0.6 * a['poligono'].area]
+    if piso in BANOS_HUECO and piso != 'SB':
         rellenar_banos(m)
     m._preparado = True
 
@@ -533,8 +581,10 @@ def exportar(m, piso, salida):
                         original=a['nombre'] or '', cat=ED.categoria_web(a['nombre']) if a['nombre'] else 'otro',
                         icono=ED.icono(a['nombre']), area=r2(a['area']), pg=p[0] if p else [],
                         lbl=[r2(lbl.x), r2(lbl.y)]))
-        if a.get('reparte') or a.get('circula'):
+        if a.get('reparte') or a.get('circula') or a.get('paso_forzado'):
             amb[-1]['paso'] = True
+        if a.get('paso_forzado'):
+            amb[-1]['cat'] = 'circulacion'
     duro = unary_union([m.muros_raw] + m.columnas + [t['poligono'] for t in m.tabiques] +
                        list(getattr(m, 'parapetos', [])) + list(getattr(m, 'foso', [])) +
                        [affinity.translate(g, -ox, -oy) for g in MUROS_EXTRA.get(piso, [])])
