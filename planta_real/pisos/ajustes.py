@@ -157,6 +157,22 @@ PASOS = {
 }
 
 LUGARES = {
+    # subsuelo, zonas de servicio: las secciones de cada una (sin muros entre ellas en el plano), solo del personal
+    'SB': [
+        *[(f'L-sb-cocina-{k}', n, 'apoyo', p, True) for k, (n, p) in enumerate([
+            ('Recepción', (88.1, 3.0)), ('Lavado de Ollas', (81.5, 3.05)), ('Comedor', (78.9, 6.4)),
+            ('Cocción', (79.9, 9.0)), ('Carnes · Pescados', (86.5, 9.85)), ('Verduras · Frutas', (86.8, 13.15)),
+            ('Lavado de Vajilla', (74.9, 18.85)), ('Depósito de Vajillas', (77.8, 19.75)), ('Lavado', (74.8, 21.9)),
+            ('Descarga', (79.0, 21.9)), ('Distribución', (82.6, 22.2)), ('Repostería', (86.5, 22.5)),
+            ('Estación Carros Thermo', (74.8, 24.8)), ('Dietas', (86.5, 26.0))], 1)],
+        *[(f'L-sb-lavanderia-{k}', n, 'apoyo', p, True) for k, (n, p) in enumerate([
+            ('Contaminado', (108.6, 31.5)), ('Clasificación', (110.5, 29.2)), ('Lavado · Carga', (116.2, 30.75)),
+            ('Lavado · Descarga', (119.6, 31.35)), ('Secado', (123.2, 35.6)), ('Entrega a Esterilización', (116.7, 37.4)),
+            ('Plancha', (117.0, 40.9)), ('Costura', (121.9, 41.4)), ('Abastecimiento', (120.4, 43.6))], 1)],
+        *[(f'L-sb-esterilizacion-{k}', n, 'apoyo', p, True) for k, (n, p) in enumerate([
+            ('Mantenimiento · Lubricado de Instrumental', (103.3, 34.2)), ('Preparación · Carga', (113.9, 36.95)),
+            ('Autoclaves', (112.2, 39.4)), ('Área Equipos', (106.3, 41.6))], 1)],
+    ],
     'PB': [
         # U.C.I.: habitaciones abiertas al área común
         *[(f'L-pb-uci-{k:02d}', f'Hab. {k:02d} · U.C.I.', 'otro', p) for k, p in enumerate(
