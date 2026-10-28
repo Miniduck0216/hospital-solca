@@ -82,7 +82,7 @@ AJUSTES = {
         ('Módulo 07 · Apoyo', (100.23, 35.66), {'nombre': 'Quimioterapia · Estación · Apoyo', 'cat': 'otro'}),
         ('Laboratorio · Módulo 01', (95.55, 23.26), {'nombre': 'Histología · Laboratorio', 'cat': 'apoyo'}),
         ('Laboratorio · Coagulacion', (100.77, 3.39), {'nombre': 'Laboratorio Clínico'}),   # secciones: LUGARES
-        ('', (145.12, 38.49), {'nombre': 'Estación Enfermería · Comedor'}),
+        ('', (145.12, 38.49), {'nombre': 'Estación Enfermería', 'cat': 'circulacion'}),   # se cruza a las habitaciones
         ('Hombres · Vestidor', (118.71, 70.89), {'nombre': 'Vestidor Hombres'}),
         ('Quirofano', (138.22, 62.65), {'nombre': 'Quirófano 04'}),
         ('Quirofano', (138.22, 56.19), {'nombre': 'Quirófano 03'}),
@@ -90,14 +90,39 @@ AJUSTES = {
         ('Elect. Módulo 01 · Elect. Módulo 02', (110.77, 90.59), {'nombre': 'Masoterapia · Elect. 01 · Elect. 02'}),
         ('', (116.4, 94.76), {'nombre': 'Acceso Familiares', 'cat': 'circulacion'}),
         ('Apoyo', (100.35, 52.29), {'nombre': 'Gastroenterología'}),          # salas 01 y 03, recuperación…: LUGARES
-        ('Módulo 02', (110.7, 51.61), {'nombre': 'Gastroenterología 02', 'cat': 'otro'}),
+        ('Lenc.', (103.6, 55.6), 'personal'), ('U.U.', (105.4, 55.6), 'personal'),
         ('Toma de Muestras · Módulo 01', (86.8, 90.23), {'nombre': 'Toma de Muestras 01', 'cat': 'otro'}),
         ('Módulo 02 · Toma de Muestras', (86.82, 94.92), {'nombre': 'Toma de Muestras 02', 'cat': 'otro'}),
         ('Módulo 03 · Toma de Muestras', (86.82, 98.08), {'nombre': 'Toma de Muestras 03', 'cat': 'otro'}),
         ('Módulo 04 · Toma de Muestras', (86.82, 101.22), {'nombre': 'Toma de Muestras 04', 'cat': 'otro'}),
         ('Módulo 05 · Toma de Muestras', (86.82, 104.38), {'nombre': 'Toma de Muestras 05', 'cat': 'otro'}),
-        ('Lavachatas · Utileria Sucia', (144.72, 80.99), {'nombre': 'Cafetería · Utilería Sucia · Lavachatas',
-                                                            'personal': True}),
+        # U.C.I.: cuartos de servicio junto a las centrales de gases; el pasillo que los une con la puerta 6
+        ('Lavachatas', (144.7, 84.3), 'personal'), ('Utileria Sucia', (144.7, 81.5), {'nombre': 'Utilería Sucia', 'personal': True}),
+        ('Cafeteria', (143.3, 77.3), {'nombre': 'Cafetería', 'personal': True}),
+        ('Secretaría', (88.6, 107.4), {'nombre': 'Pasillo', 'cat': 'circulacion'}),   # toma de muestras (C1-L1-085)
+        ('Secretaría', (91.28, 93.13), 'ventanilla'),   # se atiende sobre el mostrador del pasillo
+        ('', (112.5, 96.5), {'nombre': 'SS.HH.', 'cat': 'banos'}), ('', (112.5, 93.5), {'nombre': 'SS.HH.', 'cat': 'banos'}),
+        ('', (147.75, 35.3), 'personal'),   # cuarto C3-L1-03 (medicina nuclear), sin puerta en el plano
+        ('Lavachatas · Utileria Sucia', (141.6, 82.0), {'nombre': 'Pasillo', 'cat': 'circulacion'}),
+        # laboratorio: utilerías de la toma de muestras y el apoyo de microbiología
+        ('U. Usada', (103.6, 17.0), 'personal'), ('U. Limpia', (103.6, 15.6), 'personal'),
+        ('', (105.0, 6.5), {'nombre': 'Apoyo', 'personal': True}),
+        # vestíbulo de los ascensores de quimioterapia y el paso entre quimioterapia y U.U.
+        ('', (86.9, 41.9), {'cat': 'circulacion'}), ('', (92.5, 38.7), {'cat': 'circulacion'}),
+        # rótulos del plano que el dibujo deja en cuartos sin nombre o con otro nombre
+        ('', (78.3, 4.5), {'nombre': 'Oficina'}),                          # junto a Secretaría Información
+        ('', (100.4, 22.8), {'nombre': 'Archivo', 'personal': True}),        # histología
+        ('', (123.1, 42.3), {'nombre': 'Recepción Limpia', 'personal': True}),   # esterilización
+        ('', (106.2, 80.6), {'nombre': 'Vestidor'}), ('', (110.9, 80.6), {'nombre': 'Vestidor'}),   # de los S.H. de imagen
+        ('Recepcion', (98.8, 90.5), {'nombre': 'Recepción · Banco de Sangre'}),
+        ('Pasillo', (93.7, 69.6), {'nombre': 'Imagen', 'cat': 'circulacion'}),            # el pasillo lleva el rótulo de la zona
+        ('Pasillo', (123.8, 60.6), {'nombre': 'Circulación Gris', 'cat': 'circulacion'}),  # centro quirúrgico
+        ('', (150.59, 63.4), {'nombre': 'Hospitalización de Medicina Nuclear', 'cat': 'circulacion'}),   # el área abierta
+        ('Microbiología Bacteriologia', (109.1, 3.4), {'nombre': 'Microbiología · Bacteriología · Micología'}),
+        ('Toma Muestras', (106.2, 22.7), {'nombre': 'Toma Muestras · Cultivos'}),          # laboratorio de genética
+        ('Espera · Secretaría', (89.2, 59.9), {'nombre': 'Espera · Secretaría · Información'}),
+        ('U. Limpia', (133.1, 65.1), 'personal'),                           # centro quirúrgico
+        ('Estacion', (129.64, 66.92), 'personal'),                          # estación de recuperación
         ('Clinica de Heridas', (155.38, 107.87), {'cat': 'espera'}),   # sala de entrada de la clínica: se cruza
         ('Hab. 1', (169.12, 89.33), {'nombre': 'Hab. 1 – 6', 'cat': 'circulacion'}),   # clínica de heridas: el pasillo
         # y sus habitaciones abiertas (cada una en LUGARES)
@@ -162,7 +187,8 @@ AJUSTES = {
 # pasos abiertos (puertas que el dibujo no tiene): [punto, punto] a través del muro
 PASOS = {
     'PB': [[[139.95, 91.3], [139.95, 92.5]],
-           [[163.4, 102.8], [165.1, 101.0]]],   # clínica de heridas: puerta del pasillo junto a la fachada (frente a Triaje)   # emergencia: vestíbulo del baño (la rejilla lo deja cerrado en la esquina)
+           [[163.4, 102.8], [165.1, 101.0]],
+           [[146.5, 37.0], [146.5, 35.5]]],   # comedor de medicina nuclear: entrada desde la estación (vano de 0,6 m)   # clínica de heridas: puerta del pasillo junto a la fachada (frente a Triaje)   # emergencia: vestíbulo del baño (la rejilla lo deja cerrado en la esquina)
     'P1': [[[28.95, 83.6], [29.85, 83.6]]],   # puerta del baño de hombres del bloque de servicio
     'P3': [[[74.3, 87.33], [75.5, 87.33]]],      # vano entre el filtro de pacientes y los baños de Trasplantes
 }
@@ -187,12 +213,19 @@ LUGARES = {
     'PB': [
         # U.C.I.: habitaciones abiertas al área común
         *[(f'L-pb-uci-{k:02d}', f'Hab. {k:02d} · U.C.I.', 'otro', p) for k, p in enumerate(
-            [(124.28, 84.43), (127.65, 84.57), (131.35, 84.54), None, None, (139.39, 76.12),
-             (135.42, 73.16), (131.97, 72.98), (128.79, 73.05), (125.61, 73.12)], 1) if p],   # 04 y 05 son cuartos
+            [(124.28, 84.43), (127.65, 84.57), (131.35, 84.54), None, None, None,
+             (135.42, 73.16), (131.97, 72.98), (128.79, 73.05), (125.61, 73.12)], 1) if p],   # 04, 05 y 06 son cuartos
         # clínica de heridas: habitaciones abiertas al pasillo y el cuarto de médicos
         *[(f'L-pb-heridas-{k}', f'Hab. {k} · Clínica de Heridas', 'otro', p) for k, p in enumerate(
             [(164.67, 98.87), (166.38, 97.2), (167.8, 95.47), (169.31, 93.82), (170.9, 91.96), (172.55, 90.14)], 1)],
         ('L-pb-heridas-medicos', 'Médicos', 'otro', (158.8, 102.98), True),
+        # emergencia: cubículos y procedimientos (con cortina) y la estación de enfermería, en el área común
+        ('L-pb-emergencia-cubiculos', 'Cubículos', 'otro', (129.0, 91.0)),
+        ('L-pb-emergencia-procedimientos', 'Procedimientos', 'otro', (128.1, 87.0)),
+        ('L-pb-emergencia-enfermeria', 'Enfermería', 'otro', (130.5, 95.0), True),
+        # imagen: el comando entre las salas 1 y 2; quimioterapia: el mostrador de información
+        ('L-pb-imagen-comando', 'Comando', 'apoyo', (98.0, 78.4), True),
+        ('L-pb-quimio-informacion', 'Información · Secretaría', 'otro', (84.9, 24.8)),
         # laboratorio clínico: secciones y tomas de muestras
         ('L-pb-lab-rutina', 'Análisis Rutina', 'apoyo', (87.9, 6.6), True),
         ('L-pb-lab-hematologia', 'Hematología', 'apoyo', (90.7, 6.96), True),
@@ -203,10 +236,8 @@ LUGARES = {
         ('L-pb-toma-3', 'Toma 3', 'otro', (83.84, 5.89)),
         ('L-pb-toma-4', 'Toma 4', 'otro', (83.84, 4.0)),
         # gastroenterología
-        ('L-pb-gastro-01', 'Gastroenterología 01', 'otro', (110.7, 60.7)),
-        ('L-pb-gastro-03', 'Gastroenterología 03', 'otro', (104.99, 53.02)),
         ('L-pb-gastro-recuperacion', 'Recuperación · Preparación', 'otro', (100.48, 55.7)),
-        ('L-pb-gastro-procedimientos', 'Sala Procedimientos', 'otro', (107.0, 50.8)),
+        ('L-pb-espera-citologia', 'Espera Citología', 'espera', (80.0, 100.5)),
         ('L-pb-gastro-estacion', 'Estación', 'otro', (105.19, 58.96), True),
     ],
     'P1': [
