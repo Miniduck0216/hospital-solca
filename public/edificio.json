@@ -81,7 +81,7 @@
    "paradas": [
     {
      "piso": "SB",
-     "ambiente": "a118"
+     "ambiente": "a116"
     },
     {
      "piso": "PB",
@@ -109,7 +109,7 @@
    "paradas": [
     {
      "piso": "SB",
-     "ambiente": "a119"
+     "ambiente": "a117"
     },
     {
      "piso": "PB",
@@ -137,7 +137,7 @@
    "paradas": [
     {
      "piso": "PB",
-     "ambiente": "a274"
+     "ambiente": "a283"
     },
     {
      "piso": "P1",
@@ -162,7 +162,7 @@
    "paradas": [
     {
      "piso": "PB",
-     "ambiente": "a277"
+     "ambiente": "a288"
     },
     {
      "piso": "P1",

@@ -60,7 +60,7 @@
    "si": "Reloj",
    "nombre": "Despacho"
   },
-  "a127": {
+  "a125": {
    "si": "Reloj",
    "nombre": "Despacho"
   },
@@ -123,7 +123,7 @@
    "personal": false,
    "cat": "circulacion"
   },
-  "a173": {
+  "a172": {
    "si": "Baño",
    "personal": true
   },
@@ -131,7 +131,7 @@
    "si": "Baño",
    "personal": true
   },
-  "a101": {
+  "a100": {
    "si": "Información",
    "dest": [
     131.54,
@@ -139,7 +139,7 @@
    ],
    "ventanilla": true
   },
-  "a112": {
+  "a110": {
    "si": "Recepcion",
    "dest": [
     102.15,
@@ -152,7 +152,7 @@
    "cat": "banos",
    "dest": [
     90.82,
-    52.18
+    52.17
    ],
    "ventanilla": true,
    "personal": false
@@ -166,23 +166,23 @@
    "si": "Oficina Nutricionista",
    "personal": true
   },
-  "a89": {
+  "a88": {
    "si": "Oficina Economo",
    "personal": true
   },
-  "a114": {
+  "a112": {
    "si": "Oficina",
    "personal": true
   },
-  "a130": {
+  "a128": {
    "si": "Aire Acondic.",
    "personal": true
   },
-  "a146": {
+  "a144": {
    "si": "SS.HH.",
    "personal": true
   },
-  "a149": {
+  "a147": {
    "si": "SS.HH.",
    "personal": true
   },
@@ -190,20 +190,20 @@
    "si": "SS.HH.",
    "personal": false,
    "dest": [
-    144.51,
-    63.12
+    144.53,
+    63.11
    ],
    "ventanilla": true
   },
-  "a110": {
+  "a108": {
    "si": "SS.HH.",
    "personal": true
   },
-  "a111": {
+  "a109": {
    "si": "SS.HH.",
    "personal": false
   },
-  "a122": {
+  "a120": {
    "si": "SS.HH.",
    "personal": false,
    "dest": [
@@ -212,29 +212,29 @@
    ],
    "ventanilla": true
   },
-  "a157": {
+  "a155": {
    "si": "SS.HH.",
    "personal": false
+  },
+  "a158": {
+   "si": "SS.HH.",
+   "personal": false,
+   "dest": [
+    144.53,
+    63.11
+   ],
+   "ventanilla": true
   },
   "a160": {
    "si": "SS.HH.",
    "personal": false,
    "dest": [
-    144.51,
-    63.12
+    144.53,
+    63.11
    ],
    "ventanilla": true
   },
-  "a162": {
-   "si": "SS.HH.",
-   "personal": false,
-   "dest": [
-    144.51,
-    63.12
-   ],
-   "ventanilla": true
-  },
-  "a166": {
+  "a164": {
    "si": "Baño",
    "personal": false,
    "dest": [
@@ -243,43 +243,52 @@
    ],
    "ventanilla": true
   },
-  "a167": {
+  "a165": {
    "si": "Baño",
    "personal": false,
    "dest": [
-    138.13,
-    44.14
+    139.07,
+    44.16
+   ],
+   "ventanilla": true
+  },
+  "a166": {
+   "si": "Baño",
+   "personal": true
+  },
+  "a167": {
+   "si": "SS.HH.",
+   "personal": false,
+   "dest": [
+    144.53,
+    63.11
    ],
    "ventanilla": true
   },
   "a168": {
+   "si": "SS.HH.",
+   "personal": false,
+   "dest": [
+    144.53,
+    63.11
+   ],
+   "ventanilla": true
+  },
+  "a171": {
+   "si": "SS.HH.",
+   "personal": false,
+   "dest": [
+    144.53,
+    63.11
+   ],
+   "ventanilla": true
+  },
+  "a173": {
    "si": "Baño",
-   "personal": true
-  },
-  "a169": {
-   "si": "SS.HH.",
    "personal": false,
    "dest": [
-    144.51,
-    63.12
-   ],
-   "ventanilla": true
-  },
-  "a170": {
-   "si": "SS.HH.",
-   "personal": false,
-   "dest": [
-    144.51,
-    63.12
-   ],
-   "ventanilla": true
-  },
-  "a172": {
-   "si": "SS.HH.",
-   "personal": false,
-   "dest": [
-    144.51,
-    63.12
+    144.53,
+    63.11
    ],
    "ventanilla": true
   },
@@ -287,8 +296,8 @@
    "si": "Baño",
    "personal": false,
    "dest": [
-    144.51,
-    63.12
+    144.53,
+    63.11
    ],
    "ventanilla": true
   },
@@ -296,28 +305,23 @@
    "si": "Baño",
    "personal": false,
    "dest": [
-    144.51,
-    63.12
+    144.53,
+    63.11
    ],
    "ventanilla": true
   },
   "a176": {
-   "si": "Baño",
-   "personal": false,
-   "dest": [
-    144.51,
-    63.12
-   ],
-   "ventanilla": true
-  },
-  "a177": {
    "si": "SS.HH.",
    "personal": false,
    "dest": [
-    138.13,
-    44.14
+    139.07,
+    44.16
    ],
    "ventanilla": true
+  },
+  "a179": {
+   "si": "SS.HH.",
+   "personal": false
   },
   "a180": {
    "si": "SS.HH.",
@@ -325,14 +329,10 @@
   },
   "a181": {
    "si": "SS.HH.",
-   "personal": false
-  },
-  "a182": {
-   "si": "SS.HH.",
    "personal": false,
    "dest": [
-    138.13,
-    44.14
+    139.07,
+    44.16
    ],
    "ventanilla": true
   },
@@ -374,8 +374,8 @@
    "si": "Baño",
    "personal": false,
    "dest": [
-    138.13,
-    44.14
+    139.07,
+    44.16
    ],
    "ventanilla": true
   }

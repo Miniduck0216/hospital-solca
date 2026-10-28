@@ -89,8 +89,8 @@
    "cat": "banos",
    "personal": false,
    "dest": [
-    46.97,
-    98.4
+    51.9,
+    97.35
    ],
    "ventanilla": true
   },
@@ -177,7 +177,7 @@
    "si": "Baño",
    "personal": false,
    "dest": [
-    12.76,
+    11.72,
     85.27
    ],
    "ventanilla": true
@@ -270,8 +270,8 @@
    "si": "Baño",
    "personal": false,
    "dest": [
-    43.39,
-    87.36
+    42.35,
+    87.4
    ],
    "ventanilla": true
   },

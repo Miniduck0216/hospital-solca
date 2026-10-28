@@ -25,7 +25,7 @@ sys.path.insert(0, os.path.join(RAIZ, 'planta_real', 'revit'))
 sys.path.insert(0, os.path.join(RAIZ, 'planta_real', 'web'))
 sys.path.insert(0, AQUI)
 import exportar_datos as ED   # noqa: E402
-from modelo import lista_polis  # noqa: E402
+from modelo import lista_polis, min_ancho  # noqa: E402
 
 from shapely.geometry import box  # noqa: E402
 from shapely import affinity  # noqa: E402
@@ -41,6 +41,13 @@ EXTRA = {
         ('SALA REUNIONES', box(156.9, 40.5, 159.65, 44.4)), ('BODEGA', box(156.9, 44.6, 159.65, 48.2)),
         ('UTILERIA', box(156.9, 48.4, 159.65, 52.1)), ('UTILERIA', box(156.9, 52.3, 159.65, 56.05)),
         ('HAB. 8', box(164.75, 32.35, 166.7, 37.1)),
+        # laboratorio de genética: los tres cubículos del lado sur (tabiques sin cierre hacia el laboratorio)
+        ('SALA REUNIONES', box(109.3, 23.7, 112.4, 27.1)), ('CITOGENETICA CONVENCIONAL', box(112.65, 23.7, 115.3, 27.1)),
+        ('COORDINACION GENETICA', box(115.5, 23.7, 118.25, 27.1)),
+        # emergencia: biopsias (cubículos con cortina), camillas y ginecología
+        ('BIOPSIAS', box(117.35, 95.9, 121.95, 97.95)), ('BIOPSIAS', box(117.35, 93.83, 121.95, 95.8)),
+        ('BIOPSIAS', box(117.35, 91.75, 121.95, 93.73)), ('CAMILLAS', box(120.3, 98.1, 121.95, 101.1)),
+        ('GINECOLOGIA', box(126.7, 98.1, 130.5, 101.15)),
         ],
     'P1': [('ASCENSOR', box(47.97, 93.25, 51.07, 95.59)),
            ('ESCALERA', box(46.4, 91.7, 51.3, 97.8).difference(box(47.97, 93.25, 51.07, 95.59))),
@@ -95,7 +102,10 @@ BANOS_HUECO = {'SB', 'P1', 'P2', 'P3'}
 # muros dobles que el dibujo deja huecos por dentro (marco de la planta baja): en el piso 2, el muro entre las
 # habitaciones 207 y 205
 MUROS_EXTRA = {
-    'PB': [box(156.72, 40.4, 156.87, 56.2),    # medicina nuclear: muro oeste de sala de reuniones, bodega y utilerías
+    'PB': [*[box(x - 0.22, y - 0.22, x + 0.22, y + 0.22) for x, y in   # columnas del área de medicina nuclear
+             ((146.1, 57.4), (150.85, 57.4), (155.65, 57.4), (165.15, 57.4), (143.05, 51.7), (146.35, 48.1),
+              (151.1, 48.1), (155.6, 52.8))],
+           box(156.72, 40.4, 156.87, 56.2),    # medicina nuclear: muro oeste de sala de reuniones, bodega y utilerías
            box(90.85, -20.96, 106.85, -20.82)],  # bodegas: frente de las oficinas de la fila sur (puertas dobles)
     'P1': [box(63.2, 67.84, 69.9, 68.37),   # entre las habitaciones 109 y 107
            # tabiques con puerta doble que cierran el pasillo del ala oeste (hacia las habitaciones) y el paso de la
@@ -112,7 +122,8 @@ MUROS_EXTRA = {
 # Abastecimiento y Preparación Médica es el respaldo de los mesones, no un muro
 QUITAR_MUROS = {
     # tragaluces de la dirección y de quimioterapia: el DWG los rellena como si fueran muro; son patios de luz
-    'PB': [box(58.0, 27.8, 62.6, 37.0), box(90.4, 27.85, 99.4, 32.95)],
+    'PB': [box(58.0, 27.8, 62.6, 37.0), box(90.4, 27.85, 99.4, 32.95),
+           box(141.4, 72.4, 155.3, 72.8)],   # línea del borde de la losa junto a las centrales de gases: no es muro
     'P1': [box(72.17, 73.25, 74.83, 73.5)],
     'P2': [box(72.17, 73.25, 74.83, 73.5)],
 }
@@ -170,6 +181,16 @@ ESCALERAS_EXTRA = {
 }
 # pasos que el dibujo tapa con un detalle (marco de la planta baja): en el piso 1, el puente vidriado entre el ala oeste
 # y la torre tiene un tragaluz triangular dibujado con la capa de paredes; se camina a su alrededor
+# espacios abiertos que el dibujo no cierra como ambiente (losa con columnas, sin rótulo propio): se agregan como
+# ambiente sin nombre con lo que queda libre entre los cuartos
+AREAS_LIBRES = {
+    # planta baja: área de hospitalización de medicina nuclear entre los quirófanos y las habitaciones (bajo la losa
+    # escalonada del plano, con sus columnas)
+    'PB': [Polygon([(141.45, 40.55), (156.7, 40.55), (156.7, 56.55), (172.3, 56.55), (172.3, 66.5), (165.2, 66.5),
+                    (165.2, 70.1), (159.6, 70.1), (159.6, 72.55), (141.45, 72.55)]),
+           # circulación técnica (pasillo de servicio entre quimioterapia, gastroenterología y genética)
+           ('CIRCULACION TECNICA', box(84.4, 46.55, 109.3, 49.85).union(box(102.75, 20.4, 105.9, 46.7)))],
+}
 PASOS_LIBRES = {
     # patio entre el edificio y el ala de la clínica de heridas y la morgue: veredas exteriores hasta sus puertas
     'PB': [LineString([(140.2, 95.6), (150.0, 94.6), (158.6, 93.4)]),
@@ -182,7 +203,8 @@ PASOS_LIBRES = {
 # hall interno (en el PDF no tiene muros que lo cierren)
 EXTERIOR = {
     # tragaluces (patios de luz con aspa en el plano): sin piso ni paso
-    'PB': [box(58.0, 27.8, 62.6, 37.0), box(90.4, 27.85, 99.4, 32.95), box(128.35, 30.35, 134.95, 33.55)],
+    'PB': [box(58.0, 27.8, 62.6, 37.0), box(90.4, 27.85, 99.4, 32.95), box(128.35, 30.35, 134.95, 33.55),
+           box(88.2, 49.8, 90.4, 53.1)],   # franja entre los dos vacíos de gastroenterología
     'P1': [box(76.8, 40.9, 81.0, 45.7),
            box(2.4, 89.9, 3.95, 95.6),
            box(3.5, 75.3, 50.6, 77.0)],   # franja de jardineras y pérgola entre el ventanal sur y la fachada   # balcón con baranda entre la escalera de emergencia y la habitación 16
@@ -526,6 +548,129 @@ def rellenar_banos(m):
     print('rendijas de baños rellenas', n)
 
 
+PUERTAS_ARCO = {'PB'}   # pisos donde las puertas dibujadas solo con su arco (sin bloque) también cuentan
+
+
+def puertas_de_arco(m):
+    """Puertas dibujadas con líneas sueltas (arco de 90° y hoja), sin bloque de puerta: se agregan como puertas
+    (bisagra en el centro del arco; la hoja cerrada es el extremo que queda entre dos jambas de muro)."""
+    import numpy as np
+    from shapely.prepared import prep
+    ox, oy = m.origen
+    muro = prep(unary_union([m.muros_raw] + m.columnas + [t['poligono'] for t in m.tabiques]).buffer(0.03))
+    mids = [Point(*((np.array(p['a']) + np.array(p['b'])) / 2)) for p in m.puertas]
+    nuevas = []
+    for e in m.planos:
+        if e[1] != 'ARC' or len(e[2]) < 3:
+            continue
+        pts = [(x / 1000 - ox, y / 1000 - oy) for x, y in e[2]]
+        p0, pm, p1 = pts[0], pts[len(pts) // 2], pts[-1]
+        from modelo import circulo
+        cx, cy = circulo(p0, pm, p1)
+        if cx is None:
+            continue
+        c = np.array([cx, cy])
+        r = math.dist(c, p0)
+        if not 0.5 <= r <= 1.3:
+            continue
+        v0, v1 = np.array(p0) - c, np.array(p1) - c
+        ang = math.degrees(math.acos(max(-1, min(1, float(v0 @ v1) / (r * r)))))
+        if not 75 <= ang <= 105:
+            continue
+        mejor = None
+        for p in (np.array(p0), np.array(p1)):
+            d = (p - c) / r
+            sc = muro.contains(Point(*(c - d * 0.2))) + muro.contains(Point(*(p + d * 0.15)))
+            if mejor is None or sc > mejor[0]:
+                mejor = (sc, p)
+        if mejor[0] < 1:
+            continue
+        b = mejor[1]
+        mid = Point(*((c + b) / 2))
+        if any(mid.distance(q) < 0.6 for q in mids):
+            continue
+        mids.append(mid)
+        nuevas.append(puerta_nueva(tuple(c), tuple(b), False))
+    m.puertas += nuevas
+    return len(nuevas)
+
+
+HUECOS_ROTULADOS = {'PB'}
+
+
+def huecos_rotulados(m):
+    """Espacios del piso que el modelo dejó sin ambiente (pasillos angostos como la circulación técnica, aseos y
+    lencerías chicos) pero que en el plano tienen rótulo o código de espacio: se agregan como ambiente."""
+    from modelo import unir_nombres
+    ox, oy = m.origen
+    duro = unary_union([m.muros_raw] + m.columnas + [t['poligono'] for t in m.tabiques])
+    ocup = unary_union([a['poligono'].buffer(0.05) for a in m.ambientes])
+    libre = m.huella.difference(duro).difference(ocup)
+    textos = []
+    for c, t, x, y, h, ap in m.textos:
+        t = ' '.join(t.split())
+        if c == 'ZONAS' or not t or re.fullmatch(r'L\d+|ZONA.*|N = .*|\d+|[sS]', t):
+            continue
+        textos.append((t, x / 1000 - ox, y / 1000 - oy))
+    n = 0
+    for q in lista_polis(libre):
+        if q.area < 1.0 or min_ancho(q) < 0.6:
+            continue
+        dentro = [tt for tt in textos if q.contains(Point(tt[1], tt[2]))]
+        if not dentro:
+            continue
+        nombres = [tt for tt in dentro if not re.match(r'^(C\d-|\{)', tt[0])]
+        m.ambientes.append(dict(poligono=q, nombre=unir_nombres(nombres), area=q.area, extra=True))
+        n += 1
+    return n
+
+
+def tragaluces(m):
+    """Rectángulos con sus dos diagonales dibujadas (aspa): tragaluces del plano (marco de la web). No cuentan
+    los ductos chicos ni los pozos de ascensor (rótulo «ASCENSOR» cerca)."""
+    from shapely.strtree import STRtree
+    segs = []
+    for e in m.planos:
+        if e[0] in ('ZONAS', 'EJ') or len(e[2]) < 2 or e[1] in ('ARC', 'CIRCLE'):
+            continue
+        pts = [(x / 1000, y / 1000) for x, y in e[2]]
+        for a, b in zip(pts[:-1], pts[1:]):
+            if math.dist(a, b) >= 1.6:
+                segs.append(LineString([a, b]))
+    asc = [Point(x / 1000, y / 1000) for c, t, x, y, h, ap in m.textos if 'ASCENSOR' in t.upper()]
+    arbol = STRtree(segs)
+    out = []
+    for i, l1 in enumerate(segs):
+        for j in arbol.query(l1):
+            j = int(j)
+            if j <= i:
+                continue
+            l2 = segs[j]
+            x = l1.intersection(l2)
+            if x.geom_type != 'Point':
+                continue
+            t1, t2 = l1.project(x, normalized=True), l2.project(x, normalized=True)
+            if abs(t1 - 0.5) > 0.06 or abs(t2 - 0.5) > 0.06 or abs(l1.length - l2.length) > 0.06 * l1.length:
+                continue
+            q = Polygon([l1.coords[0], l2.coords[0], l1.coords[1], l2.coords[1]]).buffer(0)
+            if q.is_empty or q.geom_type != 'Polygon' or q.area < 3.0:
+                continue
+            r = q.minimum_rotated_rectangle
+            c = list(r.exterior.coords)
+            if min(math.dist(c[0], c[1]), math.dist(c[1], c[2])) < 1.2 or q.area < 0.95 * r.area:
+                continue
+            if any(q.buffer(0.6).contains(p) for p in asc):
+                continue
+            ox_, oy_ = m.origen
+            ql = affinity.translate(q, -ox_, -oy_)
+            if any(re.search(r'ASCENSOR|ESCALERA|DUCTO', a['nombre'] or '', re.I) and
+                   a['poligono'].intersection(ql).area > 0.3 * min(ql.area, a['poligono'].area) for a in m.ambientes):
+                continue
+            if all(q.symmetric_difference(o).area > 0.2 * q.area for o in out):
+                out.append(q)
+    return out
+
+
 def preparar(m, piso):
     """Todo lo que el plano revisado corrige del modelo; lo usan el 2D (exportar) y el 3D (glb_piso)."""
     if getattr(m, '_preparado', False):
@@ -580,9 +725,40 @@ def preparar(m, piso):
     for g in EXTERIOR.get(piso, []):
         g = affinity.translate(g, -ox, -oy)
         m.ambientes = [a for a in m.ambientes if a['poligono'].intersection(g).area < 0.5 * a['poligono'].area]
+    for z in AREAS_LIBRES.get(piso, []):
+        nombre_z, z = z if isinstance(z, tuple) else ('', z)
+        z = affinity.translate(z, -ox, -oy)
+        # los espacios enormes que el dibujo dejó abiertos (el hall que se cuela por el pasillo) ceden la zona
+        m.ambientes = [dict(a, poligono=q, area=q.area, nombre=a['nombre'] if q.area > 300 else '')
+                       if a['area'] > 300 else a for a in m.ambientes
+                       for q in (lista_polis(a['poligono'].difference(z)) if a['area'] > 300 else [a['poligono']])
+                       if q.area > 0.5]
+        ocup = unary_union([a['poligono'].buffer(0.05) for a in m.ambientes] + [m.muros_raw] + m.columnas)
+        for q in lista_polis(z.difference(ocup)):
+            if q.area > 5:
+                m.ambientes.append(dict(poligono=q, nombre=nombre_z, area=q.area, extra=True))
+    if piso in HUECOS_ROTULADOS:
+        print('huecos con rótulo', huecos_rotulados(m))
+    # tragaluces: rectángulos con aspa en el plano (patios de luz): sin piso, sin paso y sin las diagonales como muro
+    m.tragaluces = [affinity.translate(t, -ox, -oy) for t in tragaluces(m)]
+    for t in m.tragaluces:
+        m.ambientes = [dict(a, poligono=q, area=q.area) for a in m.ambientes
+                       for q in (lista_polis(a['poligono'].difference(t)) if a['poligono'].intersection(t).area
+                                 < 0.5 * a['poligono'].area else [])
+                       if q.area > 0.5]
+        dentro = t.buffer(-0.12, join_style=2)
+        m.muros_raw = m.muros_raw.difference(dentro)
+        m.muros = [q for w in m.muros for q in lista_polis(w.difference(dentro)) if q.area > 0.005]
+        m.tabiques = [dict(tb, poligono=q) for tb in m.tabiques for q in lista_polis(tb['poligono'].difference(dentro))
+                      if q.area > 0.005]
+        m.muebles = [mu for mu in m.muebles if not dentro.contains(mu['poligono'].centroid)]
+    print('tragaluces', len(m.tragaluces), [tuple(round(v, 1) for v in affinity.translate(t, ox, oy).bounds)
+                                             for t in m.tragaluces])
     hu = huella_real(m)
     m.ambientes = [a for a in m.ambientes if a['poligono'].intersection(hu).area > 0.5 * a['poligono'].area]
     obra(m, piso)
+    if piso in PUERTAS_ARCO:
+        print('puertas de arco', puertas_de_arco(m))
     # «ambientes» que son el interior de un muro grueso (búnkeres): fuera
     duro = unary_union([m.muros_raw] + m.columnas)
     m.ambientes = [a for a in m.ambientes if a['poligono'].intersection(duro).area < 0.6 * a['poligono'].area]
