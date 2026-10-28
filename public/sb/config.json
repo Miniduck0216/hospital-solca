@@ -380,6 +380,223 @@
    "ventanilla": true
   }
  },
- "lugares": [],
+ "lugares": [
+  {
+   "id": "L-sb-cocina-1",
+   "nombre": "Recepción",
+   "cat": "apoyo",
+   "x": 88.1,
+   "y": 3.0,
+   "personal": true
+  },
+  {
+   "id": "L-sb-cocina-2",
+   "nombre": "Lavado de Ollas",
+   "cat": "apoyo",
+   "x": 81.5,
+   "y": 3.05,
+   "personal": true
+  },
+  {
+   "id": "L-sb-cocina-3",
+   "nombre": "Comedor",
+   "cat": "apoyo",
+   "x": 78.9,
+   "y": 6.4,
+   "personal": true
+  },
+  {
+   "id": "L-sb-cocina-4",
+   "nombre": "Cocción",
+   "cat": "apoyo",
+   "x": 79.9,
+   "y": 9.0,
+   "personal": true
+  },
+  {
+   "id": "L-sb-cocina-5",
+   "nombre": "Carnes · Pescados",
+   "cat": "apoyo",
+   "x": 86.5,
+   "y": 9.85,
+   "personal": true
+  },
+  {
+   "id": "L-sb-cocina-6",
+   "nombre": "Verduras · Frutas",
+   "cat": "apoyo",
+   "x": 86.8,
+   "y": 13.15,
+   "personal": true
+  },
+  {
+   "id": "L-sb-cocina-7",
+   "nombre": "Lavado de Vajilla",
+   "cat": "apoyo",
+   "x": 74.9,
+   "y": 18.85,
+   "personal": true
+  },
+  {
+   "id": "L-sb-cocina-8",
+   "nombre": "Depósito de Vajillas",
+   "cat": "apoyo",
+   "x": 77.8,
+   "y": 19.75,
+   "personal": true
+  },
+  {
+   "id": "L-sb-cocina-9",
+   "nombre": "Lavado",
+   "cat": "apoyo",
+   "x": 74.8,
+   "y": 21.9,
+   "personal": true
+  },
+  {
+   "id": "L-sb-cocina-10",
+   "nombre": "Descarga",
+   "cat": "apoyo",
+   "x": 79.0,
+   "y": 21.9,
+   "personal": true
+  },
+  {
+   "id": "L-sb-cocina-11",
+   "nombre": "Distribución",
+   "cat": "apoyo",
+   "x": 82.6,
+   "y": 22.2,
+   "personal": true
+  },
+  {
+   "id": "L-sb-cocina-12",
+   "nombre": "Repostería",
+   "cat": "apoyo",
+   "x": 86.5,
+   "y": 22.5,
+   "personal": true
+  },
+  {
+   "id": "L-sb-cocina-13",
+   "nombre": "Estación Carros Thermo",
+   "cat": "apoyo",
+   "x": 74.8,
+   "y": 24.8,
+   "personal": true
+  },
+  {
+   "id": "L-sb-cocina-14",
+   "nombre": "Dietas",
+   "cat": "apoyo",
+   "x": 86.5,
+   "y": 26.0,
+   "personal": true
+  },
+  {
+   "id": "L-sb-lavanderia-1",
+   "nombre": "Contaminado",
+   "cat": "apoyo",
+   "x": 108.6,
+   "y": 31.5,
+   "personal": true
+  },
+  {
+   "id": "L-sb-lavanderia-2",
+   "nombre": "Clasificación",
+   "cat": "apoyo",
+   "x": 110.5,
+   "y": 29.2,
+   "personal": true
+  },
+  {
+   "id": "L-sb-lavanderia-3",
+   "nombre": "Lavado · Carga",
+   "cat": "apoyo",
+   "x": 116.2,
+   "y": 30.75,
+   "personal": true
+  },
+  {
+   "id": "L-sb-lavanderia-4",
+   "nombre": "Lavado · Descarga",
+   "cat": "apoyo",
+   "x": 119.6,
+   "y": 31.35,
+   "personal": true
+  },
+  {
+   "id": "L-sb-lavanderia-5",
+   "nombre": "Secado",
+   "cat": "apoyo",
+   "x": 123.2,
+   "y": 35.6,
+   "personal": true
+  },
+  {
+   "id": "L-sb-lavanderia-6",
+   "nombre": "Entrega a Esterilización",
+   "cat": "apoyo",
+   "x": 116.7,
+   "y": 37.4,
+   "personal": true
+  },
+  {
+   "id": "L-sb-lavanderia-7",
+   "nombre": "Plancha",
+   "cat": "apoyo",
+   "x": 117.0,
+   "y": 40.9,
+   "personal": true
+  },
+  {
+   "id": "L-sb-lavanderia-8",
+   "nombre": "Costura",
+   "cat": "apoyo",
+   "x": 121.9,
+   "y": 41.4,
+   "personal": true
+  },
+  {
+   "id": "L-sb-lavanderia-9",
+   "nombre": "Abastecimiento",
+   "cat": "apoyo",
+   "x": 120.4,
+   "y": 43.6,
+   "personal": true
+  },
+  {
+   "id": "L-sb-esterilizacion-1",
+   "nombre": "Mantenimiento · Lubricado de Instrumental",
+   "cat": "apoyo",
+   "x": 103.3,
+   "y": 34.2,
+   "personal": true
+  },
+  {
+   "id": "L-sb-esterilizacion-2",
+   "nombre": "Preparación · Carga",
+   "cat": "apoyo",
+   "x": 113.9,
+   "y": 36.95,
+   "personal": true
+  },
+  {
+   "id": "L-sb-esterilizacion-3",
+   "nombre": "Autoclaves",
+   "cat": "apoyo",
+   "x": 112.2,
+   "y": 39.4,
+   "personal": true
+  },
+  {
+   "id": "L-sb-esterilizacion-4",
+   "nombre": "Área Equipos",
+   "cat": "apoyo",
+   "x": 106.3,
+   "y": 41.6,
+   "personal": true
+  }
+ ],
  "pasos": []
 }
