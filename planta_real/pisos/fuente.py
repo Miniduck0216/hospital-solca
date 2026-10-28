@@ -26,7 +26,7 @@ T_PB = (-49.49437, -50.29552)
 # caja de cada piso en el DXF (metros) y desplazamiento de sus columnas sobre las de la planta baja
 CAJAS = {
     'SB': (20, -260, 250, -5),
-    'PB': (20, 30, 250, 200),
+    'PB': (20, 10, 250, 200),   # hasta y = 10: la fila sur del bloque de bodegas (Reparaciones… Compras)
     'P1': (20, 240, 250, 430),
     'P2': (20, 450, 250, 640),
     'P3': (20, 660, 250, 850),
