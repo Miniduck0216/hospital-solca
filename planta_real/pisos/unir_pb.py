@@ -62,8 +62,7 @@ REHACER = [
                   (None, 'Auditoría Médica', (66.0, 14.5), {}),
                   (None, 'Jefatura Enfermería', (67.1, 17.7), {}),
                   (None, 'Oficina', (72.0, 14.5), {}),
-                  (None, 'Financiero', (72.7, 20.2), {}),
-                  (None, 'Tragaluz', (60.5, 32.0), {})]),
+                  (None, 'Financiero', (72.7, 20.2), {})]),   # el tragaluz queda sin piso (exportar_piso.EXTERIOR)
     dict(nombre='Farmacia', zona=['a4', 'a18', 'a81'], modo='muros',
          cortes=[[(57.5, 63.85), (61.25, 63.85), (61.25, 65.95), (57.5, 65.95)],   # atención farmacéutica (tabique con puerta)
                  [(77.25, 67.1), (79.95, 67.1), (79.95, 69.55), (77.25, 69.55)],    # cuarto UPS
@@ -109,6 +108,18 @@ def decodificar(nav, k, dtype=np.uint8):
     return np.frombuffer(b, dtype).reshape(nav['h'], nav['w'])
 
 
+def zona_rehecha(amb, z):
+    idx = {a['id']: a for a in amb}
+    zona = unary_union([Polygon(idx[i]['pg'][0], idx[i]['pg'][1:]).buffer(0) for i in z['zona']])
+    return zona.buffer(0.4, join_style=2).buffer(-0.2, join_style=2)   # con sus muros
+
+
+def zonas_rehechas():
+    """Unión de las zonas de REHACER (marco de la web), para el 3D: ahí manda el modelo nuevo."""
+    v = json.load(open(VIEJA))
+    return unary_union([zona_rehecha(v['ambientes'], z) for z in REHACER])
+
+
 def rehacer(amb, n, geo, capas, gx0, gy0, RES):
     """Rehace las zonas de REHACER con el DWG 2025 (ver arriba). geo: listas de muros, ventanas, puertas, muebles y
     trazos de la unión (se cambian en su lugar); capas: rejilla unida (celdas, cuarto, red)."""
@@ -130,8 +141,7 @@ def rehacer(amb, n, geo, capas, gx0, gy0, RES):
         return img > 0
     muros_n, vent_n = pgs(n['muros']), pgs(n['ventanas'])
     for z in REHACER:
-        zona = unary_union([Polygon(amb[idx[i]]['pg'][0], amb[idx[i]]['pg'][1:]).buffer(0) for i in z['zona']])
-        zona = zona.buffer(0.4, join_style=2).buffer(-0.2, join_style=2)   # con sus muros
+        zona = zona_rehecha(amb, z)
         dentro = lambda p: zona.contains(Point(p))  # noqa: E731
         # geometría: lo viejo fuera de la zona, lo nuevo dentro
         geo['muros'][:] = a_lista(pgs(geo['muros']).difference(zona).union(muros_n.intersection(zona)).buffer(0))

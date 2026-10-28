@@ -32,6 +32,16 @@ from shapely import affinity  # noqa: E402
 # ambientes que el dibujo no cierra (marco de la planta baja): el ascensor y la escalera del Bloque A en el piso 1
 # están dibujados como detalle (capas de ejes y gradas), sin muros alrededor
 EXTRA = {
+    'PB': [
+        # bloque de bodegas, fila sur: cada oficina con su puerta doble al pasillo (el dibujo las deja abiertas)
+        ('REPARACIONES', box(90.95, -27.25, 93.9, -20.97)), ('INFECTOLOGIA', box(94.1, -27.25, 97.1, -20.97)),
+        ('PSIOCOLOGIA LABORAL', box(97.3, -27.25, 100.35, -20.97)), ('AUDITORIA MEDICA', box(100.55, -27.25, 103.5, -20.97)),
+        ('COMPRAS', box(103.7, -27.25, 106.75, -20.97)),
+        # hospitalización de medicina nuclear: cuartos del lado oeste del pasillo y la habitación 8
+        ('SALA REUNIONES', box(156.9, 40.5, 159.65, 44.4)), ('BODEGA', box(156.9, 44.6, 159.65, 48.2)),
+        ('UTILERIA', box(156.9, 48.4, 159.65, 52.1)), ('UTILERIA', box(156.9, 52.3, 159.65, 56.05)),
+        ('HAB. 8', box(164.75, 32.35, 166.7, 37.1)),
+        ],
     'P1': [('ASCENSOR', box(47.97, 93.25, 51.07, 95.59)),
            ('ESCALERA', box(46.4, 91.7, 51.3, 97.8).difference(box(47.97, 93.25, 51.07, 95.59))),
            # bloque de servicio del ala oeste: las puertas de cada cuarto no están dibujadas como bloque, así que el
@@ -85,6 +95,8 @@ BANOS_HUECO = {'SB', 'P1', 'P2', 'P3'}
 # muros dobles que el dibujo deja huecos por dentro (marco de la planta baja): en el piso 2, el muro entre las
 # habitaciones 207 y 205
 MUROS_EXTRA = {
+    'PB': [box(156.72, 40.4, 156.87, 56.2),    # medicina nuclear: muro oeste de sala de reuniones, bodega y utilerías
+           box(90.85, -20.96, 106.85, -20.82)],  # bodegas: frente de las oficinas de la fila sur (puertas dobles)
     'P1': [box(63.2, 67.84, 69.9, 68.37),   # entre las habitaciones 109 y 107
            # tabiques con puerta doble que cierran el pasillo del ala oeste (hacia las habitaciones) y el paso de la
            # recepción y la cafetería hacia el hall de las habitaciones de la torre
@@ -99,6 +111,8 @@ MUROS_EXTRA = {
 # muros que el dibujo trae y el plano no tiene (marco de la planta baja): la línea entre los dos mesones de
 # Abastecimiento y Preparación Médica es el respaldo de los mesones, no un muro
 QUITAR_MUROS = {
+    # tragaluces de la dirección y de quimioterapia: el DWG los rellena como si fueran muro; son patios de luz
+    'PB': [box(58.0, 27.8, 62.6, 37.0), box(90.4, 27.85, 99.4, 32.95)],
     'P1': [box(72.17, 73.25, 74.83, 73.5)],
     'P2': [box(72.17, 73.25, 74.83, 73.5)],
 }
@@ -117,6 +131,12 @@ BARANDAS_EXTRA = {
 }
 # puertas que el dibujo no trae como bloque: (a, b, doble)
 PUERTAS_EXTRA = {
+    # clínica de heridas: puertas dobles de la fachada suroeste (en el DWG solo con trazo punteado)
+    'PB': [((159.15, 94.45), (160.12, 93.4), True), ((164.62, 88.16), (165.52, 87.18), True),
+           # bodegas, fila sur: puerta doble de cada oficina
+           ((91.6, -20.89), (93.2, -20.89), True), ((94.95, -20.89), (96.5, -20.89), True),
+           ((98.15, -20.89), (99.75, -20.89), True), ((101.2, -20.89), (102.8, -20.89), True),
+           ((104.5, -20.89), (106.1, -20.89), True)],
     # subsuelo: vanos del auditorio hacia el hall
     'SB': [((62.9, 51.45), (62.9, 53.0), True), ((62.9, 46.3), (62.9, 48.0), True), ((62.9, 40.4), (62.9, 41.85), True),
            # laberinto del Acelerador Lineal 2: puerta blindada desde el pasillo y paso hacia el búnker
@@ -151,11 +171,18 @@ ESCALERAS_EXTRA = {
 # pasos que el dibujo tapa con un detalle (marco de la planta baja): en el piso 1, el puente vidriado entre el ala oeste
 # y la torre tiene un tragaluz triangular dibujado con la capa de paredes; se camina a su alrededor
 PASOS_LIBRES = {
+    # patio entre el edificio y el ala de la clínica de heridas y la morgue: veredas exteriores hasta sus puertas
+    'PB': [LineString([(140.2, 95.6), (150.0, 94.6), (158.6, 93.4)]),
+           LineString([(144.2, 86.0), (152.0, 88.5), (164.0, 87.4)]),
+           LineString([(150.0, 94.6), (152.0, 88.5)]),
+           LineString([(150.0, 94.6), (144.5, 106.2), (142.9, 110.9)])],
     'P1': [LineString([(57.8, 86.25), (69.3, 86.25)])],
 }
 # exterior encerrado por el dibujo: en el piso 1, el rincón entre la fachada norte, el ducto diagonal y los baños del
 # hall interno (en el PDF no tiene muros que lo cierren)
 EXTERIOR = {
+    # tragaluces (patios de luz con aspa en el plano): sin piso ni paso
+    'PB': [box(58.0, 27.8, 62.6, 37.0), box(90.4, 27.85, 99.4, 32.95), box(128.35, 30.35, 134.95, 33.55)],
     'P1': [box(76.8, 40.9, 81.0, 45.7),
            box(2.4, 89.9, 3.95, 95.6),
            box(3.5, 75.3, 50.6, 77.0)],   # franja de jardineras y pérgola entre el ventanal sur y la fachada   # balcón con baranda entre la escalera de emergencia y la habitación 16
@@ -688,7 +715,14 @@ def exportar(m, piso, salida):
     forzados = [affinity.translate(g, -ox, -oy) for g in PASOS_LIBRES.get(piso, [])]
     if forzados:
         libre |= ras([g.buffer(0.7) for g in forzados])
-    libre = unir_partes(libre, RES, ras([unary_union(m.columnas)]) if m.columnas else np.zeros_like(libre))
+    cols_r = ras([unary_union(m.columnas)]) if m.columnas else np.zeros_like(libre)
+    if piso == 'PB' and ent:
+        # alas que solo se comunican por afuera (clínica de heridas, morgue): la vereda las une al resto
+        hu_r = ras(list(hu.geoms) if hasattr(hu, 'geoms') else [hu])
+        ver = ndimage.binary_dilation(hu_r, iterations=int(round(1.5 / RES))) & ~hu_r
+        libre = unir_partes(libre | ver, RES, cols_r) & (libre | ~ver)
+    else:
+        libre = unir_partes(libre, RES, cols_r)
     dist = ndimage.distance_transform_edt(libre) * RES
     costo = np.clip(np.round((0.9 - np.minimum(dist, 0.9)) / 0.9 * 6), 0, 6).astype(np.uint8)
     celdas = np.where(libre, costo + 1, 0).astype(np.uint8)

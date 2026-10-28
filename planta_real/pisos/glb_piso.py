@@ -52,6 +52,27 @@ def recortar(m, zona):
     m.huella = m.huella.intersection(zona) if not m.huella.is_empty else m.huella
 
 
+def recortar_vieja(zona):
+    """public/pb/solca_pb.glb = el 3D de la planta baja vieja (solca_pb_vieja.glb) sin las caras dentro de `zona`
+    (marco de la web; en glTF el plano (x, y) es (x, -z))."""
+    import trimesh
+    import numpy as np
+    import shapely
+    esc = trimesh.load(os.path.join(AQUI, 'solca_pb_vieja.glb'), force='scene')
+    z = zona.buffer(0.02)
+    for nombre, g in list(esc.geometry.items()):
+        if not hasattr(g, 'faces') or not len(g.faces):
+            continue
+        c = g.triangles_center
+        dentro = shapely.contains_xy(z, c[:, 0], -c[:, 2])
+        if dentro.any():
+            g.update_faces(~dentro)
+            g.remove_unreferenced_vertices()
+    salida = os.path.join(RAIZ, 'public', 'pb', 'solca_pb.glb')
+    esc.export(salida)
+    print('GLB vieja recortada', salida, round(os.path.getsize(salida) / 1e6, 2), 'MB')
+
+
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith('--')]
     piso = args[0]
@@ -70,6 +91,12 @@ def main():
     if fuera:
         dv = json.load(open(fuera))
         vieja = unary_union([Polygon(pg[0], pg[1:]) for pg in dv['huella']]).buffer(0.3, join_style=2)
+        if piso == 'PB':
+            # zonas de la planta vieja rehechas con el DWG (unir_pb.REHACER): van en este modelo y se quitan del viejo
+            import unir_pb
+            rehechas = unir_pb.zonas_rehechas()
+            vieja = vieja.difference(rehechas.buffer(0.05, join_style=2))
+            recortar_vieja(rehechas)
         zona = zona.difference(affinity.translate(vieja, -ox, -oy))
     m.huella = EP.huella_real(m)
     recortar(m, zona)

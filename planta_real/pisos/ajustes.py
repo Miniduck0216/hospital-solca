@@ -63,10 +63,46 @@ AJUSTES = {
         # dirección y farmacia rehechas con el DWG 2025 (unir_pb.REHACER): cuartos internos del personal
         ('Gerencia Proyectos', (55.95, 16.6), 'personal'),   # se entra por Gerencia Comercial
         ('Oficina', (72.0, 14.6), 'personal'),               # dentro del Financiero
-        ('Tragaluz', (60.3, 30.5), 'personal'),
         ('Sala Reuniones', (63.2, 70.0), 'personal'),        # farmacia: cuartos internos
         ('Quimioterápicos', (65.9, 71.3), 'personal'),
         ('Nutrición Parental', (68.2, 69.6), 'personal'),
+        ('S.H. M.', (60.54, 24.97), {'publico': True}),       # se entra desde el pasillo de administración
+        # bloque del hall de ascensores (planta vieja sin rótulos): nombres del plano
+        ('', (59.4, 57.88), {'nombre': 'Oficina', 'personal': True}),
+        ('', (59.33, 54.67), {'nombre': 'Central Telefónica', 'personal': True}),
+        ('', (62.2, 56.5), {'nombre': 'Datacenter', 'personal': True}),
+        ('', (66.72, 56.37), {'nombre': 'Administración', 'personal': True}),
+        ('', (71.52, 58.13), {'nombre': 'Cuarto Frío', 'personal': True}),
+        ('', (75.58, 58.02), {'nombre': 'Almacenamiento', 'personal': True}),
+        ('', (73.49, 55.8), {'nombre': 'Cuarto UPS', 'personal': True}),
+        ('', (66.45, 49.29), {'nombre': 'Tragaluz', 'personal': True}),
+        ('Oficina', (101.6, 31.55), 'personal'),       # se entra por la secretaría (histología / genética)
+        # nombres como en el plano (un espacio con varios rótulos los lleva juntos)
+        ('Hab. 02 · Hab. 03', (124.45, 78.58), {'nombre': 'U.C.I.'}),          # habitaciones abiertas: ver LUGARES
+        ('Módulo 07 · Apoyo', (100.23, 35.66), {'nombre': 'Quimioterapia · Estación · Apoyo', 'cat': 'otro'}),
+        ('Laboratorio · Módulo 01', (95.55, 23.26), {'nombre': 'Histología · Laboratorio', 'cat': 'apoyo'}),
+        ('Laboratorio · Coagulacion', (100.77, 3.39), {'nombre': 'Laboratorio Clínico'}),   # secciones: LUGARES
+        ('', (145.12, 38.49), {'nombre': 'Estación Enfermería · Comedor'}),
+        ('Hombres · Vestidor', (118.71, 70.89), {'nombre': 'Vestidor Hombres'}),
+        ('Quirofano', (138.22, 62.65), {'nombre': 'Quirófano 04'}),
+        ('Quirofano', (138.22, 56.19), {'nombre': 'Quirófano 03'}),
+        ('Quirofano', (138.22, 43.45), {'nombre': 'Quirófano 01'}),
+        ('Elect. Módulo 01 · Elect. Módulo 02', (110.77, 90.59), {'nombre': 'Masoterapia · Elect. 01 · Elect. 02'}),
+        ('', (116.4, 94.76), {'nombre': 'Acceso Familiares', 'cat': 'circulacion'}),
+        ('Apoyo', (100.35, 52.29), {'nombre': 'Gastroenterología'}),          # salas 01 y 03, recuperación…: LUGARES
+        ('Módulo 02', (110.7, 51.61), {'nombre': 'Gastroenterología 02', 'cat': 'otro'}),
+        ('Toma de Muestras · Módulo 01', (86.8, 90.23), {'nombre': 'Toma de Muestras 01', 'cat': 'otro'}),
+        ('Módulo 02 · Toma de Muestras', (86.82, 94.92), {'nombre': 'Toma de Muestras 02', 'cat': 'otro'}),
+        ('Módulo 03 · Toma de Muestras', (86.82, 98.08), {'nombre': 'Toma de Muestras 03', 'cat': 'otro'}),
+        ('Módulo 04 · Toma de Muestras', (86.82, 101.22), {'nombre': 'Toma de Muestras 04', 'cat': 'otro'}),
+        ('Módulo 05 · Toma de Muestras', (86.82, 104.38), {'nombre': 'Toma de Muestras 05', 'cat': 'otro'}),
+        ('Lavachatas · Utileria Sucia', (144.72, 80.99), {'nombre': 'Cafetería · Utilería Sucia · Lavachatas',
+                                                            'personal': True}),
+        ('Clinica de Heridas', (155.38, 107.87), {'cat': 'espera'}),   # sala de entrada de la clínica: se cruza
+        ('Hab. 1', (169.12, 89.33), {'nombre': 'Hab. 1 – 6', 'cat': 'circulacion'}),   # clínica de heridas: el pasillo
+        # y sus habitaciones abiertas (cada una en LUGARES)
+        ('Mamografia 2 · V', (86.29, 83.62), {'nombre': 'Mamografía 2'}),
+        ('Sala · Rauniones', (85.37, 17.05), {'nombre': 'Sala Rauniones'}),   # así está en el plano
     ],
     # bloque administrativo norte (hall interno, TICs, jefatura, sala de reuniones): no es de pacientes
     'P1': [('Hall Interno', (80.7, 32.8), {'nombre': 'Recepción · Hall Interno · TICs', 'personal': True}),   # un espacio, tres rótulos
@@ -121,6 +157,31 @@ PASOS = {
 }
 
 LUGARES = {
+    'PB': [
+        # U.C.I.: habitaciones abiertas al área común
+        *[(f'L-pb-uci-{k:02d}', f'Hab. {k:02d} · U.C.I.', 'otro', p) for k, p in enumerate(
+            [(124.28, 84.43), (127.65, 84.57), (131.35, 84.54), None, None, (139.39, 76.12),
+             (135.42, 73.16), (131.97, 72.98), (128.79, 73.05), (125.61, 73.12)], 1) if p],   # 04 y 05 son cuartos
+        # clínica de heridas: habitaciones abiertas al pasillo y el cuarto de médicos
+        *[(f'L-pb-heridas-{k}', f'Hab. {k} · Clínica de Heridas', 'otro', p) for k, p in enumerate(
+            [(164.67, 98.87), (166.38, 97.2), (167.8, 95.47), (169.31, 93.82), (170.9, 91.96), (172.55, 90.14)], 1)],
+        ('L-pb-heridas-medicos', 'Médicos', 'otro', (158.8, 102.98), True),
+        # laboratorio clínico: secciones y tomas de muestras
+        ('L-pb-lab-rutina', 'Análisis Rutina', 'apoyo', (87.9, 6.6), True),
+        ('L-pb-lab-hematologia', 'Hematología', 'apoyo', (90.7, 6.96), True),
+        ('L-pb-lab-coagulacion', 'Coagulación', 'apoyo', (94.05, 7.11), True),
+        ('L-pb-lab-urgentes', 'Análisis Urgentes', 'apoyo', (97.4, 6.6), True),
+        ('L-pb-toma-1', 'Toma 1', 'otro', (83.84, 8.91)),
+        ('L-pb-toma-2', 'Toma 2', 'otro', (83.84, 7.41)),
+        ('L-pb-toma-3', 'Toma 3', 'otro', (83.84, 5.89)),
+        ('L-pb-toma-4', 'Toma 4', 'otro', (83.84, 4.0)),
+        # gastroenterología
+        ('L-pb-gastro-01', 'Gastroenterología 01', 'otro', (110.7, 60.7)),
+        ('L-pb-gastro-03', 'Gastroenterología 03', 'otro', (104.99, 53.02)),
+        ('L-pb-gastro-recuperacion', 'Recuperación · Preparación', 'otro', (100.48, 55.7)),
+        ('L-pb-gastro-procedimientos', 'Sala Procedimientos', 'otro', (107.0, 50.8)),
+        ('L-pb-gastro-estacion', 'Estación', 'otro', (105.19, 58.96), True),
+    ],
     'P1': [
         ('L-p1-recepcion', 'Recepción', 'administracion', (54.1, 91.0)),
         ('L-p1-estacion-oeste', 'Estación de Enfermería', 'otro', (29.8, 90.1)),
@@ -142,7 +203,7 @@ LUGARES = {
 }
 # pisos donde todos los baños son para pacientes (también el de cada habitación y el de quimioterapia), salvo los que
 # AJUSTES marca como del personal
-BANOS_PACIENTES = {'SB', 'P1', 'P2', 'P3'}
+BANOS_PACIENTES = {'SB', 'PB', 'P1', 'P2', 'P3'}
 
 
 def nombres_pdf(piso, d):

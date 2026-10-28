@@ -130,79 +130,231 @@
    "si": "Vestíbulo de Ductos",
    "personal": true
   },
-  "a276": {
+  "a285": {
    "si": "Punciones",
    "personal": true
   },
-  "a282": {
+  "a291": {
    "si": "Seleccion Donantes",
    "personal": true
   },
-  "a291": {
+  "a300": {
    "si": "Baño",
    "personal": true
   },
-  "a292": {
+  "a301": {
    "si": "Baños",
    "personal": true
   },
-  "a364": {
+  "a373": {
    "si": "Gerencia Proyectos",
    "personal": true
   },
-  "a367": {
+  "a376": {
    "si": "Oficina",
    "personal": true
   },
-  "a369": {
-   "si": "Tragaluz",
-   "personal": true
-  },
-  "a376": {
+  "a384": {
    "si": "Sala Reuniones",
    "personal": true
   },
-  "a377": {
+  "a385": {
    "si": "Quimioterápicos",
    "personal": true
   },
-  "a378": {
+  "a386": {
    "si": "Nutrición Parental",
    "personal": true
   },
-  "a265": {
-   "si": "Ascensores",
+  "a368": {
+   "si": "S.H. M.",
+   "personal": false
+  },
+  "a63": {
+   "si": "",
+   "nombre": "Oficina",
    "personal": true
   },
-  "a268": {
+  "a66": {
+   "si": "",
+   "nombre": "Central Telefónica",
+   "personal": true
+  },
+  "a58": {
+   "si": "",
+   "nombre": "Datacenter",
+   "personal": true
+  },
+  "a14": {
+   "si": "",
+   "nombre": "Administración",
+   "personal": true
+  },
+  "a69": {
+   "si": "",
+   "nombre": "Cuarto Frío",
+   "personal": true
+  },
+  "a65": {
+   "si": "",
+   "nombre": "Almacenamiento",
+   "personal": true
+  },
+  "a70": {
+   "si": "",
+   "nombre": "Cuarto UPS",
+   "personal": true
+  },
+  "a12": {
+   "si": "",
+   "nombre": "Tragaluz",
+   "personal": true
+  },
+  "a290": {
+   "si": "Oficina",
+   "personal": true
+  },
+  "a108": {
+   "si": "Hab. 02 · Hab. 03",
+   "nombre": "U.C.I."
+  },
+  "a113": {
+   "si": "Módulo 07 · Apoyo",
+   "nombre": "Quimioterapia · Estación · Apoyo",
+   "cat": "otro"
+  },
+  "a131": {
+   "si": "Laboratorio · Módulo 01",
+   "nombre": "Histología · Laboratorio",
+   "cat": "apoyo"
+  },
+  "a121": {
+   "si": "Laboratorio · Coagulacion",
+   "nombre": "Laboratorio Clínico"
+  },
+  "a136": {
+   "si": "",
+   "nombre": "Estación Enfermería · Comedor"
+  },
+  "a140": {
+   "si": "Hombres · Vestidor",
+   "nombre": "Vestidor Hombres"
+  },
+  "a148": {
+   "si": "Quirofano",
+   "nombre": "Quirófano 04"
+  },
+  "a150": {
+   "si": "Quirofano",
+   "nombre": "Quirófano 03"
+  },
+  "a152": {
+   "si": "Quirofano",
+   "nombre": "Quirófano 01"
+  },
+  "a161": {
+   "si": "Elect. Módulo 01 · Elect. Módulo 02",
+   "nombre": "Masoterapia · Elect. 01 · Elect. 02"
+  },
+  "a162": {
+   "si": "",
+   "nombre": "Acceso Familiares",
+   "cat": "circulacion"
+  },
+  "a111": {
+   "si": "Apoyo",
+   "nombre": "Gastroenterología"
+  },
+  "a192": {
+   "si": "Módulo 02",
+   "nombre": "Gastroenterología 02",
+   "cat": "otro"
+  },
+  "a252": {
+   "si": "Toma de Muestras · Módulo 01",
+   "nombre": "Toma de Muestras 01",
+   "cat": "otro"
+  },
+  "a255": {
+   "si": "Módulo 02 · Toma de Muestras",
+   "nombre": "Toma de Muestras 02",
+   "cat": "otro"
+  },
+  "a262": {
+   "si": "Módulo 03 · Toma de Muestras",
+   "nombre": "Toma de Muestras 03",
+   "cat": "otro"
+  },
+  "a256": {
+   "si": "Módulo 04 · Toma de Muestras",
+   "nombre": "Toma de Muestras 04",
+   "cat": "otro"
+  },
+  "a261": {
+   "si": "Módulo 05 · Toma de Muestras",
+   "nombre": "Toma de Muestras 05",
+   "cat": "otro"
+  },
+  "a126": {
+   "si": "Lavachatas · Utileria Sucia",
+   "nombre": "Cafetería · Utilería Sucia · Lavachatas",
+   "personal": true
+  },
+  "a114": {
+   "si": "Clinica de Heridas",
+   "cat": "espera"
+  },
+  "a118": {
+   "si": "Hab. 1",
+   "nombre": "Hab. 1 – 6",
+   "cat": "circulacion"
+  },
+  "a228": {
+   "si": "Mamografia 2 · V",
+   "nombre": "Mamografía 2"
+  },
+  "a187": {
+   "si": "Sala · Rauniones",
+   "nombre": "Sala Rauniones"
+  },
+  "a274": {
    "si": "Ascensores",
    "personal": true
   },
   "a277": {
+   "si": "Ascensores",
+   "personal": true
+  },
+  "a286": {
    "si": "",
    "nombre": "Baño",
    "cat": "banos",
-   "personal": true
+   "personal": false
   },
-  "a287": {
+  "a296": {
    "si": "",
    "cat": "circulacion"
   },
-  "a300": {
+  "a309": {
    "si": "",
    "nombre": "Baño",
    "cat": "banos",
-   "personal": true
+   "personal": false,
+   "dest": [
+    94.25,
+    20.44
+   ],
+   "ventanilla": true
   },
-  "a338": {
+  "a347": {
    "si": "",
    "cat": "circulacion"
   },
-  "a348": {
+  "a357": {
    "si": "",
    "cat": "circulacion"
   },
-  "a349": {
+  "a358": {
    "si": "",
    "cat": "circulacion"
   },
@@ -236,7 +388,12 @@
   },
   "a83": {
    "si": "SS.HH. Hombres",
-   "personal": true
+   "personal": false,
+   "dest": [
+    69.36,
+    102.3
+   ],
+   "ventanilla": true
   },
   "a90": {
    "si": "Minusválidos",
@@ -248,90 +405,351 @@
   },
   "a99": {
    "si": "SS.HH.",
-   "personal": true
+   "personal": false,
+   "dest": [
+    57.04,
+    98.94
+   ],
+   "ventanilla": true
   },
-  "a266": {
+  "a275": {
    "si": "Baños",
-   "personal": true
+   "personal": false,
+   "dest": [
+    109.77,
+    29.1
+   ],
+   "ventanilla": true
   },
-  "a301": {
+  "a310": {
    "si": "Baño",
    "personal": true
-  },
-  "a308": {
-   "si": "Baño",
-   "personal": false
   },
   "a317": {
    "si": "Baño",
    "personal": false
   },
-  "a318": {
-   "si": "Baño",
-   "personal": true
-  },
-  "a321": {
-   "si": "Baño",
-   "personal": false
-  },
-  "a322": {
+  "a326": {
    "si": "Baño",
    "personal": false
   },
   "a327": {
-   "si": "SS.HH.",
+   "si": "Baño",
    "personal": false
   },
-  "a334": {
-   "si": "SS.HH.",
+  "a330": {
+   "si": "Baño",
    "personal": false
   },
-  "a337": {
-   "si": "SS.HH.",
+  "a331": {
+   "si": "Baño",
    "personal": false
   },
-  "a340": {
+  "a336": {
    "si": "SS.HH.",
-   "personal": true
-  },
-  "a341": {
-   "si": "SS.HH.",
-   "personal": true
+   "personal": false
   },
   "a343": {
    "si": "SS.HH.",
    "personal": false
   },
-  "a356": {
+  "a346": {
+   "si": "SS.HH.",
+   "personal": false
+  },
+  "a349": {
+   "si": "SS.HH.",
+   "personal": false,
+   "dest": [
+    93.05,
+    102.12
+   ],
+   "ventanilla": true
+  },
+  "a350": {
+   "si": "SS.HH.",
+   "personal": false,
+   "dest": [
+    94.44,
+    102.15
+   ],
+   "ventanilla": true
+  },
+  "a352": {
+   "si": "SS.HH.",
+   "personal": false
+  },
+  "a365": {
    "si": "S.H. H.",
    "personal": false
   },
-  "a357": {
+  "a366": {
    "si": "S.H. H.",
    "personal": false
   },
-  "a359": {
-   "si": "S.H. M.",
-   "personal": true
-  },
-  "a371": {
+  "a379": {
    "si": "SS.HH.",
-   "personal": true
+   "personal": false,
+   "dest": [
+    52.38,
+    32.27
+   ],
+   "ventanilla": true
   },
-  "a372": {
+  "a380": {
    "si": "SS.HH.",
-   "personal": true
+   "personal": false,
+   "dest": [
+    52.05,
+    32.9
+   ],
+   "ventanilla": true
   },
-  "a373": {
+  "a381": {
    "si": "SS.HH.",
-   "personal": true
+   "personal": false,
+   "dest": [
+    52.05,
+    32.9
+   ],
+   "ventanilla": true
   },
-  "a374": {
+  "a382": {
    "si": "SS.HH.",
-   "personal": true
+   "personal": false,
+   "dest": [
+    63.81,
+    26.42
+   ],
+   "ventanilla": true
   }
  },
- "lugares": [],
+ "lugares": [
+  {
+   "id": "L-pb-uci-01",
+   "nombre": "Hab. 01 · U.C.I.",
+   "cat": "otro",
+   "x": 124.28,
+   "y": 84.43,
+   "personal": false
+  },
+  {
+   "id": "L-pb-uci-02",
+   "nombre": "Hab. 02 · U.C.I.",
+   "cat": "otro",
+   "x": 127.65,
+   "y": 84.57,
+   "personal": false
+  },
+  {
+   "id": "L-pb-uci-03",
+   "nombre": "Hab. 03 · U.C.I.",
+   "cat": "otro",
+   "x": 131.35,
+   "y": 84.54,
+   "personal": false
+  },
+  {
+   "id": "L-pb-uci-06",
+   "nombre": "Hab. 06 · U.C.I.",
+   "cat": "otro",
+   "x": 139.39,
+   "y": 76.12,
+   "personal": false
+  },
+  {
+   "id": "L-pb-uci-07",
+   "nombre": "Hab. 07 · U.C.I.",
+   "cat": "otro",
+   "x": 135.42,
+   "y": 73.16,
+   "personal": false
+  },
+  {
+   "id": "L-pb-uci-08",
+   "nombre": "Hab. 08 · U.C.I.",
+   "cat": "otro",
+   "x": 131.97,
+   "y": 72.98,
+   "personal": false
+  },
+  {
+   "id": "L-pb-uci-09",
+   "nombre": "Hab. 09 · U.C.I.",
+   "cat": "otro",
+   "x": 128.79,
+   "y": 73.05,
+   "personal": false
+  },
+  {
+   "id": "L-pb-uci-10",
+   "nombre": "Hab. 10 · U.C.I.",
+   "cat": "otro",
+   "x": 125.61,
+   "y": 73.12,
+   "personal": false
+  },
+  {
+   "id": "L-pb-heridas-1",
+   "nombre": "Hab. 1 · Clínica de Heridas",
+   "cat": "otro",
+   "x": 164.67,
+   "y": 98.87,
+   "personal": false
+  },
+  {
+   "id": "L-pb-heridas-2",
+   "nombre": "Hab. 2 · Clínica de Heridas",
+   "cat": "otro",
+   "x": 166.38,
+   "y": 97.2,
+   "personal": false
+  },
+  {
+   "id": "L-pb-heridas-3",
+   "nombre": "Hab. 3 · Clínica de Heridas",
+   "cat": "otro",
+   "x": 167.8,
+   "y": 95.47,
+   "personal": false
+  },
+  {
+   "id": "L-pb-heridas-4",
+   "nombre": "Hab. 4 · Clínica de Heridas",
+   "cat": "otro",
+   "x": 169.31,
+   "y": 93.82,
+   "personal": false
+  },
+  {
+   "id": "L-pb-heridas-5",
+   "nombre": "Hab. 5 · Clínica de Heridas",
+   "cat": "otro",
+   "x": 170.9,
+   "y": 91.96,
+   "personal": false
+  },
+  {
+   "id": "L-pb-heridas-6",
+   "nombre": "Hab. 6 · Clínica de Heridas",
+   "cat": "otro",
+   "x": 172.55,
+   "y": 90.14,
+   "personal": false
+  },
+  {
+   "id": "L-pb-heridas-medicos",
+   "nombre": "Médicos",
+   "cat": "otro",
+   "x": 158.8,
+   "y": 102.98,
+   "personal": true
+  },
+  {
+   "id": "L-pb-lab-rutina",
+   "nombre": "Análisis Rutina",
+   "cat": "apoyo",
+   "x": 87.9,
+   "y": 6.6,
+   "personal": true
+  },
+  {
+   "id": "L-pb-lab-hematologia",
+   "nombre": "Hematología",
+   "cat": "apoyo",
+   "x": 90.7,
+   "y": 6.96,
+   "personal": true
+  },
+  {
+   "id": "L-pb-lab-coagulacion",
+   "nombre": "Coagulación",
+   "cat": "apoyo",
+   "x": 94.05,
+   "y": 7.11,
+   "personal": true
+  },
+  {
+   "id": "L-pb-lab-urgentes",
+   "nombre": "Análisis Urgentes",
+   "cat": "apoyo",
+   "x": 97.4,
+   "y": 6.6,
+   "personal": true
+  },
+  {
+   "id": "L-pb-toma-1",
+   "nombre": "Toma 1",
+   "cat": "otro",
+   "x": 83.84,
+   "y": 8.91,
+   "personal": false
+  },
+  {
+   "id": "L-pb-toma-2",
+   "nombre": "Toma 2",
+   "cat": "otro",
+   "x": 83.84,
+   "y": 7.41,
+   "personal": false
+  },
+  {
+   "id": "L-pb-toma-3",
+   "nombre": "Toma 3",
+   "cat": "otro",
+   "x": 83.84,
+   "y": 5.89,
+   "personal": false
+  },
+  {
+   "id": "L-pb-toma-4",
+   "nombre": "Toma 4",
+   "cat": "otro",
+   "x": 83.84,
+   "y": 4.0,
+   "personal": false
+  },
+  {
+   "id": "L-pb-gastro-01",
+   "nombre": "Gastroenterología 01",
+   "cat": "otro",
+   "x": 110.7,
+   "y": 60.7,
+   "personal": false
+  },
+  {
+   "id": "L-pb-gastro-03",
+   "nombre": "Gastroenterología 03",
+   "cat": "otro",
+   "x": 104.99,
+   "y": 53.02,
+   "personal": false
+  },
+  {
+   "id": "L-pb-gastro-recuperacion",
+   "nombre": "Recuperación · Preparación",
+   "cat": "otro",
+   "x": 100.48,
+   "y": 55.7,
+   "personal": false
+  },
+  {
+   "id": "L-pb-gastro-procedimientos",
+   "nombre": "Sala Procedimientos",
+   "cat": "otro",
+   "x": 107.0,
+   "y": 50.8,
+   "personal": false
+  },
+  {
+   "id": "L-pb-gastro-estacion",
+   "nombre": "Estación",
+   "cat": "otro",
+   "x": 105.19,
+   "y": 58.96,
+   "personal": true
+  }
+ ],
  "pasos": [
   {
    "tipo": "abrir",
