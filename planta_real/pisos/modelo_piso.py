@@ -50,6 +50,19 @@ CORRECCIONES = {
         # cierre de la habitación 17 contra la terraza (el muro del PDF llega al ventanal; el dibujo deja una rendija)
         dict(tipo='muro', zona=box(6.0, 76.95, 6.25, 77.95)),
     ],
+    'SB': [
+        # búnkeres de los aceleradores, del tomógrafo y de radioterapia: muros de hormigón de 0,3 a 2,4 m dibujados como
+        # pares de líneas en la capa de columnas (el modelo solo empareja muros delgados)
+        dict(tipo='pares', zona=box(128, 28, 173, 73), capas={'COL'}, dmin=0.25, dmax=2.5),
+        # tabique de una línea (capa NO) entre el comedor del personal y la cafetería
+        dict(tipo='lineas_muro', zona=box(96.3, 27.0, 97.3, 43.2), capas={'TA', 'NO'}, minimo=0.8),
+        # vanos del auditorio hacia el hall (sin bloque de puerta: se cierran y van como puertas en PUERTAS_EXTRA)
+        dict(tipo='muro', zona=box(62.82, 51.45, 63.0, 53.0)),
+        dict(tipo='muro', zona=box(62.82, 46.3, 63.0, 48.0)),
+        dict(tipo='muro', zona=box(62.82, 40.4, 63.0, 41.85)),
+        # cierre superior del muro entre los aceleradores 1 y 2 (en el plano llega hasta el muro norte del búnker)
+        dict(tipo='muro', zona=box(149.9, 69.9, 150.5, 72.6)),
+    ],
 }
 
 
@@ -58,6 +71,52 @@ def corregir(piso, planos, bloques, textos):
     from shapely.geometry import LineString as LS, Point as PT
     for c in CORRECCIONES.get(piso, []):
         z = c['zona']
+        if c['tipo'] in ('pares', 'lineas_muro'):
+            ls = []
+            for e in planos:
+                if e[0] in c['capas'] and len(e[2]) >= 2:
+                    pts = [(x / 1000, y / 1000) for x, y in e[2]]
+                    for a_, b_ in zip(pts[:-1], pts[1:]):
+                        l = LS([a_, b_])
+                        if z.contains(l) and l.length >= c.get('minimo', 0.5):
+                            ls.append(l)
+            nuevos = []
+            if c['tipo'] == 'lineas_muro':
+                nuevos = [l.buffer(0.05, cap_style=2) for l in ls]
+            else:
+                import numpy as np
+                usado = set()
+                for i, l1 in enumerate(ls):
+                    (x1, y1), (x2, y2) = l1.coords
+                    u = np.array([x2 - x1, y2 - y1]) / l1.length
+                    n = np.array([-u[1], u[0]])
+                    mejor = None
+                    for j, l2 in enumerate(ls):
+                        if j == i:
+                            continue
+                        (a1, b1), (a2, b2) = l2.coords
+                        v = np.array([a2 - a1, b2 - b1]) / l2.length
+                        if abs(abs(float(u @ v)) - 1) > 0.01:
+                            continue
+                        dd = float((np.array([a1, b1]) - [x1, y1]) @ n)
+                        if not (c['dmin'] <= abs(dd) <= c['dmax']):
+                            continue
+                        t = sorted([float((np.array(q) - [x1, y1]) @ u) for q in l2.coords])
+                        lo, hi = max(0.0, t[0]), min(l1.length, t[1])
+                        if hi - lo < 0.5:
+                            continue
+                        if mejor is None or abs(dd) < abs(mejor[0]):
+                            mejor = (dd, lo, hi, j)
+                    if mejor and (min(i, mejor[3]), max(i, mejor[3])) not in usado:
+                        usado.add((min(i, mejor[3]), max(i, mejor[3])))
+                        dd, lo, hi, _ = mejor
+                        p0 = np.array([x1, y1])
+                        nuevos.append(Polygon([tuple(p0 + u * lo), tuple(p0 + u * hi), tuple(p0 + u * hi + n * dd),
+                                               tuple(p0 + u * lo + n * dd)]))
+            for q in nuevos:
+                planos.append(('P0 - Paredes', 'LWPOLYLINE', [(x * 1000, y * 1000) for x, y in q.exterior.coords], True))
+            print(piso, c['tipo'], len(nuevos))
+            continue
         if c['tipo'] == 'capa':
             n = 0
             for i, e in enumerate(planos):
