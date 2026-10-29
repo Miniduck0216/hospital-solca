@@ -59,6 +59,8 @@ export async function cargarDatos(cambiosLocales = null, opciones = {}) {
     if (ext?.parqueos?.length) d.parqueos = ext.parqueos
     d.canchas = ext?.canchas || []
     d.zonasArboles = ext?.arboles || []
+    d.calles = ext?.calles || []
+    d.veredasExt = ext?.veredas || []
   }
   // cambios del administrador publicados: en OM3 (cambiosUrl) o, si no, en el repositorio
   // (en el editor de OM3 el borrador ya es el estado completo: no se suman los publicados)
