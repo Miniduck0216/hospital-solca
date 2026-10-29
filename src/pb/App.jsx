@@ -491,7 +491,13 @@ export default function App() {
   }, [pisos, origen, destino, admin, accesible, via])
   const rutaOk = ruta && !ruta.sinRuta ? ruta : null
   // tramo del piso a la vista (lo que dibujan el 2D y el 3D)
-  const tramo = rutaOk ? rutaOk.tramos.find((t) => t.piso === pisoId) || null : null
+  const tramoNuevo = rutaOk ? rutaOk.tramos.find((t) => t.piso === pisoId) || null : null
+  // la ruta se recalcula cada vez que termina de cargar otro piso: si el tramo es el mismo, se conserva el objeto de
+  // antes (así la cámara no vuelve a encuadrar y el caminante no se reinicia a mitad del recorrido)
+  const tramoAntes = useRef(null)
+  const mismoTramo = (a, b) => a && b && a.piso === b.piso && a.pts.length === b.pts.length && a.pts.every((p, i) => p[0] === b.pts[i][0] && p[1] === b.pts[i][1])
+  const tramo = mismoTramo(tramoAntes.current, tramoNuevo) ? tramoAntes.current : tramoNuevo
+  tramoAntes.current = tramo
   // al trazar una ruta nueva, la vista va al piso donde empieza
   const claveRuta = rutaOk ? `${origen?.id}>${destino?.id}>${rutaOk.vertical?.conector?.id || ''}` : ''
   useEffect(() => {
@@ -516,6 +522,8 @@ export default function App() {
   const pisoRef = useRef(pisoId)
   pisoRef.current = pisoId
   const onAvance = (s, L) => avance.set({ s, L, piso: pisoRef.current })
+  // dónde iba el personaje en este piso: al cambiar entre 2D y 3D el recorrido sigue desde ahí (no empieza de nuevo)
+  const desdeAvance = () => (avance.v && avance.v.piso === pisoRef.current ? avance.v.s : 0)
   const empezar = () => {
     if (!rutaOk) return
     setLlego(false); setTransicion(null); avance.set(null)
@@ -598,8 +606,8 @@ export default function App() {
   return (
     <div className={`pb-app modo-${modo}${INSERTADO ? ` insertado-${INSERTADO}` : ''}${LIGERO ? ' ligero' : ''}`}>
       {modo === '2d'
-        ? <Mapa ref={mapa} d={d} ruta={tramo} origen={local(origen)} destino={destinoVista} foco={focoVista} hover={hover} onElegir={elegirDesdeMapa} onHover={setHover} lugaresIcono={lugaresIcono} pick={!!pick} onPick={onPick} trazo={pick?.tipo === 'trazo' ? { tipo: pick.paso, puntos: pick.puntos } : null} recorrer={recorrer && !transicion} onFinRecorrer={finTramo} onAvance={onAvance} />
-        : <Suspense fallback={<Cargando texto="Preparando el 3D…" />}><Vista3D ref={vista3d} d={d} pisos={pisos} onPiso={verPiso} ruta={tramo} destino={destinoVista} foco={focoVista} recorrer={recorrer && !transicion} onFinRecorrer={finTramo} onAvance={onAvance} /></Suspense>}
+        ? <Mapa ref={mapa} d={d} ruta={tramo} origen={local(origen)} destino={destinoVista} foco={focoVista} hover={hover} onElegir={elegirDesdeMapa} onHover={setHover} lugaresIcono={lugaresIcono} pick={!!pick} onPick={onPick} trazo={pick?.tipo === 'trazo' ? { tipo: pick.paso, puntos: pick.puntos } : null} recorrer={recorrer && !transicion} onFinRecorrer={finTramo} onAvance={onAvance} desde={desdeAvance} />
+        : <Suspense fallback={<Cargando texto="Preparando el 3D…" />}><Vista3D ref={vista3d} d={d} pisos={pisos} onPiso={verPiso} ruta={tramo} destino={destinoVista} foco={focoVista} recorrer={recorrer && !transicion} onFinRecorrer={finTramo} onAvance={onAvance} desde={desdeAvance} /></Suspense>}
 
       {/* columna izquierda: marca, búsqueda y ruta */}
       {admin && (

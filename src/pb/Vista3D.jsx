@@ -453,7 +453,7 @@ function Puertas({ puertas, plano, persona, ruta, recorrer }) {
 
 // el personaje recorre la ruta a 1,3 m/s. La cámara lo acompaña como en un juego en tercera persona: se traslada con
 // él, y con el ratón (o el dedo) se puede girar alrededor, subir o bajar la mirada y acercar, sin perderlo de foco
-function Caminante({ ruta, recorrer, controles, andado, alTerminar, onAvance, persona, base = 0 }) {
+function Caminante({ ruta, recorrer, controles, andado, alTerminar, onAvance, desde, persona, base = 0 }) {
   const ref = useRef()
   const t = useRef(0)
   const caminando = useRef(false)
@@ -462,7 +462,12 @@ function Caminante({ ruta, recorrer, controles, andado, alTerminar, onAvance, pe
   const prev = useRef(null)
   const llegada = useRef(0)   // segundos desde que empezó el recorrido (la cámara se acomoda detrás en el primero)
   const ultAv = useRef(0)
-  useEffect(() => { t.current = 0; fin.current = false; andado.current = recorrer ? 0 : null; prev.current = null; llegada.current = 0; ultAv.current = 0 }, [ruta, recorrer, andado])
+  // el recorrido sigue donde iba (al volver del 2D o si la ruta se recalcula mientras se camina)
+  useEffect(() => {
+    t.current = recorrer && desde ? Math.max(0, desde()) : 0
+    fin.current = false; andado.current = recorrer ? t.current : null; prev.current = null; llegada.current = 0; ultAv.current = 0
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ruta, recorrer, andado])
   useFrame((_, dt) => {
     if (!ref.current) return
     // tope de 0,25 s por cuadro: en un equipo lento el personaje no camina en cámara lenta
@@ -636,7 +641,7 @@ function Cuadros({ fps = 30 }) {
 }
 
 const ORDEN = (a, b) => a.nivel - b.nivel
-export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destino, foco, recorrer = false, onFinRecorrer, onAvance, onPiso }, fwd) {
+export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destino, foco, recorrer = false, onFinRecorrer, onAvance, desde, onPiso }, fwd) {
   const [corte, setCorte] = useState(1.2)   // muros bajos por defecto: se ven los pisos, como en una maqueta isométrica
   const [letreros, setLetreros] = useState(true)
   const [opciones, setOpciones] = useState(false)   // altura de muros y letreros: plegados para no recargar la pantalla
@@ -723,7 +728,7 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
             <Puertas puertas={d.puertas} plano={plano} persona={persona} ruta={ruta} recorrer={recorrer} />
             <Letreros d={d} visibles={letreros} />
             {ruta && <Ruta ruta={ruta} andado={andado} />}
-            {ruta && <Caminante ruta={ruta} recorrer={recorrer} controles={controles} andado={andado} alTerminar={onFinRecorrer} onAvance={onAvance} persona={persona} base={base} />}
+            {ruta && <Caminante ruta={ruta} recorrer={recorrer} controles={controles} andado={andado} alTerminar={onFinRecorrer} onAvance={onAvance} desde={desde} persona={persona} base={base} />}
           </group>
         )}
         {foco && !armado && <MarcaFoco foco={foco} controles={controles} base={base} />}
