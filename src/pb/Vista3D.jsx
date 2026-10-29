@@ -111,10 +111,9 @@ const ALZAR = 38
 // un piso del edificio: su modelo (una o varias partes), su techo y su posición. Estados:
 // 'activo' (el que se mira: muros cortados a la altura elegida, pisos de color y puertas que se abren),
 // 'abajo' (completo, con su techo), 'arriba' (sube y desaparece) y 'oculto' (el subsuelo bajo tierra)
-function Piso3D({ p, techo, estado, corte, letreros }) {
+function Piso3D({ p, techo, estado, corte, letreros, y0 = p.nivel * H_PISO }) {
   const grupo = useRef()
   const plano = useMemo(() => new THREE.Plane(new THREE.Vector3(0, -1, 0), 9999), [])
-  const y0 = p.nivel * H_PISO
   const meta = estado === 'arriba' ? y0 + ALZAR + Math.max(0, p.nivel) * 6 : y0
   const activo = estado === 'activo'
   useEffect(() => { plano.constant = activo && corte < 3.8 ? y0 + corte : 9999 }, [activo, corte, y0, plano])
@@ -625,7 +624,8 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
   const lista = useMemo(() => (d.edificio?.pisos || [{ ...(d.piso || {}), id: pisoId, nivel: 0, glb: d.piso?.glb || 'pb/solca_pb.glb', disponible: true }])
     .filter((p) => p.disponible).sort(ORDEN), [d, pisoId])
   const nivel = lista.find((p) => p.id === pisoId)?.nivel ?? 0
-  const base = nivel * H_PISO
+  // el subsuelo, cuando se mira, sube al nivel del suelo: se ve con el mapa y sus alrededores (no enterrado)
+  const base = Math.max(0, nivel) * H_PISO
   // al elegir un piso (en el selector o en el buscador) o al trazar una ruta, se mira ese piso
   const pisoAntes = useRef(pisoId)
   useEffect(() => { if (pisoAntes.current !== pisoId) { pisoAntes.current = pisoId; setArmado(false) } }, [pisoId])
@@ -672,7 +672,6 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
     // bajo tierra: el subsuelo solo se ve cuando es el piso a la vista
     return p.nivel < 0 ? 'oculto' : 'abajo'
   }
-  const enSubsuelo = !armado && nivel < 0
   return (
     <div className="pb-3d">
       <Canvas shadows flat dpr={[1, 2]} camera={{ position: [cx + 95, altura + 110, -cy + 95], fov: 32, near: 0.5, far: 3000 }} gl={{ antialias: true }}>
@@ -683,10 +682,11 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
           shadow-camera-left={-110} shadow-camera-right={110} shadow-camera-top={110} shadow-camera-bottom={-110} shadow-camera-near={10} shadow-camera-far={450}
           shadow-bias={-0.0004} shadow-normalBias={0.06} target-position={[cx, 0, -cy]} />
         {lista.map((p) => (
-          <Piso3D key={p.id} p={p} techo={techos[p.id]} estado={estadoDe(p)} corte={corte} letreros={letreros} />
+          <Piso3D key={p.id} p={p} techo={techos[p.id]} estado={estadoDe(p)} corte={corte} letreros={letreros}
+            y0={!armado && p.id === pisoId ? base : p.nivel * H_PISO} />
         ))}
-        {!enSubsuelo && <SueloMapa centro={[cx, cy]} />}
-        {!enSubsuelo && <Exterior d={pb} />}
+        <SueloMapa centro={[cx, cy]} />
+        <Exterior d={pb} />
         {/* lo del piso a la vista: pisos de color, puertas, letreros, ruta y personaje, a su altura */}
         {!armado && (
           <group position-y={base}>
