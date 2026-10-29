@@ -125,15 +125,16 @@ export function Exterior({ d, mapa = null, losa: losaPiso = null }) {
     const arboles = []
     const libre = (p, sep) => !arboles.some((a) => Math.hypot(a.x - p[0], a.y - p[1]) < sep)
     const poner = (p, s0 = 0.85) => arboles.push({ x: p[0], y: p[1], s: s0 + rnd() * 0.5, c: VERDES[Math.floor(rnd() * VERDES.length)] })
-    const fuera = (p) => !dentroEdif(p, 6) && !enParqueo(p, 2.5) && !cercaEntrada(p, 9)
+    const fuera = (p) => !dentroEdif(p, 8) && !enParqueo(p, 3.5) && !cercaEntrada(p, 10)
     // zonas de árboles de la foto satelital: se llenan a la separación de cada zona (bosques más tupidos que hileras)
     const zonas = (d.zonasArboles || []).map((z) => ({ sep: z.sep, pg: z.ll.map(([lo, la]) => dePlano(lo, la)) }))
     for (const z of zonas) {
       const xs = z.pg.map((p) => p[0]), ys = z.pg.map((p) => p[1])
-      for (let y = Math.min(...ys); y <= Math.max(...ys); y += z.sep * 0.62) {
-        for (let x = Math.min(...xs); x <= Math.max(...xs); x += z.sep * 0.62) {
-          const p = [x + (rnd() - 0.5) * z.sep * 0.7, y + (rnd() - 0.5) * z.sep * 0.7]
-          if (!enPoli(p, z.pg) || !fuera(p) || !libre(p, z.sep * 0.85)) continue
+      // un árbol por celda de la separación de la zona (con algo de azar), y no todos: claros entre los grupos
+      for (let y = Math.min(...ys); y <= Math.max(...ys); y += z.sep) {
+        for (let x = Math.min(...xs); x <= Math.max(...xs); x += z.sep) {
+          const p = [x + (rnd() - 0.5) * z.sep * 0.6, y + (rnd() - 0.5) * z.sep * 0.6]
+          if (rnd() < 0.18 || !enPoli(p, z.pg) || !fuera(p) || !libre(p, z.sep * 0.9)) continue
           poner(p, z.sep < 5.5 ? 1.0 : 0.85)
         }
       }
