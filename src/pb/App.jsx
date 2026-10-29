@@ -1,13 +1,16 @@
-import { useEffect, useMemo, useRef, useState, lazy, Suspense } from 'react'
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, lazy, Suspense } from 'react'
 import QRCode from 'qrcode'
 import { cargarDatos, cambiosDelPiso, usarGeo, CATS, ICONO_LUGAR, plano, dentro } from './datos.js'
-import { buscarRuta, indicaciones, metrosHasta } from './ruta.js'
+import { buscarRuta, indicaciones, metrosHasta, proximoPaso } from './ruta.js'
 import { rutaEdificio } from './rutaEdificio.js'
 import { Mapa } from './Mapa.jsx'
 import { Hoja } from './Hoja.jsx'
 import { Clave, PanelAdmin } from './Admin.jsx'
 import { Cargando } from './Cargando.jsx'
 import { BarraFoco, Dock } from './Hud.jsx'
+import { agruparGuia, buscarLugar, juntarIguales } from './guia.js'
+import { LIGERO, enReposo } from './rendimiento.js'
+import { CambioPiso } from './CambioPiso.jsx'
 import { Icono, Insignia } from '../ui/mapa2d/Iconos.jsx'
 
 const Vista3D = lazy(() => import('./Vista3D.jsx').then((m) => ({ default: m.Vista3D })))
@@ -58,7 +61,12 @@ export const idGlobal = (piso, id) => (piso === 'PB' ? id : `${piso}:${id}`)
 // lugares: ambientes con nombre y destino alcanzable, más las entradas del edificio
 function armarLugares(d) {
   const piso = d.piso?.id || 'PB'
-  return armarLugaresPiso(d).map((l) => ({ ...l, local: l.id, id: idGlobal(piso, l.id), piso, pisoCorto: d.piso?.corto || piso }))
+  const corto = d.piso?.corto || piso
+  return armarLugaresPiso(d).map((l) => ({
+    ...l, local: l.id, id: idGlobal(piso, l.id), piso, pisoCorto: corto, pisoNombre: d.piso?.nombre || piso,
+    // las entradas se llaman igual en varios pisos («Acceso 1»): en la guía y en la búsqueda llevan su piso
+    ...(l.entrada ? { etiqueta: l.nombre, nombre: l.nombre.includes(corto) ? l.nombre : `${l.nombre} (${corto})` } : {}),
+  }))
 }
 function armarLugaresPiso(d) {
   const zonas = d.ambientes.filter((a) => a.nombre && (a.cat === 'circulacion' || a.cat === 'espera') && a.area > 30)
@@ -74,12 +82,19 @@ function armarLugaresPiso(d) {
         if (dd < m) { m = dd; cerca = z.nombre }
       }
     }
-    // baño dentro de una habitación (la ruta llega a la puerta de la habitación): se busca, pero sin ícono en el mapa
-    const enCuarto = a.cat === 'banos' && !!a.ventanilla
-    lugares.push({ id: a.id, nombre: a.nombre, cat: a.cat, area: a.area, x: a.dest[0], y: a.dest[1], lbl: a.lbl, cerca, enCuarto, icono: ICONO_LUGAR[a.icono] || ICONO_CAT[a.cat] })
+    // baño dentro de un consultorio, una habitación o un área del personal: se ve en el mapa (atenuado) pero no es
+    // destino (no sale en la guía ni en la búsqueda); al tocarlo, se ofrece ir al cuarto al que pertenece
+    const enCuarto = a.cat === 'banos' && (!!a.enCuarto || !!a.ventanilla)
+    lugares.push({ id: a.id, nombre: a.nombre, cat: a.cat, area: a.area, x: a.dest[0], y: a.dest[1], lbl: a.lbl, cerca, enCuarto, dentroDe: a.dentroDe || null, icono: ICONO_LUGAR[a.icono] || ICONO_CAT[a.cat] })
+  }
+  // la zona más cercana de un punto (para decir junto a qué hall o pasillo queda cada entrada)
+  const zonaCerca = (p) => {
+    let m = Infinity, n = null
+    for (const z of zonas) { const dd = dentro(p, z.pg[0]) ? 0 : distPoli(p, z.pg[0]); if (dd < m) { m = dd; n = z.nombre } }
+    return m < 25 ? n : null
   }
   for (const e of d.entradas) {
-    lugares.push({ id: e.id, nombre: e.nombre === 'Puerta 1' ? 'Puerta 1 · Entrada principal' : e.nombre, cat: 'entrada', x: e.x, y: e.y, lbl: [e.x, e.y], entrada: true, icono: 'salida' })
+    lugares.push({ id: e.id, nombre: e.nombre === 'Puerta 1' ? 'Puerta 1 · Entrada principal' : e.nombre, cat: 'entrada', x: e.x, y: e.y, lbl: [e.x, e.y], entrada: true, icono: 'salida', cerca: zonaCerca([e.x, e.y]) })
   }
   return lugares
 }
@@ -96,37 +111,52 @@ function Campo({ tipo, lugar, onClick }) {
   )
 }
 
-function Buscador({ lugares, modo, cat, onElegir, onCerrar }) {
+// Guía del hospital: sin texto muestra el directorio completo, por piso y por tipo de servicio; al escribir, filtra
+// (por nombre, por la zona en que está o por el tipo). Las categorías de arriba filtran la guía.
+function Fila({ l, onElegir }) {
+  return (
+    <li>
+      <button onClick={() => onElegir(l)}>
+        <Insignia icono={l.icono} color={colorDe(l)} size={34} />
+        <span><b>{l.nombre}{l.cuantos > 1 && <em className="guia-n" aria-label={`${l.cuantos} lugares`}>×{l.cuantos}</em>}</b><small>{l.cuantos > 1 ? `${l.pisoCorto} · ${l.cuantos} en este piso; te lleva al más cercano` : l.entrada ? ['Entrada y salida', l.cerca && `junto a ${l.cerca}`].filter(Boolean).join(' · ') : [l.pisoCorto, CATS[l.cat]?.nombre, l.cerca && `junto a ${l.cerca}`].filter(Boolean).join(' · ')}</small></span>
+      </button>
+    </li>
+  )
+}
+function Buscador({ lugares, pisos, origen, modo, cat, onElegir, onCerrar }) {
   const [q, setQ] = useState('')
   const [filtro, setFiltro] = useState(cat || null)
   const inp = useRef(null)
-  useEffect(() => { inp.current?.focus() }, [])
+  // en el tótem no se abre el teclado en pantalla de golpe: primero se ve la guía
+  useEffect(() => { if (!INSERTADO) inp.current?.focus() }, [])
   const lista = useMemo(() => {
     const t = plano(q)
-    return lugares.filter((l) => {
+    const filtrados = lugares.filter((l) => {
       if (filtro === 'escaleras' && !['escaleras', 'ascensores'].includes(l.cat)) return false
       if (filtro && filtro !== 'escaleras' && l.cat !== filtro) return false
       if (!t) return modo === 'origen' ? true : l.cat !== 'circulacion' || l.area > 60
-      return plano(l.nombre).includes(t) || plano(l.cerca).includes(t) || plano(CATS[l.cat]?.nombre).includes(t)
+      return plano(l.nombre).includes(t) || plano(l.cerca).includes(t) || plano(CATS[l.cat]?.nombre).includes(t) || (l.entrada && /^(entrada|salida|puerta|acceso)/.test(t))
     }).sort((a, b) => (a.entrada === b.entrada ? a.nombre.localeCompare(b.nombre, 'es', { numeric: true }) : a.entrada ? -1 : 1))
-  }, [q, filtro, lugares, modo])
+    // al buscar a dónde ir, los que se llaman igual en un piso van en una fila (lleva al más cercano)
+    return modo === 'origen' ? filtrados : juntarIguales(filtrados, origen)
+  }, [q, filtro, lugares, modo, origen])
+  const guia = useMemo(() => (q.trim() ? null : agruparGuia(lista, pisos)), [q, lista, pisos])
   return (
-    <div className="tarjeta pb-buscador" role="dialog" aria-label={modo === 'origen' ? 'Elegir punto de partida' : 'Elegir destino'}>
+    <div className="tarjeta pb-buscador" role="dialog" aria-label={modo === 'origen' ? 'Elegir punto de partida' : 'Guía del hospital'}>
       <div className="pb-busca-fila">
         <button className="icono-btn" onClick={onCerrar} aria-label="Volver"><Icono nombre="volver" size={18} /></button>
-        <input ref={inp} value={q} onChange={(e) => setQ(e.target.value)} placeholder={modo === 'origen' ? '¿Dónde estás?' : 'Buscar servicio, consultorio, baño…'} aria-label="Buscar" />
+        <input ref={inp} value={q} onChange={(e) => setQ(e.target.value)} placeholder={modo === 'origen' ? '¿Dónde estás?' : 'Buscar en la guía: servicio, consultorio, baño…'} aria-label="Buscar" />
       </div>
       <BarraFoco items={CHIPS_FOCO} activo={chipDe(filtro)} onElegir={(c) => setFiltro(filtro === c.cat ? null : c.cat)} />
       <ul className="pb-lista">
-        {lista.map((l) => (
-          <li key={l.id}>
-            <button onClick={() => onElegir(l)}>
-              <Insignia icono={l.icono} color={colorDe(l)} size={34} />
-              <span><b>{l.nombre}</b><small>{l.entrada ? `Entrada del edificio${l.piso !== 'PB' ? ` · ${l.pisoCorto}` : ''}` : [l.pisoCorto, CATS[l.cat]?.nombre, l.cerca && `junto a ${l.cerca}`].filter(Boolean).join(' · ')}</small></span>
-            </button>
-          </li>
-        ))}
-        {!lista.length && <li className="pb-nada">No hay resultados para «{q}».</li>}
+        {guia ? guia.map((p) => [
+          <li key={`p-${p.piso}`} className="guia-piso"><b>{p.corto}</b> {p.nombre}</li>,
+          ...p.grupos.flatMap((g) => [
+            !filtro && <li key={`g-${p.piso}-${g.cat}`} className="guia-cat">{g.nombre}</li>,
+            ...g.lugares.map((l) => <Fila key={l.id} l={l} onElegir={onElegir} />),
+          ]),
+        ]) : lista.map((l) => <Fila key={l.id} l={l} onElegir={onElegir} />)}
+        {!lista.length && <li className="pb-nada">{q ? `No hay resultados para «${q}».` : 'Cargando la guía…'}</li>}
       </ul>
     </div>
   )
@@ -164,6 +194,9 @@ const INSERTADO = ['totem', 'guia', 'admin'].includes(PARAMS.get('modo')) ? PARA
 const URL_OK = (u) => { try { const x = new URL(u); return x.protocol === 'https:' || x.protocol === 'http:' ? x : null } catch { return null } }
 const PADRE = INSERTADO === 'admin' ? URL_OK(PARAMS.get('padre') || '')?.origin || null : null
 const MODO_ADMIN = !!PADRE
+// tótem de OM3 con el mapa siempre cargado (?modo=totem&padre=<origen de OM3>): el iframe no se desmonta entre
+// pacientes; OM3 le pide el destino por mensaje (sin recargar) y lo reinicia al volver al inicio
+const PADRE_TOTEM = INSERTADO === 'totem' ? URL_OK(PARAMS.get('padre') || '')?.origin || null : null
 // cambios publicados en OM3 (?config=<url pública>); si no, los del repositorio
 const CONFIG_URL = URL_OK(PARAMS.get('config') || '')?.href || null
 // preferencias de ruta: ?via=ascensor|escalera|cualquiera (entre pisos) y ?accesible=1 (sin escalones)
@@ -173,7 +206,78 @@ const VISTA_INICIAL = PARAMS.get('vista') === '3d' ? '3d' : '2d'
 // piso a la vista al abrir: el del origen del enlace (?origen=P1:a12) o ?piso=P1; si no, el inicial del edificio
 const PISO_INICIAL = (PARAMS.get('origen') || '').match(/^(SB|P\d):/)?.[1] || PARAMS.get('piso') || null
 
-const ICONO_PASO = { inicio: 'caminar', camina: 'subir', izquierda: 'izquierda', derecha: 'derecha', fin: 'destino' }
+// destino por nombre (OM3: ?consulta=Cardiología, con la consulta de la cita) y recorrido automático (?recorrer=1)
+const CONSULTA = PARAMS.get('consulta') || PARAMS.get('buscar') || null
+const RECORRER_AUTO = PARAMS.get('recorrer') === '1'
+
+const ICONO_PASO = { inicio: 'caminar', camina: 'subir', izquierda: 'izquierda', derecha: 'derecha', fin: 'destino', ascensor: 'ascensor', escalera: 'escalera' }
+
+// avance del personaje (metros caminados del tramo a la vista): fuera del estado de React para que solo se redibuje
+// la barra de navegación, no el mapa ni el 3D (importante en el tótem)
+const avance = {
+  v: null, subs: new Set(),
+  set(x) { this.v = x; for (const f of this.subs) f() },
+  sub(f) { this.subs.add(f); return () => this.subs.delete(f) },
+}
+const usarAvance = () => useSyncExternalStore((f) => avance.sub(f), () => avance.v)
+
+// barra compacta mientras se camina: la próxima indicación y cuánto falta; se despliega para ver todos los pasos
+function BarraNav({ ruta, pisoId, pisos, llego, destino, onDetener, onListo, onVerPiso }) {
+  const [abierta, setAbierta] = useState(false)
+  const lista = useRef(null)
+  const a = usarAvance()
+  const k = Math.max(0, ruta.tramos.findIndex((t) => t.piso === pisoId))
+  const tramo = ruta.tramos[k]
+  const ultimo = k === ruta.tramos.length - 1
+  const s = a && a.piso === pisoId ? a.s : 0
+  const L = a && a.piso === pisoId ? a.L : 0
+  const prox = tramo ? proximoPaso(tramo.pasos, s, L) : null
+  // metros que faltan en total: lo que queda de este tramo más los tramos siguientes
+  const quedaTramo = Math.max(0, (L || tramo?.metros || 0) - s)
+  const quedan = Math.round(quedaTramo + ruta.tramos.slice(k + 1).reduce((m, t) => m + (t.metros || 0), 0))
+  const hechos = ruta.tramos.slice(0, k).reduce((m, t) => m + (t.metros || 0), 0) + s
+  const pct = Math.min(100, Math.round((hechos / (ruta.metros || 1)) * 100))
+  let icono = prox ? ICONO_PASO[prox.paso.tipo] : 'caminar'
+  let titulo = prox ? prox.paso.texto : 'Sigue la ruta'
+  if (prox && prox.paso.tipo === 'fin' && !ultimo) { icono = ruta.vertical?.tipo === 'escalera' ? 'escalera' : 'ascensor'; titulo = ruta.vertical?.texto || titulo }
+  if (llego) { icono = 'destino'; titulo = `Llegaste a ${destino?.nombre || 'tu destino'}` }
+  // la lista desplegada sigue al paso actual
+  const actualK = `${k}-${prox?.k}`
+  useEffect(() => {
+    if (!abierta) return
+    lista.current?.querySelector('.actual')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, [abierta, actualK])
+  const pasos = ruta.tramos.flatMap((t, i) => [
+    ...(ruta.tramos.length > 1 ? [{ piso: t.piso, nombre: t.nombrePiso }] : []),
+    ...t.pasos.filter((p, j) => !(i > 0 && j === 0)).map((p, j) => ({ ...p, i, j })),
+    ...(i === 0 && ruta.vertical ? [{ tipo: ruta.vertical.tipo === 'escalera' ? 'escalera' : 'ascensor', texto: ruta.vertical.texto, i, j: 'v' }] : []),
+  ])
+  return (
+    <div className={`tarjeta pb-nav${abierta ? ' abierta' : ''}${llego ? ' llego' : ''}`} role="region" aria-label="Indicaciones del recorrido" aria-live="polite">
+      <div className="pb-nav-fila">
+        <span className="pb-nav-ic"><Icono nombre={icono} size={22} color="#fff" grosor={2.4} /></span>
+        <div className="pb-nav-txt">
+          <b>{titulo}</b>
+          <small>{llego ? `${Math.round(ruta.metros)} m recorridos` : [prox && !llego && prox.faltan >= 1 && `en ${Math.round(prox.faltan)} m`, `faltan ${quedan} m`, ruta.tramos.length > 1 && (pisos[pisoId]?.piso?.corto || pisoId)].filter(Boolean).join(' · ')}</small>
+        </div>
+        {!llego && <button className="pb-nav-btn" onClick={() => setAbierta((v) => !v)} aria-expanded={abierta} aria-label={abierta ? 'Ocultar los pasos' : 'Ver los pasos'}><Icono nombre={abierta ? 'bajar' : 'subir'} size={18} grosor={2.4} /></button>}
+        {llego
+          ? <button className="pb-nav-btn listo" onClick={onListo}>Listo</button>
+          : <button className="pb-nav-btn parar" onClick={onDetener} aria-label="Detener el recorrido"><Icono nombre="cerrar" size={18} grosor={2.4} /></button>}
+      </div>
+      <span className="pb-nav-barra" style={{ '--p': `${llego ? 100 : pct}%` }} aria-hidden="true" />
+      {abierta && !llego && (
+        <ol ref={lista} className="pb-pasos pb-nav-pasos">
+          {pasos.map((p, n) => p.piso
+            ? <li key={`p${n}`} className={`paso-piso${p.piso === pisoId ? ' on' : ''}`}><button className="btn-claro mini" onClick={() => onVerPiso(p.piso)}><Icono nombre="piso" size={14} /> {p.nombre}</button></li>
+            : <li key={`${p.i}-${p.j}`} className={`paso-${p.tipo}${p.i === k && prox && p.j === prox.k ? ' actual' : ''}${p.i < k || (p.i === k && prox && typeof p.j === 'number' && p.j < prox.k) ? ' hecho' : ''}`}>
+              <span className="pb-paso-i"><Icono nombre={ICONO_PASO[p.tipo]} size={15} /></span>{p.texto}
+            </li>)}
+        </ol>
+      )}
+    </div>
+  )
+}
 
 export default function App() {
   const [d, setD] = useState(null)
@@ -186,7 +290,6 @@ export default function App() {
   const [ficha, setFicha] = useState(null)
   const [hover, setHover] = useState(null)
   const [qr, setQr] = useState(false)
-  const [leyenda, setLeyenda] = useState(false)
   const [admin, setAdmin] = useState(MODO_ADMIN)
   const [pedirClave, setPedirClave] = useState(false)
   const [cambios, setCambios] = useState(() => (MODO_ADMIN ? aFormato2(null) : leerCambios()))
@@ -198,6 +301,9 @@ export default function App() {
   const [accesible, setAccesible] = useState(ACCESIBLE_INICIAL)
   const [via, setVia] = useState(VIA_INICIAL)   // ascensor (por defecto) o escaleras, en rutas entre pisos
   const [recorrer, setRecorrer] = useState(false)   // el personaje camina la ruta (en 2D o en 3D, según la vista)
+  const [transicion, setTransicion] = useState(null)   // cambio de piso animado durante el recorrido (ascensor o escaleras)
+  const [llego, setLlego] = useState(false)   // terminó el recorrido: la barra compacta dice «Llegaste»
+  const [verPasos, setVerPasos] = useState(false)   // lista de pasos del panel de ruta (plegada para no tapar el mapa)
   const mapa = useRef(null)
   const vista3d = useRef(null)
   // zoom con botones en 2D y 3D: el tótem es táctil y no tiene rueda de ratón
@@ -220,7 +326,7 @@ export default function App() {
         // los demás pisos se cargan después, sin apuro: hacen falta para buscar en todo el edificio y trazar entre pisos
         if (!datos || MODO_ADMIN) return
         const otros = (datos.edificio?.pisos || []).filter((p) => p.disponible && p.id !== datos.piso.id)
-        return otros.reduce((pr, p) => pr.then(() => cargarPiso(cambios, p.id, false).catch(() => null)), Promise.resolve())
+        return otros.reduce((pr, p) => pr.then(() => new Promise((ok) => enReposo(ok))).then(() => cargarPiso(cambios, p.id, false).catch(() => null)), Promise.resolve())
       })
       .catch((e) => setError(e.message))
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -277,20 +383,22 @@ export default function App() {
   }
   const cambiarPiso = (p) => { if (p.disponible) verPiso(p.id) }
   // lugares de todos los pisos cargados (el buscador encuentra servicios de cualquier piso)
-  const lugares = useMemo(() => {
+  const todos = useMemo(() => {
     const orden = (d?.edificio?.pisos || []).map((p) => p.id)
     return Object.values(pisos).sort((a, b) => orden.indexOf(a.piso.id) - orden.indexOf(b.piso.id)).flatMap(armarLugares)
   }, [pisos, d])
+  // destinos de la guía y la búsqueda: sin los baños privados (esos solo se ven en el mapa)
+  const lugares = useMemo(() => todos.filter((l) => !l.enCuarto), [todos])
   // ¿se llega caminando por pasillos abiertos? (si no, la app lo dice en vez de trazar por consultorios)
   const alcanzable = (l) => {
     const dl = pisos[l.piso]
     return !!dl && (l.entrada || !dl.nav.indice[l.local] || dl.nav.alcanzable.has(dl.nav.indice[l.local]))
   }
-  const porId = useMemo(() => Object.fromEntries(lugares.map((l) => [l.id, l])), [lugares])
+  const porId = useMemo(() => Object.fromEntries(todos.map((l) => [l.id, l])), [todos])
 
   // origen por defecto (Puerta 1) o el del enlace / QR (?origen=…&destino=…)
   // (los pisos se cargan de a uno: el lugar del enlace se aplica una sola vez, cuando aparece su piso)
-  const delEnlace = useRef({ origen: PARAMS.get('origen'), destino: PARAMS.get('destino') })
+  const delEnlace = useRef({ origen: PARAMS.get('origen'), destino: PARAMS.get('destino'), consulta: CONSULTA })
   useEffect(() => {
     if (!lugares.length) return
     const e = delEnlace.current
@@ -304,9 +412,58 @@ export default function App() {
       if (todos) e.origen = null
     }
     if (e.destino && porId[e.destino]) { setDestino(porId[e.destino]); e.destino = null }
+    // ?consulta=Cardiología: el destino es el lugar con ese nombre (se espera a tener todos los pisos)
+    if (e.consulta && !e.destino && todos) {
+      const l = buscarLugar(lugares, e.consulta)
+      if (l) setDestino(l)
+      e.consulta = null
+    }
   }, [lugares, porId, pisos, d])
 
-  useEffect(() => setRecorrer(false), [origen, destino])
+  useEffect(() => { setRecorrer(false); setTransicion(null); setLlego(false); avance.set(null) }, [origen, destino])
+
+  // ---------- mensajes del tótem de OM3 (solo desde la ventana padre y el origen indicado en ?padre=)
+  // { tipo: 'mapa-ir', destino?: id, consulta?: texto, origen?: id, recorrer?: true, vista?: '2d'|'3d' }
+  // { tipo: 'mapa-reiniciar' }: vuelve al estado inicial para el siguiente paciente
+  // El mapa responde { tipo: 'mapa-listo' } al cargar el primer piso y { tipo: 'mapa-pisos-listos' } con todos.
+  const [pedido, setPedido] = useState(null)
+  const reiniciarRef = useRef(() => {})
+  useEffect(() => {
+    if (!PADRE_TOTEM) return
+    const alRecibir = (e) => {
+      if (e.origin !== PADRE_TOTEM || e.source !== window.parent || !e.data || typeof e.data !== 'object') return
+      if (e.data.tipo === 'mapa-ir') setPedido({ ...e.data, t: Date.now() })
+      else if (e.data.tipo === 'mapa-reiniciar') reiniciarRef.current()
+    }
+    window.addEventListener('message', alRecibir)
+    return () => window.removeEventListener('message', alRecibir)
+  }, [])
+  const avisado = useRef({ listo: false, pisos: false })
+  useEffect(() => {
+    if (!PADRE_TOTEM || !d) return
+    if (!avisado.current.listo) { avisado.current.listo = true; window.parent.postMessage({ tipo: 'mapa-listo' }, PADRE_TOTEM) }
+    const disponibles = (d.edificio?.pisos || []).filter((p) => p.disponible).length
+    if (!avisado.current.pisos && Object.keys(pisos).length >= disponibles) {
+      avisado.current.pisos = true
+      window.parent.postMessage({ tipo: 'mapa-pisos-listos' }, PADRE_TOTEM)
+    }
+  }, [d, pisos])
+  // el pedido se aplica cuando ya están los lugares (si el destino es de un piso que todavía carga, espera)
+  useEffect(() => {
+    if (!pedido || !lugares.length) return
+    const disponibles = (d?.edificio?.pisos || []).filter((p) => p.disponible).length
+    const todosListos = Object.keys(pisos).length >= disponibles
+    const dest = pedido.destino ? porId[pedido.destino] : pedido.consulta && todosListos ? buscarLugar(lugares, pedido.consulta) : null
+    if (!dest && !todosListos) return
+    const ori = pedido.origen ? porId[pedido.origen] : null
+    if (pedido.origen && !ori && !todosListos) return
+    setPedido(null)
+    setBuscando(null); setFicha(null)
+    if (pedido.vista === '2d' || pedido.vista === '3d') setModo(pedido.vista)
+    if (ori) setOrigen(ori)
+    if (dest) { setDestino(dest); if (pedido.recorrer) autoRecorrer.current = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pedido, lugares, porId, pisos])
   // ruta completa (puede tener tramos en dos pisos): { tramos: [{ piso, pts, metros, pasos }], metros, vertical, alternativa }
   const ruta = useMemo(() => {
     if (!origen || !destino || origen.id === destino.id) return null
@@ -355,6 +512,53 @@ export default function App() {
     return null
   }, [pisos, origen, destino, admin, accesible, rutaOk, porId])
 
+  // ---------- recorrido guiado: el personaje camina cada tramo; entre pisos, una animación del ascensor o la escalera
+  const pisoRef = useRef(pisoId)
+  pisoRef.current = pisoId
+  const onAvance = (s, L) => avance.set({ s, L, piso: pisoRef.current })
+  const empezar = () => {
+    if (!rutaOk) return
+    setLlego(false); setTransicion(null); avance.set(null)
+    if (rutaOk.tramos[0].piso !== pisoId) verPiso(rutaOk.tramos[0].piso)
+    setRecorrer(true)
+  }
+  const detener = () => { setRecorrer(false); setTransicion(null); setLlego(false) }
+  const finTramo = () => {
+    if (!rutaOk) { setRecorrer(false); return }
+    const k = rutaOk.tramos.findIndex((t) => t.piso === pisoRef.current)
+    const sig = rutaOk.tramos[k + 1]
+    if (k >= 0 && sig) {
+      setTransicion({ tipo: rutaOk.vertical?.tipo === 'escalera' ? 'escalera' : 'ascensor', de: pisoRef.current, a: sig.piso, nombre: rutaOk.vertical?.conector?.nombre || '' })
+      return
+    }
+    setRecorrer(false)
+    setLlego(true)
+  }
+  const finTransicion = () => {
+    const t = transicion
+    setTransicion(null)
+    if (t) { avance.set(null); verPiso(t.a) }
+  }
+  // estado inicial para el siguiente paciente (OM3 lo pide al volver al inicio del tótem)
+  reiniciarRef.current = () => {
+    setRecorrer(false); setTransicion(null); setLlego(false); avance.set(null)
+    setBuscando(null); setFicha(null); setFoco(null); setVerPasos(false); setPedido(null)
+    setDestino(null)
+    setOrigen(porId['entrada-puerta-1'] || lugares.find((l) => l.entrada) || null)
+    setModo(VISTA_INICIAL)
+    if (pisoId !== (d?.edificio?.pisoInicial || 'PB')) verPiso(d?.edificio?.pisoInicial || 'PB')
+    setTimeout(() => vista()?.centrar?.(), 300)
+  }
+  // ?recorrer=1 (enlace de OM3 con la consulta de la cita): empieza a caminar solo, una vez, cuando la ruta está lista
+  const autoRecorrer = useRef(RECORRER_AUTO)
+  useEffect(() => {
+    if (!autoRecorrer.current || !rutaOk) return
+    autoRecorrer.current = false
+    const t = setTimeout(empezar, 1200)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [claveRuta])
+
   // el enlace refleja el origen y el destino (para compartir)
   useEffect(() => {
     if (!origen) return
@@ -368,8 +572,8 @@ export default function App() {
     history.replaceState(null, '', `${location.pathname}?${p}`)
   }, [origen, destino, accesible, via])
 
-  const lugaresIcono = useMemo(() => lugares.filter((l) => l.piso === pisoId && !l.enCuarto).filter((l) => l.entrada || ['banos', 'escaleras', 'ascensores', 'farmacia'].includes(l.cat) || ['caja', 'info', 'capilla'].includes(l.icono))
-    .map((l) => ({ ...l, id: l.local, x: l.entrada ? l.x : l.lbl[0], y: l.entrada ? l.y : l.lbl[1], color: l.entrada ? TINTA : '#FFFFFF' })), [lugares, pisoId])
+  const lugaresIcono = useMemo(() => todos.filter((l) => l.piso === pisoId).filter((l) => l.entrada || ['banos', 'escaleras', 'ascensores', 'farmacia'].includes(l.cat) || ['caja', 'info', 'capilla'].includes(l.icono))
+    .map((l) => ({ ...l, id: l.local, x: l.entrada ? l.x : l.lbl[0], y: l.entrada ? l.y : l.lbl[1], color: l.entrada ? TINTA : '#FFFFFF', privado: !!l.enCuarto })), [todos, pisoId])
 
   const elegirDesdeMapa = (id) => {
     const l = porId[idGlobal(pisoId, id)]
@@ -392,10 +596,10 @@ export default function App() {
   const focoVista = foco && foco.piso === pisoId ? foco : null
 
   return (
-    <div className={`pb-app modo-${modo}${INSERTADO ? ` insertado-${INSERTADO}` : ''}`}>
+    <div className={`pb-app modo-${modo}${INSERTADO ? ` insertado-${INSERTADO}` : ''}${LIGERO ? ' ligero' : ''}`}>
       {modo === '2d'
-        ? <Mapa ref={mapa} d={d} ruta={tramo} origen={local(origen)} destino={destinoVista} foco={focoVista} hover={hover} onElegir={elegirDesdeMapa} onHover={setHover} lugaresIcono={lugaresIcono} pick={!!pick} onPick={onPick} trazo={pick?.tipo === 'trazo' ? { tipo: pick.paso, puntos: pick.puntos } : null} recorrer={recorrer} onFinRecorrer={() => setRecorrer(false)} />
-        : <Suspense fallback={<Cargando texto="Preparando el 3D…" />}><Vista3D ref={vista3d} d={d} pisos={pisos} onPiso={verPiso} ruta={tramo} destino={destinoVista} foco={focoVista} recorrer={recorrer} setRecorrer={setRecorrer} onFinRecorrer={() => setRecorrer(false)} /></Suspense>}
+        ? <Mapa ref={mapa} d={d} ruta={tramo} origen={local(origen)} destino={destinoVista} foco={focoVista} hover={hover} onElegir={elegirDesdeMapa} onHover={setHover} lugaresIcono={lugaresIcono} pick={!!pick} onPick={onPick} trazo={pick?.tipo === 'trazo' ? { tipo: pick.paso, puntos: pick.puntos } : null} recorrer={recorrer && !transicion} onFinRecorrer={finTramo} onAvance={onAvance} />
+        : <Suspense fallback={<Cargando texto="Preparando el 3D…" />}><Vista3D ref={vista3d} d={d} pisos={pisos} onPiso={verPiso} ruta={tramo} destino={destinoVista} foco={focoVista} recorrer={recorrer && !transicion} onFinRecorrer={finTramo} onAvance={onAvance} /></Suspense>}
 
       {/* columna izquierda: marca, búsqueda y ruta */}
       {admin && (
@@ -406,7 +610,7 @@ export default function App() {
 
       {!buscando && !admin && (
         <div className="pb-col">
-          <div className="barra">
+          <div className={`barra${recorrer || llego || transicion ? ' oculta' : ''}`}>
             <div className="barra-fila">
               <picture className="barra-logo" aria-label="SOLCA Núcleo de Quito">
                 <source media="(max-width: 560px)" srcSet={`${import.meta.env.BASE_URL}marca/solca-emblema.png`} />
@@ -414,13 +618,17 @@ export default function App() {
               </picture>
               <button className="barra-buscar" onClick={() => setBuscando({ modo: 'destino' })}>
                 <Icono nombre="buscar" size={18} />
-                <span>{destino ? destino.nombre : '¿A dónde quieres ir?'}</span>
+                <span>{destino ? destino.nombre : 'Guía del hospital'}</span>
               </button>
             </div>
-            <BarraFoco items={CHIPS_FOCO} activo={destino ? chipDe(destino.cat) : null} onElegir={(c) => setBuscando({ modo: 'destino', cat: c.cat })} />
           </div>
 
-          {destino && (
+          {destino && rutaOk && (recorrer || llego || transicion) && (
+            <BarraNav ruta={rutaOk} pisoId={pisoId} pisos={pisos} llego={llego} destino={destino} onDetener={detener} onVerPiso={verPiso}
+              onListo={() => setLlego(false)} />
+          )}
+
+          {destino && !(rutaOk && (recorrer || llego || transicion)) && (
             <Hoja clase="pb-ruta" resumen={rutaOk ? `${Math.round(rutaOk.metros)} m · ${minutos} min` : destino.nombre}>
               <div className="campos">
                 <Campo tipo="origen" lugar={origen} onClick={() => setBuscando({ modo: 'origen' })} />
@@ -447,7 +655,11 @@ export default function App() {
                     <input type="checkbox" checked={accesible} onChange={(e) => setAccesible(e.target.checked)} />
                     <Icono nombre="accesible" size={16} /> Ruta accesible (sin escalones)
                   </label>
-                  <ol className="pb-pasos">
+                  <button className="pb-ver-pasos" onClick={() => setVerPasos((v) => !v)} aria-expanded={verPasos}>
+                    <Icono nombre={verPasos ? 'bajar' : 'subir'} size={15} grosor={2.4} />
+                    {verPasos ? 'Ocultar los pasos' : `Ver los ${rutaOk.tramos.reduce((n, t, k) => n + t.pasos.length - (k > 0 ? 1 : 0), rutaOk.vertical ? 1 : 0)} pasos`}
+                  </button>
+                  {verPasos && <ol className="pb-pasos">
                     {rutaOk.tramos.map((t, k) => [
                       rutaOk.tramos.length > 1 && (
                         <li key={`p${k}`} className={`paso-piso${t.piso === pisoId ? ' on' : ''}`}>
@@ -467,12 +679,11 @@ export default function App() {
                         </li>
                       ),
                     ])}
-                  </ol>
+                  </ol>}
                   <div className="acciones">
-                    <button className="btn-negro btn-recorrer" onClick={() => setRecorrer((r) => !r)}>
-                      <Icono nombre={recorrer ? 'cerrar' : 'caminar'} size={16} color="#fff" />{recorrer ? 'Detener recorrido' : `Recorrer en ${modo === '2d' ? '2D' : '3D'}`}
+                    <button className="btn-negro btn-recorrer" onClick={empezar}>
+                      <Icono nombre="caminar" size={16} color="#fff" />Caminar
                     </button>
-                    <button className="btn-claro" onClick={() => setModo(modo === '2d' ? '3d' : '2d')}>{modo === '2d' ? 'Ver en 3D' : 'Ver en 2D'}</button>
                     {!INSERTADO && <button className="btn-claro" onClick={() => setQr(true)}>QR</button>}
                     <button className="btn-claro" onClick={() => setDestino(null)} aria-label="Cerrar ruta">Cerrar</button>
                   </div>
@@ -492,7 +703,7 @@ export default function App() {
       )}
 
       {buscando && (
-        <Buscador lugares={lugares} modo={buscando.modo} cat={buscando.cat} onCerrar={() => setBuscando(null)}
+        <Buscador lugares={lugares} pisos={d.edificio?.pisos || []} origen={origen} modo={buscando.modo} cat={buscando.cat} onCerrar={() => setBuscando(null)}
           onElegir={(l) => { if (buscando.modo === 'origen') { setOrigen(l); setBuscando(null) } else irA(l) }} />
       )}
 
@@ -501,18 +712,30 @@ export default function App() {
         <Hoja clase="pb-ficha" resumen={ficha.nombre} arrastrable={false}>
           <div className="pb-ficha-cab">
             <Insignia icono={ficha.icono} color={colorDe(ficha)} size={40} />
-            <div><small>{ficha.entrada ? 'Entrada del edificio' : `${ficha.pisoCorto} · ${CATS[ficha.cat]?.nombre || ''}${ficha.area ? ` · ${ficha.area.toFixed(0)} m²` : ''}`}{ficha.cerca ? ` · junto a ${ficha.cerca}` : ''}</small>
-              {!alcanzable(ficha) && <small className="ficha-aviso">Sin camino por pasillos abiertos en el plano</small>}</div>
+            <div><small>{ficha.enCuarto ? `Baño privado${ficha.dentroDe ? ` de ${ficha.dentroDe}` : ' (uso interno)'} · ${ficha.pisoCorto}` : ficha.entrada ? `Entrada y salida · ${ficha.pisoNombre}` : `${ficha.pisoCorto} · ${CATS[ficha.cat]?.nombre || ''}${ficha.area ? ` · ${ficha.area.toFixed(0)} m²` : ''}`}{ficha.cerca && !ficha.enCuarto ? ` · junto a ${ficha.cerca}` : ''}</small>
+              {!ficha.enCuarto && !alcanzable(ficha) && <small className="ficha-aviso">Sin camino por pasillos abiertos en el plano</small>}</div>
             <button className="icono-btn mini" onClick={() => setFicha(null)} aria-label="Cerrar"><Icono nombre="cerrar" size={16} /></button>
           </div>
-          <div className="acciones">
-            <button className="btn-negro" onClick={() => irA(ficha)}>Cómo llegar</button>
-            <button className="btn-claro" onClick={() => { setOrigen(ficha); setFicha(null) }}>Estoy aquí</button>
-          </div>
+          {ficha.enCuarto ? (() => {
+            // no es un destino: se ofrece el cuarto al que pertenece, si es un lugar de pacientes
+            const cuarto = ficha.dentroDe && lugares.find((l) => l.piso === ficha.piso && l.nombre === ficha.dentroDe)
+            return (
+              <div className="acciones">
+                <p className="ruta-nota">Este baño es parte de {ficha.dentroDe || 'un área interna'}. Para pacientes, busca «Baños» en la guía.</p>
+                {cuarto && <button className="btn-negro" onClick={() => irA(cuarto)}>Cómo llegar a {cuarto.nombre}</button>}
+                <button className="btn-claro" onClick={() => { setFicha(null); setBuscando({ modo: 'destino', cat: 'banos' }) }}>Baños para pacientes</button>
+              </div>
+            )
+          })() : (
+            <div className="acciones">
+              <button className="btn-negro" onClick={() => irA(ficha)}>Cómo llegar</button>
+              <button className="btn-claro" onClick={() => { setOrigen(ficha); setFicha(null) }}>Estoy aquí</button>
+            </div>
+          )}
         </Hoja>
       )}
 
-      {/* columna derecha: 2D / 3D, zoom y leyenda */}
+      {/* columna derecha: 2D / 3D, zoom y pisos */}
       <div className="pb-der">
         <div className="pb-seg pb-modo" role="tablist" aria-label="Vista">
           <button role="tab" aria-selected={modo === '2d'} onClick={() => setModo('2d')}>2D</button>
@@ -523,7 +746,6 @@ export default function App() {
           { id: 'menos', icono: 'menos', titulo: 'Alejar', onClick: () => vista()?.alejar() },
           { id: 'centrar', icono: 'centrar', titulo: 'Centrar el edificio', onClick: () => vista()?.centrar() },
           { id: 'piso', texto: d.piso?.corto || 'PB', titulo: 'Cambiar de piso', on: pisosAbierto, onClick: () => setPisosAbierto((v) => !v) },
-          { id: 'leyenda', icono: 'mapa', titulo: 'Leyenda', on: leyenda, onClick: () => setLeyenda((v) => !v) },
           ...(INSERTADO ? [] : [{ id: 'admin', icono: 'ajustes', titulo: admin ? 'Salir de administración' : 'Administración', on: admin, onClick: () => (admin ? setAdmin(false) : setPedirClave(true)) }]),
         ]} />
         {pisosAbierto && (
@@ -537,15 +759,9 @@ export default function App() {
             ))}
           </ul>
         )}
-        {leyenda && (
-          <ul className="pb-leyenda">
-            {[['consulta', 'consulta'], ['espera', 'silla'], ['banos', 'bano'], ['farmacia', 'farmacia'], ['administracion', 'administracion'], ['circulacion', 'piso'], ['escaleras', 'escalera'], ['apoyo', 'servicios']].map(([k, ic]) => (
-              <li key={k}><Insignia icono={ic} color={CATS[k].acento} size={24} />{CATS[k].nombre}</li>
-            ))}
-          </ul>
-        )}
       </div>
 
+      {transicion && <CambioPiso {...transicion} pisos={d.edificio?.pisos || []} onFin={finTransicion} />}
       {pedirClave && <Clave onOk={() => { setAdmin(true); setPedirClave(false) }} onCerrar={() => setPedirClave(false)} />}
       {qr && origen && <QR lugar={{ ...origen, pisoNombre: pisos[origen.piso]?.piso?.nombre }} onCerrar={() => setQr(false)} />}
       {!INSERTADO && <a className="pb-proto" href={`${import.meta.env.BASE_URL}prototipo/`}>Prototipo anterior (5 pisos)</a>}

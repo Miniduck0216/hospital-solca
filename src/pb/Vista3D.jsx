@@ -9,12 +9,13 @@ import { BASE, aLonLat, rumbo, dePlano, CATS } from './datos.js'
 import { Cargando } from './Cargando.jsx'
 import { Exterior } from './Exterior3D.jsx'
 import { Letreros } from './Letreros3D.jsx'
+import { LIGERO } from './rendimiento.js'
 
 const E = ([x, y], h = 0) => new THREE.Vector3(x, h, -y)    // plano (x, y) -> escena
 
 function SueloMapa({ centro, onListo }) {
   const [tex, setTex] = useState(null)
-  const LADO = 560, PX = 2048
+  const LADO = 560, PX = LIGERO ? 1024 : 2048
   useEffect(() => {
     let vivo = true
     const div = document.createElement('div')
@@ -68,7 +69,7 @@ function SueloMapa({ centro, onListo }) {
       ctx.drawImage(map.getCanvas(), 0, 0, PX, PX)
       const t = new THREE.CanvasTexture(cv)
       t.colorSpace = THREE.SRGBColorSpace
-      t.anisotropy = 8
+      t.anisotropy = LIGERO ? 1 : 8
       t.generateMipmaps = true
       t.minFilter = THREE.LinearMipmapLinearFilter
       setTex(t)
@@ -452,7 +453,7 @@ function Puertas({ puertas, plano, persona, ruta, recorrer }) {
 
 // el personaje recorre la ruta a 1,3 m/s. La cámara lo acompaña como en un juego en tercera persona: se traslada con
 // él, y con el ratón (o el dedo) se puede girar alrededor, subir o bajar la mirada y acercar, sin perderlo de foco
-function Caminante({ ruta, recorrer, controles, andado, alTerminar, persona, base = 0 }) {
+function Caminante({ ruta, recorrer, controles, andado, alTerminar, onAvance, persona, base = 0 }) {
   const ref = useRef()
   const t = useRef(0)
   const caminando = useRef(false)
@@ -460,10 +461,12 @@ function Caminante({ ruta, recorrer, controles, andado, alTerminar, persona, bas
   const { L, en } = useMemo(() => medir(ruta.pts), [ruta])
   const prev = useRef(null)
   const llegada = useRef(0)   // segundos desde que empezó el recorrido (la cámara se acomoda detrás en el primero)
-  useEffect(() => { t.current = 0; fin.current = false; andado.current = recorrer ? 0 : null; prev.current = null; llegada.current = 0 }, [ruta, recorrer, andado])
+  const ultAv = useRef(0)
+  useEffect(() => { t.current = 0; fin.current = false; andado.current = recorrer ? 0 : null; prev.current = null; llegada.current = 0; ultAv.current = 0 }, [ruta, recorrer, andado])
   useFrame((_, dt) => {
     if (!ref.current) return
-    if (recorrer && !fin.current) t.current += Math.min(dt, 0.1) * 1.3
+    // tope de 0,25 s por cuadro: en un equipo lento el personaje no camina en cámara lenta
+    if (recorrer && !fin.current) t.current += Math.min(dt, 0.25) * 1.3
     const s = Math.min(t.current, L)
     const q = en(s)
     caminando.current = recorrer && !fin.current && s < L
@@ -492,6 +495,8 @@ function Caminante({ ruta, recorrer, controles, andado, alTerminar, persona, bas
       prev.current = obj
       c.update()
     }
+    // avance para la barra de navegación (paso actual y metros que faltan), unas 4 veces por segundo
+    if (recorrer && (llegada.current - (ultAv.current || 0) > 0.25 || s >= L)) { ultAv.current = llegada.current; onAvance?.(s, L) }
     if (recorrer && s >= L && !fin.current) { fin.current = true; alTerminar?.() }
   })
   return <group ref={ref}><Personaje caminando={caminando} /></group>
@@ -619,10 +624,25 @@ function SeguirAltura({ controles, altura }) {
   return null
 }
 
+// modo ligero: el lienzo se dibuja a pedido y este reloj lo pide a 30 cuadros por segundo (la mitad del trabajo de la
+// tarjeta gráfica del tótem; los movimientos se ven igual de suaves para seguir la ruta)
+function Cuadros({ fps = 30 }) {
+  const { invalidate } = useThree()
+  useEffect(() => {
+    const id = setInterval(() => { if (!document.hidden) invalidate() }, 1000 / fps)
+    return () => clearInterval(id)
+  }, [invalidate, fps])
+  return null
+}
+
 const ORDEN = (a, b) => a.nivel - b.nivel
-export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destino, foco, recorrer = false, setRecorrer = () => {}, onFinRecorrer, onPiso }, fwd) {
+export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destino, foco, recorrer = false, onFinRecorrer, onAvance, onPiso }, fwd) {
   const [corte, setCorte] = useState(1.2)   // muros bajos por defecto: se ven los pisos, como en una maqueta isométrica
   const [letreros, setLetreros] = useState(true)
+  const [opciones, setOpciones] = useState(false)   // altura de muros y letreros: plegados para no recargar la pantalla
+  // la ayuda de gestos se ve unos segundos al abrir el 3D y se va
+  const [ayuda, setAyuda] = useState(true)
+  useEffect(() => { const t = setTimeout(() => setAyuda(false), 7000); return () => clearTimeout(t) }, [])
   // edificio completo (con sus techos) o un piso a la vista (los de arriba suben y se apartan)
   const [armado, setArmado] = useState(!ruta && !foco)
   const pisoId = d.piso?.id || 'PB'
@@ -680,11 +700,13 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
   }
   return (
     <div className="pb-3d">
-      <Canvas shadows flat dpr={[1, 2]} camera={{ position: [cx + 95, altura + 110, -cy + 95], fov: 32, near: 1, far: 2400 }} gl={{ antialias: true, logarithmicDepthBuffer: true }}>
+      <Canvas shadows={!LIGERO} flat dpr={LIGERO ? 1 : [1, 2]} frameloop={LIGERO ? 'demand' : 'always'} camera={{ position: [cx + 95, altura + 110, -cy + 95], fov: 32, near: 1, far: 2400 }}
+        gl={{ antialias: !LIGERO, logarithmicDepthBuffer: true, powerPreference: LIGERO ? 'low-power' : 'high-performance' }}>
+        {LIGERO && <Cuadros fps={30} />}
         <color attach="background" args={['#F2EAD8']} />
         <fog attach="fog" args={['#F2EAD8', 320, 760]} />
         <hemisphereLight args={['#FFFFFF', '#D8CDB8', 1.25]} />
-        <directionalLight position={[cx + 70, 140, -cy + 30]} intensity={2.1} castShadow shadow-mapSize={[2048, 2048]}
+        <directionalLight position={[cx + 70, 140, -cy + 30]} intensity={2.1} castShadow={!LIGERO} shadow-mapSize={[2048, 2048]}
           shadow-camera-left={-110} shadow-camera-right={110} shadow-camera-top={110} shadow-camera-bottom={-110} shadow-camera-near={10} shadow-camera-far={450}
           shadow-bias={-0.0004} shadow-normalBias={0.06} target-position={[cx, 0, -cy]} />
         {lista.map((p) => (
@@ -701,7 +723,7 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
             <Puertas puertas={d.puertas} plano={plano} persona={persona} ruta={ruta} recorrer={recorrer} />
             <Letreros d={d} visibles={letreros} />
             {ruta && <Ruta ruta={ruta} andado={andado} />}
-            {ruta && <Caminante ruta={ruta} recorrer={recorrer} controles={controles} andado={andado} alTerminar={onFinRecorrer} persona={persona} base={base} />}
+            {ruta && <Caminante ruta={ruta} recorrer={recorrer} controles={controles} andado={andado} alTerminar={onFinRecorrer} onAvance={onAvance} persona={persona} base={base} />}
           </group>
         )}
         {foco && !armado && <MarcaFoco foco={foco} controles={controles} base={base} />}
@@ -718,7 +740,10 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
               onClick={() => { setArmado(false); if (p.id !== pisoId) onPiso?.(p.id) }}>{p.corto || p.id}</button>
           ))}
         </div>
-        {!armado && (<>
+        {!armado && (
+          <button className="pb-3d-mas" aria-expanded={opciones} onClick={() => setOpciones((v) => !v)}>{opciones ? 'Menos opciones' : 'Más opciones'}</button>
+        )}
+        {!armado && opciones && (<>
           <span className="pb-3d-t">Altura de muros</span>
           <div className="pb-seg">
             {[[1.2, 'Bajos'], [2.6, 'Medios'], [3.9, 'Completos']].map(([v, t]) => (
@@ -727,11 +752,10 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
           </div>
           <label className="pb-check"><input type="checkbox" checked={letreros} onChange={(e) => setLetreros(e.target.checked)} /> Letreros</label>
         </>)}
-        {ruta && <button className="btn-negro pb-recorrer" onClick={() => setRecorrer(!recorrer)}>{recorrer ? 'Detener recorrido' : `Recorrer hasta ${destino?.nombre || 'el destino'}`}</button>}
       </div>
-      <p className="pb-ayuda3d">{TACTIL
+      {ayuda && <p className="pb-ayuda3d">{TACTIL
         ? 'Un dedo para girar · pellizca para acercar · dos dedos para mover · o usa + y −'
-        : 'Arrastra para girar · rueda o pellizco para acercar · clic derecho para mover'}</p>
+        : 'Arrastra para girar · rueda o pellizco para acercar · clic derecho para mover'}</p>}
     </div>
   )
 })

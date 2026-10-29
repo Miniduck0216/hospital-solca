@@ -7,6 +7,7 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { aLonLat, dePlano, rumbo, CATS, ICONO_LUGAR } from './datos.js'
 import { Icono } from '../ui/mapa2d/Iconos.jsx'
+import { LIGERO } from './rendimiento.js'
 
 const ESTILO = 'https://tiles.openfreemap.org/styles/positron'
 const FONDO = { version: 8, sources: {}, layers: [{ id: 'fondo', type: 'background', paint: { 'background-color': '#ECEFF3' } }] }
@@ -42,10 +43,12 @@ function capas(d) {
     geometry: { type: 'Polygon', coordinates: anillos(a.pg) },
   })))
   const rotulos = FC(d.ambientes.filter((a) => a.nombre && (a.area >= 1.2 || a.nuevo)).map((a) => ({
-    type: 'Feature', properties: { nombre: a.nombre, area: a.area, orden: -a.area, pasillo: a.cat === 'circulacion' ? 1 : 0, pin: conPin(a) ? 1 : 0, techo: esPlano(a) ? 0 : 1 },
+    type: 'Feature', properties: { nombre: a.nombre, area: a.area, orden: -a.area, personal: a.personal ? 1 : 0, pasillo: a.cat === 'circulacion' ? 1 : 0, pin: conPin(a) ? 1 : 0, techo: esPlano(a) ? 0 : 1 },
     geometry: { type: 'Point', coordinates: aLonLat(a.lbl[0], a.lbl[1]) },
   })))
-  const parqueos = FC(d.parqueos.map((p) => ({ type: 'Feature', properties: { nombre: p.nombre }, geometry: { type: 'Polygon', coordinates: [[...p.ll, p.ll[0]]] } })))
+  // parqueaderos: solo una señal «P» en el centro de cada uno (el área ya se ve en el mapa base)
+  const centro = (ll) => [ll.reduce((s, p) => s + p[0], 0) / ll.length, ll.reduce((s, p) => s + p[1], 0) / ll.length]
+  const parqueos = FC(d.parqueos.map((p) => ({ type: 'Feature', properties: { nombre: p.nombre }, geometry: { type: 'Point', coordinates: centro(p.ll) } })))
   return {
     huella: polis(d.huella),
     perfil: polis(d.perfil || []),
@@ -64,12 +67,12 @@ function capas(d) {
 
 const vacio = FC([])
 
-export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, hover, onElegir, onHover, lugaresIcono, pick = false, onPick, recorrer = false, onFinRecorrer, trazo = null }, fwd) {
+export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, hover, onElegir, onHover, lugaresIcono, pick = false, onPick, recorrer = false, onFinRecorrer, onAvance, trazo = null }, fwd) {
   const ref = useRef(null)
   const mapa = useRef(null)
   const [listo, setListo] = useState(false)
   const cb = useRef({})
-  cb.current = { onElegir, onHover, onPick, pick, onFinRecorrer }
+  cb.current = { onElegir, onHover, onPick, pick, onFinRecorrer, onAvance }
   const marcas = useRef([])
   const marcasRuta = useRef([])
   const anim = useRef(0)
@@ -106,6 +109,7 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
     const map = new maplibregl.Map({
       container: ref.current, style: ESTILO, center: c, zoom: 17.6, minZoom: 15, maxZoom: 21.5, bearing: rumbo(), pitch: 40, maxPitch: 60,
       pitchWithRotate: false, touchPitch: false, dragRotate: false, attributionControl: { compact: true }, fadeDuration: 0,
+      ...(LIGERO ? { pixelRatio: 1, antialias: false } : {}),
     })
     mapa.current = map
     const ro = new ResizeObserver(() => map.resize())
@@ -132,9 +136,8 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
         }
       } catch { /* estilo de respaldo sin esas capas */ }
       map.setLight({ anchor: 'map', color: '#FFFFFF', intensity: 0.2, position: [1.4, 200, 35] })
-      map.addLayer({ id: 'parqueos', type: 'fill', source: 'parqueos', paint: { 'fill-color': '#D6DBE2', 'fill-opacity': 0.95 } })
-      map.addLayer({ id: 'parqueos-borde', type: 'line', source: 'parqueos', paint: { 'line-color': '#FFFFFF', 'line-width': 1.4, 'line-dasharray': [3, 2] } })
-      if (fuente) map.addLayer({ id: 'parqueos-txt', type: 'symbol', source: 'parqueos', layout: { 'text-field': ['concat', 'P  ', ['get', 'nombre']], 'text-font': fuente, 'text-size': 12, 'text-allow-overlap': false }, paint: { 'text-color': '#3F5A80', 'text-halo-color': '#fff', 'text-halo-width': 1.4 } })
+      map.addLayer({ id: 'parqueos', type: 'circle', source: 'parqueos', minzoom: 16, paint: { 'circle-color': '#2F6FDE', 'circle-radius': ['interpolate', ['linear'], ['zoom'], 16, 7, 20, 13], 'circle-stroke-color': '#FFFFFF', 'circle-stroke-width': 2 } })
+      if (fuente) map.addLayer({ id: 'parqueos-txt', type: 'symbol', source: 'parqueos', minzoom: 16, layout: { 'text-field': 'P', 'text-font': fuente, 'text-size': ['interpolate', ['linear'], ['zoom'], 16, 10, 20, 17], 'text-allow-overlap': true }, paint: { 'text-color': '#FFFFFF' } })
       // edificio: losa clara con sombra suave
       map.addLayer({ id: 'viseras', type: 'fill', source: 'viseras', paint: { 'fill-color': '#E9ECF1', 'fill-opacity': 0.8 } })
       // perfil del hospital (planta baja) bajo los pisos altos: losa gris clara con su borde
@@ -148,7 +151,7 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
         'fill-opacity': ['case', ['boolean', ['feature-state', 'hover'], false], 0.8, 1],
       } })
       map.addLayer({ id: 'pasos', type: 'line', source: 'pasos', layout: { 'line-cap': 'round' }, paint: { 'line-color': '#2E9D5B', 'line-width': ['interpolate', ['linear'], ['zoom'], 17, 2, 20, 6], 'line-dasharray': [1, 1.5] } })
-      map.addLayer({ id: 'gradas', type: 'line', source: 'gradas', minzoom: 17.5, paint: { 'line-color': '#9AA8BA', 'line-width': 0.8 } })
+      map.addLayer({ id: 'gradas', type: 'line', source: 'gradas', minzoom: LIGERO ? 19 : 17.5, paint: { 'line-color': '#9AA8BA', 'line-width': 0.8 } })
       // cuartos como bloques: el destino se pinta lila, el que está bajo el cursor un poco más intenso
       map.addLayer({ id: 'ambientes-3d', type: 'fill-extrusion', source: 'ambientes', filter: ['>', ['get', 'alto'], 0], paint: {
         'fill-extrusion-color': ['case', ['boolean', ['feature-state', 'destino'], false], '#7C83E6', ['boolean', ['feature-state', 'hover'], false], '#97BCEB', ['get', 'color']],
@@ -173,7 +176,7 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
       if (fuente) {
         // el nombre va sobre el techo del bloque (2,6 m): con el mapa inclinado, el techo se ve más arriba que el piso,
         // así que los rótulos de los bloques se suben en pantalla (ver alzarSobreTechos); los de pasillos quedan en el piso
-        const rot = (id, techo) => ({ id, type: 'symbol', source: 'rotulos', minzoom: 16.8, filter: ['all', ['==', ['get', 'techo'], techo], ['any', ['>=', ['get', 'area'], 60], ['>=', ['zoom'], ['case', ['>=', ['get', 'area'], 15], 17.8, 18.8]]]], layout: {
+        const rot = (id, techo) => ({ id, type: 'symbol', source: 'rotulos', minzoom: 16.8, filter: ['all', ['==', ['get', 'techo'], techo], ['any', ['==', ['get', 'personal'], 0], ['>=', ['zoom'], 19.6]], ['any', ['>=', ['get', 'area'], 60], ['>=', ['zoom'], ['case', ['>=', ['get', 'area'], 15], 17.8, 18.8]]]], layout: {
           'text-field': ['get', 'nombre'], 'text-font': fuente,
           'text-size': ['interpolate', ['linear'], ['zoom'], 17, ['case', ['>=', ['get', 'area'], 150], 12, 10], 20, ['case', ['>=', ['get', 'area'], 60], 16, 12.5]],
           'text-max-width': 7, 'text-line-height': 1.1, 'symbol-sort-key': ['get', 'orden'], 'text-padding': 2,
@@ -233,13 +236,13 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
     marcas.current = []
     for (const l of lugaresIcono) {
       const el = document.createElement('button')
-      el.className = 'pb-pin' + (l.entrada ? ' entrada' : '') + (l.entrada && /^Acceso/.test(l.nombre) ? ' menor' : '')
-      el.title = l.nombre
+      el.className = 'pb-pin' + (l.entrada ? ' entrada' : '') + (l.entrada && /^Acceso/.test(l.etiqueta || l.nombre) ? ' menor' : '') + (l.privado ? ' privado' : '')
+      el.title = l.privado ? `${l.nombre} (privado${l.dentroDe ? ` de ${l.dentroDe}` : ''})` : l.nombre
       // insignia redonda del color de su categoría con el ícono en blanco (como los mapas de interiores)
       const color = l.entrada ? TINTA_RUTA : (CATS[l.cat] || CATS.otro).acento
       el.style.setProperty('--pin', color)
       el.innerHTML = renderToStaticMarkup(<span className="pb-pin-c"><Icono nombre={l.icono} size={14} color="#fff" grosor={2.2} /></span>)
-        + (l.entrada ? `<span class="pb-pin-t">${l.nombre}</span>` : '')   // el nombre de los demás lo pone la capa de rótulos, debajo del ícono
+        + (l.entrada ? `<span class="pb-pin-t">${l.etiqueta || l.nombre}</span>` : '')   // el nombre de los demás lo pone la capa de rótulos, debajo del ícono
       el.addEventListener('click', (ev) => { ev.stopPropagation(); cb.current.onElegir?.(l.id, null) })
       const mk = new maplibregl.Marker({ element: el }).setLngLat(aLonLat(l.x, l.y)).addTo(map)
       mk._sobreTecho = !l.entrada && !['circulacion', 'espera'].includes(l.cat)   // ícono de un bloque: va sobre su techo
@@ -329,7 +332,7 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
       let ult = 0
       const cuadro = (now) => {
         const t = now - t0
-        if (now - ult > 50) {
+        if (now - ult > (LIGERO ? 140 : 50)) {
           ult = now
           if (t < 900) src.setData(puntos(L * (t / 900), 0, null))
           else {
@@ -376,9 +379,12 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
     andado.current = 0
     map.easeTo({ center: aLonLat(p0.x, p0.y), zoom: 20.2, pitch: 50, duration: 900 })
     let t0 = null
+    let ultAv = 0
     const paso = (now) => {
       if (t0 === null) t0 = now + 900
       const sAct = Math.max(0, Math.min(L, ((now - t0) / 1000) * 1.3))
+      // avance para la barra de navegación (paso actual y metros que faltan), unas 4 veces por segundo
+      if (now - ultAv > 250 || sAct >= L) { ultAv = now; cb.current.onAvance?.(sAct, L) }
       const q = en(sAct)
       andado.current = sAct
       m.setLngLat(aLonLat(q.x, q.y))

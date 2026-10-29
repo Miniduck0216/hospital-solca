@@ -1,9 +1,11 @@
 // Exterior del 3D en estilo isométrico de maqueta (como las ilustraciones de referencia): base del edificio con
-// canto, vereda clara, parqueaderos de asfalto con cajones pintados y autos, postes de luz, árboles de copa
-// redonda y algunas personas en las entradas. Los árboles, autos y personas son decorativos.
+// canto, vereda clara, calles del campus, árboles de copa redonda y algunas personas en las entradas. Los
+// parqueaderos ya no se dibujan (recargaban la vista): solo una señal «P» en cada uno. Árboles y personas son
+// decorativos; en el modo ligero (tótem) hay menos.
 import { useMemo } from 'react'
 import * as THREE from 'three'
 import { dePlano } from './datos.js'
+import { LIGERO } from './rendimiento.js'
 
 // plano (x, y) -> escena (x, -y)
 const enPoli = ([x, y], anillo) => {
@@ -64,35 +66,7 @@ function aLoLargo(anillo, paso) {
   return out
 }
 
-const COLORES_AUTO = ['#E74C3C', '#F1C40F', '#3498DB', '#2ECC71', '#ECF0F1', '#E67E22', '#9B59B6', '#34495E', '#1ABC9C', '#F5F6FA']
 const VERDES = ['#5DAE57', '#6CBF5E', '#4E9E4A', '#7BC86C']
-
-// cajones de parqueo dentro del polígono: filas de 5 m con pasillos de 6 m, alineadas con su lado más largo
-function cajones(pts) {
-  let mejor = 0, ang = 0
-  for (let i = 0; i < pts.length; i++) {
-    const a = pts[i], b = pts[(i + 1) % pts.length]
-    const L = Math.hypot(b[0] - a[0], b[1] - a[1])
-    if (L > mejor) { mejor = L; ang = Math.atan2(b[1] - a[1], b[0] - a[0]) }
-  }
-  const ux = Math.cos(ang), uy = Math.sin(ang), vx = -uy, vy = ux
-  const us = pts.map(([x, y]) => x * ux + y * uy), vs = pts.map(([x, y]) => x * vx + y * vy)
-  const u0 = Math.min(...us), u1 = Math.max(...us), v0 = Math.min(...vs), v1 = Math.max(...vs)
-  const W = 2.6, D = 5.0, PAS = 6.5
-  const out = []
-  let v = v0 + 1.2
-  let fila = 0
-  while (v + D < v1 - 1) {
-    for (let u = u0 + 1.2; u + W < u1 - 1; u += W) {
-      const cu = u + W / 2, cv = v + D / 2
-      const esq = [[u, v], [u + W, v], [u, v + D], [u + W, v + D]].map(([a, b]) => [a * ux + b * vx, a * uy + b * vy])
-      if (esq.every((p) => enPoli(p, pts))) out.push({ x: cu * ux + cv * vx, y: cu * uy + cv * vy, ang, frente: fila % 2 })
-    }
-    v += D + (fila % 2 === 0 ? 0 : PAS)
-    fila++
-  }
-  return out
-}
 
 // ruido suave con semilla (suma de ondas): agrupa los árboles en bosquecillos en vez de repartirlos parejo
 function ruido(x, y) {
@@ -119,11 +93,8 @@ export function Exterior({ d, mapa = null, losa: losaPiso = null }) {
     const anillos = (losaPiso || suelo).map((pg) => pg[0])
     const base = anillos.map((h) => losa(forma(ensanchar(h, 0.3)), 0.55))
     const vereda = anillos.map((h) => losa(forma(ensanchar(h, 2.6)), 0.3))
-    // parqueaderos
-    const asfalto = parqueos.map((q) => losa(forma(q), 0.12))
-    const borde = parqueos.map((q) => losa(forma(ensanchar(q, 0.7), [q.slice().reverse()]), 0.22))
-    const plazas = parqueos.flatMap((q) => cajones(q))
-    const autos = plazas.filter(() => rnd() < 0.7).map((c) => ({ ...c, color: COLORES_AUTO[Math.floor(rnd() * COLORES_AUTO.length)], giro: c.frente ? Math.PI : 0 }))
+    // parqueaderos: una señal «P» en el centro de cada uno
+    const senales = parqueos.map((q) => [q.reduce((s, p) => s + p[0], 0) / q.length, q.reduce((s, p) => s + p[1], 0) / q.length])
 
     // árboles: en el pasto del mapa (no en calles, veredas ni otros edificios), agrupados en bosquecillos como en
     // el terreno real, con aire alrededor del hospital y de los parqueaderos. Sin mapa: unos pocos alrededor.
@@ -187,10 +158,10 @@ export function Exterior({ d, mapa = null, losa: losaPiso = null }) {
     } else {
       for (const h of huellas) for (const p of aLoLargo(ensanchar(h, 9), 16)) if (fuera(p) && libre(p, 8)) poner(p)
     }
-    // postes de luz en los bordes de los parqueaderos
-    const postes = parqueos.flatMap((q) => aLoLargo(ensanchar(q, 0.35), 22)).filter((p) => !dentroEdif(p))
+    // modo ligero: uno de cada tres árboles (la forma de los bosques se mantiene) y sin personas
+    if (LIGERO) { const pocos = arboles.filter((_, k) => k % 3 === 0); arboles.length = 0; arboles.push(...pocos) }
     // personas en algunas entradas, un poco afuera
-    const gente = d.entradas.map((e, k) => {
+    const gente = LIGERO ? [] : d.entradas.map((e, k) => {
       const dx = (e.fx ?? e.x) - e.x, dy = (e.fy ?? e.y) - e.y, L = Math.hypot(dx, dy) || 1
       return { x: e.x + (dx / L) * 3.2 + (k % 2 ? 0.8 : -0.8), y: e.y + (dy / L) * 3.2, giro: Math.atan2(-dx, -dy), c: ['#E67E22', '#16A085', '#C0392B', '#2980B9', '#8E44AD', '#27AE60', '#D35400', '#2C3E50'][k % 8] }
     })
@@ -200,7 +171,7 @@ export function Exterior({ d, mapa = null, losa: losaPiso = null }) {
       return { tipo: c.tipo, piso: losa(forma(q), 0.1), borde: losa(forma(ensanchar(q, 1.2), [q.slice().reverse()]), 0.08),
         lineas: losa(forma(ensanchar(q, -1.0), [ensanchar(q, -1.12).reverse()]), 0.11) }
     })
-    return { base, vereda, asfalto, borde, plazas, autos, arboles, postes, gente, canchas, calles, veredasC }
+    return { base, vereda, senales, arboles, gente, canchas, calles, veredasC }
   }, [d, mapa, losaPiso])
 
   return (
@@ -209,8 +180,6 @@ export function Exterior({ d, mapa = null, losa: losaPiso = null }) {
       {datos.vereda.map((g, k) => <mesh key={'v' + k} geometry={g} position-y={-0.5} receiveShadow><meshLambertMaterial color="#E9E6DF" /></mesh>)}
       {datos.calles.map((g, k) => <mesh key={'c' + k} geometry={g} position-y={-0.21} receiveShadow><meshLambertMaterial color="#59616D" /></mesh>)}
       {datos.veredasC.map((g, k) => <mesh key={'w' + k} geometry={g} position-y={-0.21} receiveShadow><meshLambertMaterial color="#E9E6DF" /></mesh>)}
-      {datos.asfalto.map((g, k) => <mesh key={'a' + k} geometry={g} position-y={-0.2} receiveShadow><meshLambertMaterial color="#59616D" /></mesh>)}
-      {datos.borde.map((g, k) => <mesh key={'o' + k} geometry={g} position-y={-0.2} receiveShadow><meshLambertMaterial color="#DCD8CF" /></mesh>)}
       {datos.canchas.map((c, k) => (
         <group key={'c' + k} position-y={-0.2}>
           <mesh geometry={c.borde} receiveShadow><meshLambertMaterial color="#DCD8CF" /></mesh>
@@ -218,10 +187,8 @@ export function Exterior({ d, mapa = null, losa: losaPiso = null }) {
           <mesh geometry={c.lineas}><meshLambertMaterial color="#F4F4F0" /></mesh>
         </group>
       ))}
-      <Cajones plazas={datos.plazas} />
-      <Autos autos={datos.autos} />
       <Arboles key={datos.arboles.length} arboles={datos.arboles} />
-      <Postes postes={datos.postes} />
+      {datos.senales.map((p, k) => <SenalParqueo key={'p' + k} x={p[0]} y={p[1]} />)}
       {datos.gente.map((p, k) => <Persona key={k} {...p} />)}
     </group>
   )
@@ -245,38 +212,6 @@ function Instancias({ items, geo, color, colores, poner }) {
   )
 }
 
-function Cajones({ plazas }) {
-  // dos rayas blancas por cajón (los lados) y una al fondo
-  const rayas = useMemo(() => plazas.flatMap((c) => {
-    const ux = Math.cos(c.ang), uy = Math.sin(c.ang), vx = -uy, vy = ux
-    return [-1.3, 1.3].map((o) => ({ x: c.x + ux * o, y: c.y + uy * o, ang: c.ang, lado: true }))
-      .concat([{ x: c.x + vx * (c.frente ? 2.5 : -2.5), y: c.y + vy * (c.frente ? 2.5 : -2.5), ang: c.ang, lado: false }])
-  }), [plazas])
-  return (
-    <Instancias items={rayas} geo={<boxGeometry args={[1, 0.02, 1]} />} color="#F4F4F0"
-      poner={(o, r) => { o.position.set(r.x, -0.062, -r.y); o.rotation.set(0, r.ang, 0); o.scale.set(r.lado ? 0.12 : 2.6, 1, r.lado ? 5 : 0.12) }} />
-  )
-}
-
-function Autos({ autos }) {
-  const pos = (o, a, y, sx, sy, sz, dz = 0) => {
-    // el auto mira a lo largo del cajón (perpendicular a la fila)
-    o.position.set(a.x, y, -a.y); o.rotation.set(0, a.ang + a.giro, 0); o.scale.set(sx, sy, sz)
-    o.translateZ(dz / sz)
-  }
-  return (
-    <group>
-      <Instancias items={autos} geo={<boxGeometry args={[1, 1, 1]} />} colores={(a) => a.color} poner={(o, a) => pos(o, a, 0.42, 1.8, 0.62, 4.1)} />
-      <Instancias items={autos} geo={<boxGeometry args={[1, 1, 1]} />} color="#2C3E50" poner={(o, a) => pos(o, a, 0.98, 1.56, 0.5, 2.1, -0.2)} />
-      <Instancias items={autos} geo={<boxGeometry args={[1, 1, 1]} />} colores={(a) => a.color} poner={(o, a) => pos(o, a, 1.26, 1.6, 0.08, 2.0, -0.2)} />
-      {[[-0.82, 1.3], [0.82, 1.3], [-0.82, -1.3], [0.82, -1.3]].map(([wx, wz], k) => (
-        <Instancias key={k} items={autos} geo={<cylinderGeometry args={[0.33, 0.33, 0.24, 10]} />} color="#1E1E24"
-          poner={(o, a) => { o.position.set(a.x, 0.18, -a.y); o.rotation.set(0, a.ang + a.giro, 0); o.translateX(wx); o.translateZ(wz); o.rotateZ(Math.PI / 2); o.scale.set(1, 1, 1) }} />
-      ))}
-    </group>
-  )
-}
-
 function Arboles({ arboles }) {
   return (
     <group>
@@ -284,17 +219,6 @@ function Arboles({ arboles }) {
         poner={(o, a) => { o.position.set(a.x, 0.6 * a.s, -a.y); o.rotation.set(0, 0, 0); o.scale.setScalar(a.s) }} />
       <Instancias items={arboles} geo={<icosahedronGeometry args={[1.3, 1]} />} colores={(a) => a.c}
         poner={(o, a) => { o.position.set(a.x, 2.3 * a.s, -a.y); o.rotation.set(0, a.x, 0); o.scale.setScalar(a.s) }} />
-    </group>
-  )
-}
-
-function Postes({ postes }) {
-  return (
-    <group>
-      <Instancias items={postes} geo={<cylinderGeometry args={[0.07, 0.09, 5.2, 6]} />} color="#7F8C8D"
-        poner={(o, p) => { o.position.set(p[0], 2.4, -p[1]); o.rotation.set(0, 0, 0); o.scale.setScalar(1) }} />
-      <Instancias items={postes} geo={<boxGeometry args={[0.9, 0.12, 0.3]} />} color="#ECF0F1"
-        poner={(o, p) => { o.position.set(p[0], 5.0, -p[1]); o.rotation.set(0, p[2], 0); o.scale.setScalar(1) }} />
     </group>
   )
 }
@@ -308,6 +232,32 @@ function Persona({ x, y, giro, c }) {
       <mesh position={[0, 1.2, 0]} castShadow><boxGeometry args={[0.44, 0.62, 0.26]} /><meshLambertMaterial color={c} /></mesh>
       <mesh position={[0, 1.66, 0]} castShadow><sphereGeometry args={[0.15, 12, 10]} /><meshLambertMaterial color="#E2B48E" /></mesh>
       <mesh position={[0, 1.74, -0.02]} castShadow><sphereGeometry args={[0.155, 12, 10, 0, Math.PI * 2, 0, Math.PI / 2]} /><meshLambertMaterial color="#3A2A20" /></mesh>
+    </group>
+  )
+}
+
+// señal de parqueadero: poste gris con una placa azul y la «P» blanca (de frente a la cámara)
+let texturaP = null
+function placaP() {
+  if (texturaP) return texturaP
+  const cv = document.createElement('canvas')
+  cv.width = cv.height = 128
+  const c = cv.getContext('2d')
+  c.fillStyle = '#2F6FDE'
+  c.beginPath(); c.roundRect ? c.roundRect(6, 6, 116, 116, 22) : c.rect(6, 6, 116, 116); c.fill()
+  c.lineWidth = 8; c.strokeStyle = '#FFFFFF'; c.stroke()
+  c.fillStyle = '#FFFFFF'; c.font = '900 92px "Nunito Sans", "Segoe UI", system-ui, sans-serif'
+  c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('P', 64, 70)
+  texturaP = new THREE.CanvasTexture(cv)
+  texturaP.colorSpace = THREE.SRGBColorSpace
+  return texturaP
+}
+function SenalParqueo({ x, y }) {
+  const t = useMemo(placaP, [])
+  return (
+    <group position={[x, -0.2, -y]}>
+      <mesh position-y={1.5}><cylinderGeometry args={[0.08, 0.1, 3, 8]} /><meshLambertMaterial color="#7F8C8D" /></mesh>
+      <sprite position-y={3.6} scale={[2.4, 2.4, 1]}><spriteMaterial map={t} /></sprite>
     </group>
   )
 }
