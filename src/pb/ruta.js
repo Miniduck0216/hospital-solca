@@ -234,12 +234,17 @@ export function buscarRuta(d, desde, hasta, ids = [], opts = {}) {
 // indicaciones paso a paso: giros reales (sobre la línea estirada, no sobre el suavizado) y ambientes por donde se pasa
 export function indicaciones(d, ruta, origen, destino) {
   const P = ruta.esquinas || ruta.pts
-  const pasos = [{ tipo: 'inicio', texto: `Sal desde ${origen.nombre}` }]
+  // cada paso lleva «en»: metros desde el inicio del tramo hasta donde ocurre (el giro o la llegada); con eso la
+  // barra de navegación muestra la próxima indicación y cuánto falta para ella
+  const pasos = [{ tipo: 'inicio', texto: `Sal desde ${origen.nombre}`, en: 0 }]
   let acum = 0
+  let tot = 0
   let zona = null
   for (let i = 1; i < P.length; i++) {
     const [ax, ay] = P[i - 1], [bx, by] = P[i]
-    acum += Math.hypot(bx - ax, by - ay)
+    const l = Math.hypot(bx - ax, by - ay)
+    acum += l
+    tot += l
     const amb = ambienteEn(d, [(ax + bx) / 2, (ay + by) / 2])
     if (amb && amb.nombre && (amb.cat === 'circulacion' || amb.cat === 'espera')) zona = amb.nombre
     if (i < P.length - 1) {
@@ -252,22 +257,41 @@ export function indicaciones(d, ruta, origen, destino) {
         const lado = da > 0 ? 'izquierda' : 'derecha'
         const donde = ambienteEn(d, [bx, by])
         const en = donde && donde.nombre && donde.id !== destino.id ? ` en ${donde.nombre}` : ''
-        pasos.push({ tipo: 'camina', texto: `Camina ${Math.max(1, Math.round(acum))} m${zona ? ` por ${zona}` : ''}` })
-        pasos.push({ tipo: lado, texto: `Gira a la ${lado}${en}` })
+        pasos.push({ tipo: 'camina', texto: `Camina ${Math.max(1, Math.round(acum))} m${zona ? ` por ${zona}` : ''}`, en: tot })
+        pasos.push({ tipo: lado, texto: `Gira a la ${lado}${en}`, en: tot })
         acum = 0
       }
     }
   }
-  if (acum > 0.5) pasos.push({ tipo: 'camina', texto: `Camina ${Math.max(1, Math.round(acum))} m${zona ? ` por ${zona}` : ''}` })
-  pasos.push({ tipo: 'fin', texto: `Llegaste a la puerta de ${destino.nombre}` })
+  if (acum > 0.5) pasos.push({ tipo: 'camina', texto: `Camina ${Math.max(1, Math.round(acum))} m${zona ? ` por ${zona}` : ''}`, en: tot })
+  pasos.push({ tipo: 'fin', texto: `Llegaste a la puerta de ${destino.nombre}`, en: tot })
   // juntar "camina" seguidos
   const out = []
   for (const p of pasos) {
     const u = out[out.length - 1]
-    if (u && u.tipo === 'camina' && p.tipo === 'camina') u.texto = p.texto
+    if (u && u.tipo === 'camina' && p.tipo === 'camina') { u.texto = p.texto; u.en = p.en }
     else out.push(p)
   }
   return out
+}
+
+/**
+ * Próxima indicación del recorrido: la primera maniobra (giro, cambio de piso o llegada) que todavía no se alcanza.
+ * @param pasos pasos del tramo (con «en», en metros de las esquinas de la ruta)
+ * @param s metros caminados según el personaje; L largo de la ruta dibujada (algo distinto al de las esquinas)
+ * @returns { k, paso, faltan } índice del paso, el paso y los metros que faltan para llegar a él
+ */
+export function proximoPaso(pasos, s, L) {
+  if (!pasos?.length) return null
+  const largo = pasos[pasos.length - 1].en || 0
+  const k = largo > 0 && L > 0 ? L / largo : 1
+  for (let i = 0; i < pasos.length; i++) {
+    const p = pasos[i]
+    if (p.tipo === 'inicio' || p.tipo === 'camina') continue
+    const faltan = (p.en ?? 0) * k - s
+    if (faltan > 0.8 || i === pasos.length - 1) return { k: i, paso: p, faltan: Math.max(0, faltan) }
+  }
+  return null
 }
 
 /**

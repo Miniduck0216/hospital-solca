@@ -9,3 +9,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <App />
   </React.StrictMode>
 )
+
+// memoria del mapa (ver public/sw.js): solo en el sitio publicado; la versión del programa va en la dirección del
+// service worker, así cada publicación instala uno nuevo y borra la memoria vieja
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js?v=${__VERSION__}`, { scope: import.meta.env.BASE_URL }).catch(() => {})
+  })
+}

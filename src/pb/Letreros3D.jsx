@@ -6,6 +6,7 @@ import { useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
 import { CATS } from './datos.js'
+import { LIGERO } from './rendimiento.js'
 
 // los textos del plano que no son un ambiente propio (Zona 1, Zona 2…) vienen de la configuración del piso
 // (public/pb/config.json → letreros)
@@ -46,6 +47,13 @@ export function Letreros({ d, visibles = true }) {
     const out = []
     for (const a of d.ambientes) {
       if (!a.nombre || !a.lbl) continue
+      // menos letreros (la vista se veía recargada): fuera los cuartos del personal y los muy pequeños,
+      // salvo baños, escaleras y ascensores, que el paciente busca
+      const clave = ['banos', 'escaleras', 'ascensores', 'farmacia'].includes(a.cat)
+      if (a.personal && !clave) continue
+      if (!clave && a.area < (LIGERO ? 15 : 8)) continue
+      // los pasillos y circulaciones genéricas no son un destino: solo recargaban la vista
+      if (a.cat === 'circulacion' && /^(pasillo|circulaci)/i.test(a.nombre)) continue
       const color = (CATS[a.cat] || CATS.otro).acento
       out.push({ nombre: a.nombre, x: a.lbl[0], y: a.lbl[1], color, area: a.area, zona: false })
     }
@@ -53,7 +61,9 @@ export function Letreros({ d, visibles = true }) {
     return out.map((it) => ({ ...it, ...placa(it.nombre, it.color, it.zona) }))
   }, [d])
   // tamaño de la placa en pantalla (fracción del alto de la vista)
-  const esc = (it) => (it.zona ? 0.04 : it.area >= 60 ? 0.026 : 0.021)
+  const esc = (it) => (it.zona ? 0.03 : it.area >= 60 ? 0.019 : 0.016)
+  // como mucho estos letreros a la vez (los más importantes primero)
+  const TOPE = LIGERO ? 14 : 22
   // prioridad: zonas, luego los ambientes más grandes; si dos placas se tapan en pantalla, se muestra la más importante
   const orden = useMemo(() => items.map((_, k) => k).sort((a, b) => (items[b].zona - items[a].zona) || items[b].area - items[a].area), [items])
   const grupo = useRef()
@@ -68,8 +78,8 @@ export function Letreros({ d, visibles = true }) {
       const hijo = g.children[k], it = items[k]
       if (!hijo) continue
       const dist = camera.position.distanceTo(hijo.position)
-      const lim = it.zona ? 1e9 : it.area >= 60 ? 420 : it.area >= 20 ? 200 : 120
-      let ver = visibles && dist < lim
+      const lim = it.zona ? 1e9 : it.area >= 60 ? 420 : it.area >= 20 ? 170 : 90
+      let ver = visibles && dist < lim && cajas.length < TOPE
       if (ver) {
         v.set(hijo.position.x, alto(it), hijo.position.z).project(camera)
         if (v.z > 1) ver = false

@@ -283,3 +283,76 @@ body { background: #E9EDF1; }
 .pb-pasos li.paso-piso.on .btn-claro { background: var(--m-tinta); color: #fff; }
 .pb-pasos li.paso-vertical { background: #EEF1FF; font-weight: 700; }
 .insertado-totem .pb-via button { padding: 14px 18px; font-size: 1rem; }
+
+/* ---------- guía del hospital (buscador): directorio por piso y por tipo ---------- */
+.pb-lista .guia-piso { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: 8px; padding: 10px 8px 6px; background: #fff; font-weight: 800; font-size: .95rem; color: var(--m-tinta); border-bottom: 1px solid var(--m-linea); }
+.pb-lista .guia-piso b { display: inline-grid; place-items: center; min-width: 34px; height: 24px; padding: 0 6px; border-radius: 8px; background: var(--m-tinta); color: #fff; font-size: .78rem; }
+.pb-lista .guia-cat { padding: 10px 8px 2px; font-size: .82rem; font-weight: 800; color: var(--m-gris); }
+
+/* la barra de búsqueda se oculta mientras se camina: queda solo la barra de navegación */
+.pb-app .barra.oculta { display: none; }
+
+/* panel de ruta compacto: los pasos se despliegan a pedido */
+.pb-ver-pasos { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; border: 0; background: #F1F4F7; color: var(--m-tinta); border-radius: 999px; padding: 7px 12px; font: 800 .82rem var(--m-fuente); cursor: pointer; }
+.pb-ver-pasos:hover { background: #E4E9EF; }
+
+/* barra de navegación del recorrido (compacta, se despliega para ver los pasos) */
+.pb-nav { position: relative; padding: 10px 10px 12px 12px; display: flex; flex-direction: column; gap: 8px; animation: entrar .2s ease-out; overflow: hidden; }
+.pb-nav-fila { display: flex; align-items: center; gap: 12px; }
+.pb-nav-ic { flex: none; width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; background: var(--m-tinta); }
+.pb-nav.llego .pb-nav-ic { background: #2E9D5B; }
+.pb-nav-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.pb-nav-txt b { font-weight: 800; font-size: 1rem; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.pb-nav-txt small { color: var(--m-gris); font-weight: 700; font-size: .8rem; }
+.pb-nav-btn { flex: none; min-width: 40px; height: 40px; border: 0; border-radius: 12px; display: grid; place-items: center; background: #F1F4F7; color: var(--m-tinta); cursor: pointer; font: 800 .9rem var(--m-fuente); }
+.pb-nav-btn.parar { background: #FDECEA; color: #B03A2E; }
+.pb-nav-btn.listo { padding: 0 16px; background: var(--m-tinta); color: #fff; }
+.pb-nav-barra { position: absolute; left: 0; bottom: 0; height: 4px; width: var(--p); background: var(--m-azul); transition: width .3s linear; }
+.pb-nav-pasos { max-height: 38vh; }
+.pb-pasos li.actual { background: #EEF1FF; font-weight: 800; }
+.pb-pasos li.hecho { color: #9AA6B6; }
+
+/* opciones del 3D plegadas */
+.pb-3d-mas { border: 0; background: transparent; color: var(--m-gris); font: 800 .8rem var(--m-fuente); padding: 4px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+
+/* cambio de piso durante el recorrido (ascensor o escaleras) */
+.cp-fondo { position: absolute; inset: 0; z-index: 20; display: grid; place-items: center; background: rgba(20, 30, 45, .35); animation: entrar .2s ease-out; }
+.cp-tarjeta { display: flex; align-items: center; gap: 22px; background: #fff; border-radius: 22px; padding: 22px 26px; box-shadow: 0 20px 50px rgba(20, 30, 45, .3); max-width: calc(100% - 28px); }
+.cp-edificio { --alto: 46px; position: relative; width: 120px; height: calc(var(--n) * var(--alto)); border: 3px solid var(--m-tinta); border-radius: 10px; background: #F6F8FB; overflow: hidden; }
+.cp-piso { position: relative; height: var(--alto); box-sizing: border-box; border-bottom: 2px solid #D5DCE6; display: flex; align-items: center; padding-left: 8px; }
+.cp-piso:last-of-type { border-bottom: 0; }
+.cp-piso b { font-weight: 900; font-size: .8rem; color: #8A97A8; }
+.cp-piso.sale b { color: var(--m-tinta); }
+.cp-piso.llega { background: #EEF1FF; }
+.cp-piso.llega b { color: var(--m-azul); }
+.cp-gradas { position: absolute; right: 6px; bottom: 4px; width: 56px; height: calc(var(--alto) - 10px); background: repeating-linear-gradient(135deg, transparent 0 7px, #C9D2DC 7px 9px); clip-path: polygon(0 100%, 100% 0, 100% 100%); opacity: .8; }
+.cp-movil { position: absolute; right: 10px; top: 0; height: var(--alto); width: 46px; display: grid; place-items: center; transform: translateY(calc(var(--fila) * var(--alto))); transition: transform var(--viaje) cubic-bezier(.45, 0, .25, 1); }
+.cp-cabina { position: relative; width: 38px; height: 38px; border-radius: 8px; background: var(--m-tinta); display: grid; place-items: center; overflow: hidden; }
+.cp-hoja { position: absolute; top: 0; bottom: 0; width: 50%; background: #5B6E91; transition: transform .6s ease; z-index: 1; }
+.cp-hoja.izq { left: 0; transform: translateX(-100%); }
+.cp-hoja.der { right: 0; transform: translateX(100%); }
+.cp-cierra .cp-hoja, .cp-viaja .cp-hoja { transform: none; }
+.cp-persona { width: 38px; height: 38px; border-radius: 50%; background: var(--m-azul); display: grid; place-items: center; }
+.cp-escalera.cp-viaja .cp-persona { animation: cp-paso .35s ease-in-out infinite alternate; }
+@keyframes cp-paso { from { transform: translateY(-2px) rotate(-6deg); } to { transform: translateY(2px) rotate(6deg); } }
+.cp-txt { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.cp-txt small { color: var(--m-gris); font-weight: 800; font-size: .85rem; }
+.cp-txt h3 { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 1.25rem; font-weight: 900; }
+.cp-txt p { margin: 0 0 10px; font-size: 1rem; color: #3D4A5A; }
+.cp-txt .btn-negro { align-self: flex-start; }
+@media (max-width: 560px) { .cp-tarjeta { flex-direction: column; text-align: center; } .cp-txt { align-items: center; } .cp-txt .btn-negro { align-self: center; } }
+@media (prefers-reduced-motion: reduce) { .cp-movil, .cp-hoja { transition: none; } .cp-persona { animation: none !important; } }
+
+/* tótem: textos de la barra de navegación más grandes */
+.insertado-totem .pb-nav-txt b { font-size: 1.15rem; }
+.insertado-totem .pb-nav-btn { min-width: 52px; height: 52px; }
+.insertado-totem .pb-ver-pasos { padding: 11px 16px; font-size: .95rem; }
+.insertado-totem .cp-txt h3 { font-size: 1.5rem; }
+
+/* modo ligero (tótem): el desenfoque del vidrio sobre el mapa animado es lo más caro para la tarjeta gráfica */
+.ligero .barra, .ligero .tarjeta, .ligero .pb-seg, .ligero .dock, .ligero .pb-leyenda, .ligero .pb-3d-ctrl {
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important; background: #fff !important;
+}
+.ligero .foco-luz, .ligero .foco-amb { display: none; }
+.ligero .hoja, .ligero .pb-buscador, .ligero .pb-ficha, .ligero .pb-nav { animation: none; }
+.pb-lista .guia-n { display: inline-block; margin-left: 6px; padding: 0 7px; border-radius: 999px; background: #EEF1F5; color: #4A586C; font: 800 .72rem/1.6 var(--m-fuente); vertical-align: 2px; }
