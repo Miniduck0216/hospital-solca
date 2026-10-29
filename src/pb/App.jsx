@@ -760,7 +760,7 @@ export default function App() {
         <Dock items={[
           { id: 'mas', icono: 'mas', titulo: 'Acercar', onClick: () => vista()?.acercar() },
           { id: 'menos', icono: 'menos', titulo: 'Alejar', onClick: () => vista()?.alejar() },
-          { id: 'centrar', icono: 'centrar', titulo: 'Centrar el edificio', onClick: () => vista()?.centrar() },
+          { id: 'centrar', icono: 'centrar', titulo: tramo ? 'Centrar en la persona' : 'Centrar el edificio', onClick: () => vista()?.centrar() },
           { id: 'piso', texto: d.piso?.corto || 'PB', titulo: 'Cambiar de piso', on: pisosAbierto, onClick: () => setPisosAbierto((v) => !v) },
           ...(INSERTADO ? [] : [{ id: 'admin', icono: 'ajustes', titulo: admin ? 'Salir de administración' : 'Administración', on: admin, onClick: () => (admin ? setAdmin(false) : setPedirClave(true)) }]),
         ]} />
