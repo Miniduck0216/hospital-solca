@@ -12,7 +12,7 @@ import { Letreros } from './Letreros3D.jsx'
 
 const E = ([x, y], h = 0) => new THREE.Vector3(x, h, -y)    // plano (x, y) -> escena
 
-function SueloMapa({ centro }) {
+function SueloMapa({ centro, onListo }) {
   const [tex, setTex] = useState(null)
   const LADO = 560, PX = 2048
   useEffect(() => {
@@ -69,7 +69,11 @@ function SueloMapa({ centro }) {
       const t = new THREE.CanvasTexture(cv)
       t.colorSpace = THREE.SRGBColorSpace
       t.anisotropy = 8
+      t.generateMipmaps = true
+      t.minFilter = THREE.LinearMipmapLinearFilter
       setTex(t)
+      // el exterior pone los árboles donde el mapa tiene pasto (no sobre calles, veredas ni edificios vecinos)
+      try { onListo?.({ px: ctx.getImageData(0, 0, PX, PX).data, PX, LADO, centro }) } catch { /* sin lectura del lienzo */ }
       map.remove(); div.remove()
     }
     map.once('idle', copiar)
@@ -78,9 +82,10 @@ function SueloMapa({ centro }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   return (
-    <mesh rotation-x={-Math.PI / 2} position={[centro[0], -0.22, -centro[1]]} receiveShadow>
+    <mesh rotation-x={-Math.PI / 2} position={[centro[0], -0.62, -centro[1]]} receiveShadow renderOrder={-1}>
       <planeGeometry args={[LADO, LADO]} />
-      {tex ? <meshBasicMaterial key="mapa" map={tex} toneMapped={false} /> : <meshBasicMaterial key="liso" color="#A9D18E" toneMapped={false} />}
+      {tex ? <meshBasicMaterial key="mapa" map={tex} toneMapped={false} polygonOffset polygonOffsetFactor={4} polygonOffsetUnits={4} />
+        : <meshBasicMaterial key="liso" color="#A9D18E" toneMapped={false} polygonOffset polygonOffsetFactor={4} polygonOffsetUnits={4} />}
     </mesh>
   )
 }
@@ -632,6 +637,7 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
   useEffect(() => { if (ruta || foco) setArmado(false) }, [ruta, foco])
   useEffect(() => { if (recorrer) setArmado(false) }, [recorrer])
   const [techos, setTechos] = useState({})
+  const [mapa, setMapa] = useState(null)
   useEffect(() => {
     let vivo = true
     fetch(`${BASE}techos.json?v=${__VERSION__}`).then((r) => (r.ok ? r.json() : {})).then((t) => vivo && setTechos(t)).catch(() => {})
@@ -664,7 +670,7 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
   useEffect(() => { plano.constant = corte >= 3.8 ? 9999 : base + corte }, [corte, plano, base])
   useEffect(() => { if (!ruta) persona.current = null }, [ruta])
   // para revisar la maqueta desde la consola o pruebas automáticas: window.__vista3d.controles
-  useEffect(() => { window.__vista3d = { controles, setCorte, setArmado } }, [])
+  useEffect(() => { window.__vista3d = { controles, setCorte, setArmado, setMapa, centro: [cx, cy] } }, [])
   const estadoDe = (p) => {
     if (armado) return p.nivel < 0 ? 'oculto' : 'abajo'
     if (p.id === pisoId) return 'activo'
@@ -674,7 +680,7 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
   }
   return (
     <div className="pb-3d">
-      <Canvas shadows flat dpr={[1, 2]} camera={{ position: [cx + 95, altura + 110, -cy + 95], fov: 32, near: 0.5, far: 3000 }} gl={{ antialias: true }}>
+      <Canvas shadows flat dpr={[1, 2]} camera={{ position: [cx + 95, altura + 110, -cy + 95], fov: 32, near: 1, far: 2400 }} gl={{ antialias: true, logarithmicDepthBuffer: true }}>
         <color attach="background" args={['#F2EAD8']} />
         <fog attach="fog" args={['#F2EAD8', 320, 760]} />
         <hemisphereLight args={['#FFFFFF', '#D8CDB8', 1.25]} />
@@ -685,8 +691,8 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
           <Piso3D key={p.id} p={p} techo={techos[p.id]} estado={estadoDe(p)} corte={corte} letreros={letreros}
             y0={!armado && p.id === pisoId ? base : p.nivel * H_PISO} />
         ))}
-        <SueloMapa centro={[cx, cy]} />
-        <Exterior d={pb} />
+        <SueloMapa centro={[cx, cy]} onListo={setMapa} />
+        <Exterior d={pb} mapa={mapa} losa={!armado && nivel < 0 ? d.huella : null} />
         {/* lo del piso a la vista: pisos de color, puertas, letreros, ruta y personaje, a su altura */}
         {!armado && (
           <group position-y={base}>

@@ -21,6 +21,7 @@ python3 -I $P/unir_pb.py
 python3 -I $P/conectores.py
 python3 -I $P/ajustes.py
 python3 -I $P/techos.py
+python3 -I $P/exterior.py
 if [[ " $* " != *" --sin-3d "* ]]; then
   for p in SB P1 P2 P3; do python3 -I $P/glb_piso.py $p; done
   python3 -I $P/glb_piso.py PB public/pb/solca_pb_este.glb --fuera-de $P/pb_vieja.json
