@@ -29,7 +29,9 @@ SALIDA = os.path.join(RAIZ, 'public', 'pb', 'datos.json')
 # ---------------------------------------------------------------- georreferencia
 # El contorno del plano real cabe en la huella del hospital de OpenStreetMap («Hospital Oncológico de Solca»)
 # girado -21° (el mismo ángulo de la retícula del edificio en el mapa): el 98 % de la planta queda dentro.
-GEO = dict(lat0=-0.1366, lon0=-78.4689, cx=54.2705, cy=64.7898, ang=-21.0, ox=-9.826, oy=-2.195)
+# Ajuste fino con la foto satelital (techos del edificio contra la huella y contra los edificios de OpenStreetMap):
+# 1° más y unos 21 m al oeste, para que el edificio calce con las calles del mapa base.
+GEO = dict(lat0=-0.1366, lon0=-78.4689, cx=54.2705, cy=64.7898, ang=-20.0, ox=-30.833, oy=2.593)
 M_LAT = 110574.0
 M_LON = 111320.0 * math.cos(math.radians(GEO['lat0']))
 
