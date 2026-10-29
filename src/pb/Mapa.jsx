@@ -80,8 +80,9 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
   const animCam = useRef(0)
 
   useImperativeHandle(fwd, () => ({
-    acercar: () => mapa.current?.zoomIn(),
-    alejar: () => mapa.current?.zoomOut(),
+    // +/−: 1,5 niveles por toque (antes 1: había que tocar muchas veces)
+    acercar: () => { const m = mapa.current; if (m) m.easeTo({ zoom: Math.min(m.getMaxZoom(), m.getZoom() + 1.5), duration: 300 }) },
+    alejar: () => { const m = mapa.current; if (m) m.easeTo({ zoom: Math.max(m.getMinZoom(), m.getZoom() - 1.5), duration: 300 }) },
     centrar: () => encuadrar(),
     irA: (x, y, z = 20) => mapa.current?.easeTo({ center: aLonLat(x, y), zoom: z, duration: 700 }),
   }))
@@ -113,6 +114,9 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
       ...(LIGERO ? { pixelRatio: 1, antialias: false } : {}),
     })
     mapa.current = map
+    // rueda del ratón más rápida (por defecto 1/450: había que girar mucho para acercarse)
+    map.scrollZoom.setWheelZoomRate(1 / 200)
+    map.scrollZoom.setZoomRate(1 / 60)
     window.__mapa2d = map   // para revisar desde la consola o pruebas automáticas (como window.__vista3d)
     const ro = new ResizeObserver(() => map.resize())
     ro.observe(ref.current)
@@ -169,10 +173,6 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
       // muros blancos un poco más altos que los bloques: el borde blanco de cada cuarto
       map.addLayer({ id: 'muros', type: 'fill-extrusion', source: 'muros', paint: { 'fill-extrusion-color': '#FBFCFE', 'fill-extrusion-height': ALTO + 0.12, 'fill-extrusion-base': 0, 'fill-extrusion-opacity': 0.96 } })
       map.addLayer({ id: 'barandas', type: 'fill-extrusion', source: 'barandas', paint: { 'fill-extrusion-color': '#B8C2D0', 'fill-extrusion-height': 1.0, 'fill-extrusion-base': 0, 'fill-extrusion-opacity': 0.96 } })
-      // cuerpo del caminante con volumen (como los bloques): se ve parado en el piso y los muros de delante lo tapan
-      map.addLayer({ id: 'caminante-cuerpo', type: 'fill-extrusion', source: 'caminante', filter: ['has', 'alto'], paint: {
-        'fill-extrusion-color': ['get', 'color'], 'fill-extrusion-height': ['get', 'alto'], 'fill-extrusion-base': ['get', 'base'], 'fill-extrusion-opacity': 1,
-      } })
       map.addLayer({ id: 'viseras-3d', type: 'fill-extrusion', source: 'viseras', paint: { 'fill-extrusion-color': '#E9ECF1', 'fill-extrusion-height': 4.2, 'fill-extrusion-base': 3.7, 'fill-extrusion-opacity': 0.6 } })
       // ruta: una fila de puntos oscuros que avanza (ver el efecto de la ruta)
       map.addLayer({ id: 'ruta-halo', type: 'line', source: 'ruta', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': TINTA_RUTA, 'line-opacity': 0.1, 'line-width': ['interpolate', ['linear'], ['zoom'], 17, 8, 20, 18] } })
@@ -182,9 +182,10 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
         'circle-stroke-color': '#FFFFFF', 'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 17, 0.6, 20, 1.4],
         'circle-pitch-alignment': 'map',
       } })
-      // la ruta y el caminante van en el piso, debajo de los bloques: las paredes de delante los tapan (perspectiva
-      // correcta) y el cuerpo del caminante queda encima de los puntos de la ruta
-      for (const id of ['ruta-halo', 'ruta-puntos', 'caminante-halo', 'caminante-dir']) map.moveLayer(id, 'ambientes-3d')
+      // la ruta va en el piso, debajo de los bloques: las paredes de delante la tapan (perspectiva correcta)
+      for (const id of ['ruta-halo', 'ruta-puntos']) map.moveLayer(id, 'ambientes-3d')
+      // la flecha del caminante va encima de todo: siempre se ve hacia dónde avanza
+      for (const id of ['caminante-halo', 'caminante-dir']) map.moveLayer(id)
       // trazo del administrador mientras dibuja un paso (abrir, cerrar o línea de recorrido)
       map.addLayer({ id: 'trazo-linea', type: 'line', source: 'trazo', filter: ['==', ['geometry-type'], 'LineString'], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: {
         'line-color': ['match', ['get', 'tipo'], 'cerrar', '#C0392B', 'abrir', '#2E9D5B', '#1B95BD'], 'line-width': 4, 'line-dasharray': [2, 1] } })
@@ -391,7 +392,6 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
     const s0 = Math.max(0, Math.min(L, cb.current.desde?.() ?? 0))
     const fuente = map.getSource('caminante')
     // figura del caminante en el plano: halo, flecha hacia donde camina, cuerpo y cabeza (polígonos en metros)
-    const circulo = (x, y, r, n = 10) => Array.from({ length: n + 1 }, (_, i) => aLonLat(x + r * Math.cos((i / n) * 2 * Math.PI), y + r * Math.sin((i / n) * 2 * Math.PI)))
     // tamaño: de cerca, el de una persona (1,8 m); de lejos crece para que siempre se vea (unos 14 px de ancho) y
     // asoma por encima de los bloques (2,6 m), como un alfiler, pero siempre con los pies en el piso
     const escala = () => {
@@ -402,13 +402,11 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
       const e = escala()
       const L2 = Math.hypot(q.dx, q.dy) || 1, ux = q.dx / L2, uy = q.dy / L2
       const f = (a, b) => [q.x + (ux * a - uy * b) * e, q.y + (uy * a + ux * b) * e]
-      const flecha = [f(1.25, 0), f(0.5, 0.42), f(0.5, -0.42)]
-      const alto = Math.min(3.4, 1.45 * e)
+      // flecha hacia donde camina (sin personaje): punta adelante y una muesca atrás
+      const flecha = [f(1.5, 0), f(-0.7, 0.85), f(-0.25, 0), f(-0.7, -0.85)]
       fuente.setData(FC([
         { type: 'Feature', properties: { tipo: 'punto' }, geometry: { type: 'Point', coordinates: aLonLat(q.x, q.y) } },
         { type: 'Feature', properties: { tipo: 'dir' }, geometry: { type: 'Polygon', coordinates: [[...flecha, flecha[0]].map(([x, y]) => aLonLat(x, y))] } },
-        { type: 'Feature', properties: { alto, base: 0, color: '#4C6FFF' }, geometry: { type: 'Polygon', coordinates: [circulo(q.x, q.y, 0.26 * e)] } },
-        { type: 'Feature', properties: { alto: alto + 0.36 * e, base: alto + 0.04, color: '#E2B48E' }, geometry: { type: 'Polygon', coordinates: [circulo(q.x, q.y, 0.17 * e, 8)] } },
       ]))
     }
     const p0 = en(s0)
