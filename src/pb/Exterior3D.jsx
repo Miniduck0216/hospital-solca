@@ -33,6 +33,11 @@ export function ensanchar(anillo0, e) {
     return [p[0] + m[0] * e * k, p[1] + m[1] * e * k]
   })
 }
+const distSeg = (p, a, b) => {
+  const dx = b[0] - a[0], dy = b[1] - a[1], L = dx * dx + dy * dy || 1
+  const t = Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / L))
+  return Math.hypot(p[0] - a[0] - t * dx, p[1] - a[1] - t * dy)
+}
 const forma = (anillo, huecos = []) => {
   const f = new THREE.Shape(anillo.map(([x, y]) => new THREE.Vector2(x, y)))
   for (const h of huecos) f.holes.push(new THREE.Path(h.map(([x, y]) => new THREE.Vector2(x, y))))
@@ -125,7 +130,23 @@ export function Exterior({ d, mapa = null, losa: losaPiso = null }) {
     const arboles = []
     const libre = (p, sep) => !arboles.some((a) => Math.hypot(a.x - p[0], a.y - p[1]) < sep)
     const poner = (p, s0 = 0.85) => arboles.push({ x: p[0], y: p[1], s: s0 + rnd() * 0.5, c: VERDES[Math.floor(rnd() * VERDES.length)] })
-    const fuera = (p) => !dentroEdif(p, 8) && !enParqueo(p, 3.5) && !cercaEntrada(p, 10)
+    // calles del campus (del mapa base): asfalto continuo con los parqueaderos; los árboles no caen sobre ellas
+    const aPlano = (anillo) => anillo.map(([lo, la]) => dePlano(lo, la))
+    const callesPl = (d.calles || []).map((pg) => pg.map(aPlano))
+    const veredasPl = (d.veredasExt || []).map((pg) => pg.map(aPlano))
+    const caja = (r) => { const xs = r.map((p) => p[0]), ys = r.map((p) => p[1]); return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)] }
+    const cajas = callesPl.map((pg) => caja(pg[0]))
+    const enCalle = (p, m = 2.5) => callesPl.some((pg, k) => {
+      const b = cajas[k]
+      if (p[0] < b[0] - m || p[0] > b[2] + m || p[1] < b[1] - m || p[1] > b[3] + m) return false
+      // dentro del anillo exterior y fuera de sus huecos, o a menos de m de un borde
+      const dentro = enPoli(p, pg[0]) && !pg.slice(1).some((h) => enPoli(p, h))
+      if (dentro) return true
+      return pg.some((r) => r.some((q, i) => { const o = r[(i + 1) % r.length]; return distSeg(p, q, o) < m }))
+    })
+    const calles = callesPl.map((pg) => losa(forma(pg[0], pg.slice(1)), 0.12))
+    const veredasC = veredasPl.map((pg) => losa(forma(pg[0], pg.slice(1)), 0.13))
+    const fuera = (p) => !enCalle(p) && !dentroEdif(p, 8) && !enParqueo(p, 3.5) && !cercaEntrada(p, 10)
     // zonas de árboles de la foto satelital: se llenan a la separación de cada zona (bosques más tupidos que hileras)
     const zonas = (d.zonasArboles || []).map((z) => ({ sep: z.sep, pg: z.ll.map(([lo, la]) => dePlano(lo, la)) }))
     for (const z of zonas) {
@@ -179,13 +200,15 @@ export function Exterior({ d, mapa = null, losa: losaPiso = null }) {
       return { tipo: c.tipo, piso: losa(forma(q), 0.1), borde: losa(forma(ensanchar(q, 1.2), [q.slice().reverse()]), 0.08),
         lineas: losa(forma(ensanchar(q, -1.0), [ensanchar(q, -1.12).reverse()]), 0.11) }
     })
-    return { base, vereda, asfalto, borde, plazas, autos, arboles, postes, gente, canchas }
+    return { base, vereda, asfalto, borde, plazas, autos, arboles, postes, gente, canchas, calles, veredasC }
   }, [d, mapa, losaPiso])
 
   return (
     <group>
       {datos.base.map((g, k) => <mesh key={'b' + k} geometry={g} position-y={-0.58} receiveShadow castShadow><meshLambertMaterial color="#E7D7BC" /></mesh>)}
       {datos.vereda.map((g, k) => <mesh key={'v' + k} geometry={g} position-y={-0.5} receiveShadow><meshLambertMaterial color="#E9E6DF" /></mesh>)}
+      {datos.calles.map((g, k) => <mesh key={'c' + k} geometry={g} position-y={-0.21} receiveShadow><meshLambertMaterial color="#59616D" /></mesh>)}
+      {datos.veredasC.map((g, k) => <mesh key={'w' + k} geometry={g} position-y={-0.21} receiveShadow><meshLambertMaterial color="#E9E6DF" /></mesh>)}
       {datos.asfalto.map((g, k) => <mesh key={'a' + k} geometry={g} position-y={-0.2} receiveShadow><meshLambertMaterial color="#59616D" /></mesh>)}
       {datos.borde.map((g, k) => <mesh key={'o' + k} geometry={g} position-y={-0.2} receiveShadow><meshLambertMaterial color="#DCD8CF" /></mesh>)}
       {datos.canchas.map((c, k) => (
