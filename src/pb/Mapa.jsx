@@ -84,11 +84,20 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
     // medio camino), así dos toques rápidos acercan 3 niveles y no se "traba"
     acercar: () => zoomBoton(1.5),
     alejar: () => zoomBoton(-1.5),
-    centrar: () => encuadrar(),
+    // centrar: durante el recorrido, en la flecha (y vuelve a seguirla); con una ruta, la ruta; si no, el edificio
+    centrar: () => {
+      const m = mapa.current
+      if (m && andado.current != null && posFlecha.current) {
+        soltarCamara.current?.()
+        m.easeTo({ center: aLonLat(posFlecha.current.x, posFlecha.current.y), zoom: Math.max(m.getZoom(), 19.5), duration: 600 })
+      } else encuadrar(ruta?.pts)
+    },
     irA: (x, y, z = 20) => mapa.current?.easeTo({ center: aLonLat(x, y), zoom: z, duration: 700 }),
   }))
 
   const metaZoom = useRef(null)
+  const posFlecha = useRef(null)   // dónde va la flecha del recorrido (coordenadas del plano)
+  const soltarCamara = useRef(null)   // vuelve a seguir la flecha aunque la persona haya movido el mapa
   const zoomBoton = (dz) => {
     const m = mapa.current
     if (!m) return
@@ -439,6 +448,7 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
     // maplibre, el seguimiento cuadro a cuadro (jumpTo) cancelaba el gesto antes de empezar y el mapa no se dejaba
     // mover ni acercar. Acercar con la rueda o el pellizco se hace sobre el caminante, no sobre el cursor.
     let libreHasta = 0
+    soltarCamara.current = () => { libreHasta = 0 }
     const dedos = new Set()
     let movio = false
     const lienzo = map.getCanvasContainer()
@@ -473,6 +483,7 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
       if (now - ultAv > 250 || sAct >= L) { ultAv = now; cb.current.onAvance?.(sAct, L) }
       const q = en(sAct)
       andado.current = sAct
+      posFlecha.current = q
       dibujar(q)
       const libre = map.isMoving() || now < libreHasta || (cb.current.pausa && now >= t0)
       if (libre) { /* la persona maneja la cámara */ }

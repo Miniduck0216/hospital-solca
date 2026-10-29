@@ -453,7 +453,7 @@ function Puertas({ puertas, plano, persona, ruta, recorrer }) {
 
 // el personaje recorre la ruta a 1,3 m/s. La cámara lo acompaña como en un juego en tercera persona: se traslada con
 // él, y con el ratón (o el dedo) se puede girar alrededor, subir o bajar la mirada y acercar, sin perderlo de foco
-function Caminante({ ruta, recorrer, pausa = false, controles, andado, alTerminar, onAvance, desde, persona, base = 0 }) {
+function Caminante({ ruta, recorrer, pausa = false, controles, libre, andado, alTerminar, onAvance, desde, persona, base = 0 }) {
   const ref = useRef()
   const t = useRef(0)
   const caminando = useRef(false)
@@ -486,20 +486,24 @@ function Caminante({ ruta, recorrer, pausa = false, controles, andado, alTermina
       const obj = new THREE.Vector3(q.x, base + 1.3, -q.y)
       const kd = Math.min(dt, 0.1)
       llegada.current += kd
-      if (llegada.current < 1.4) {
+      // cámara libre: mientras la persona gira, mueve o acerca (o con el recorrido en pausa) no se toca la cámara;
+      // al soltar, tras un momento, cámara y foco se trasladan juntos de vuelta al personaje (sin cambiar el giro)
+      const suelta = !pausa && libre.current.dedos === 0 && performance.now() >= libre.current.hasta
+      if (llegada.current < 1.4 && !libre.current.tocado) {
         // al empezar: la cámara se coloca detrás del personaje
         c.target.lerp(obj, 1 - Math.exp(-kd * 6))
         const atras = new THREE.Vector3(-q.dx, 0, q.dy).normalize()
         c.object.position.lerp(obj.clone().add(atras.multiplyScalar(6)).add(new THREE.Vector3(0, 3.2, 0)), 1 - Math.exp(-kd * 4))
-      } else {
-        // después: cámara y foco se trasladan con el personaje; el giro lo decide quien mira
-        const delta = prev.current ? obj.clone().sub(prev.current) : new THREE.Vector3()
-        c.target.add(delta)
-        c.object.position.add(delta)
-        c.target.lerp(obj, 1 - Math.exp(-kd * 4))
+        c.update()
+      } else if (suelta) {
+        const falta = obj.clone().sub(c.target)
+        // si ya va pegado lo sigue al instante; si la persona la había alejado, vuelve con suavidad
+        const corr = falta.length() < 0.6 ? falta : falta.multiplyScalar(1 - Math.exp(-kd * 3))
+        c.target.add(corr)
+        c.object.position.add(corr)
+        c.update()
       }
       prev.current = obj
-      c.update()
     }
     // avance para la barra de navegación (paso actual y metros que faltan), unas 4 veces por segundo
     if (recorrer && (llegada.current - (ultAv.current || 0) > 0.25 || s >= L)) { ultAv.current = llegada.current; onAvance?.(s, L) }
@@ -613,6 +617,41 @@ function ZoomSuave({ controles, pedido }) {
   return null
 }
 
+// gestos sobre el lienzo durante el recorrido: con un dedo o el ratón abajo, la cámara es de la persona; al soltar se
+// espera 2,5 s (si arrastró) antes de volver al personaje; la rueda solo acerca o aleja, así que basta medio segundo
+function GestosLibres({ libre, recorrer }) {
+  const { gl } = useThree()
+  useEffect(() => {
+    const L = libre.current
+    L.dedos = 0; L.hasta = 0; L.tocado = false
+    if (!recorrer) return
+    const el = gl.domElement
+    const ids = new Set()
+    let x0 = 0, y0 = 0, movio = false
+    const abajo = (e) => { ids.add(e.pointerId); L.dedos = ids.size; L.tocado = true; movio = false; x0 = e.clientX; y0 = e.clientY }
+    const mueve = (e) => { if (ids.size && Math.hypot(e.clientX - x0, e.clientY - y0) > 6) movio = true }
+    const arriba = (e) => {
+      if (!ids.delete(e.pointerId)) return
+      L.dedos = ids.size
+      if (!ids.size) L.hasta = performance.now() + (movio ? 2500 : 300)
+    }
+    const rueda = () => { L.tocado = true; L.hasta = Math.max(L.hasta, performance.now() + 600) }
+    el.addEventListener('pointerdown', abajo, true)
+    window.addEventListener('pointermove', mueve, true)
+    window.addEventListener('pointerup', arriba, true)
+    window.addEventListener('pointercancel', arriba, true)
+    el.addEventListener('wheel', rueda, { capture: true, passive: true })
+    return () => {
+      el.removeEventListener('pointerdown', abajo, true)
+      window.removeEventListener('pointermove', mueve, true)
+      window.removeEventListener('pointerup', arriba, true)
+      window.removeEventListener('pointercancel', arriba, true)
+      el.removeEventListener('wheel', rueda, true)
+    }
+  }, [gl, recorrer, libre])
+  return null
+}
+
 // plano cercano de la cámara según lo lejos que mire: de cerca (recorrido) 0,1 m para que no corte las paredes junto
 // al personaje (se veían huecas); de lejos más grande, para que el piso, las veredas y el pasto no parpadeen
 function PlanoCercano({ controles }) {
@@ -684,6 +723,8 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
   }, [])
   const controles = useRef()
   const pedidoZoom = useRef(null)
+  // cámara libre durante el recorrido: dedos/ratón sobre el lienzo y hasta cuándo no seguir al personaje
+  const libre = useRef({ dedos: 0, hasta: 0, tocado: false })
   const distActual = () => { const c = controles.current; return c ? c.object.position.distanceTo(c.target) : 150 }
   // el suelo y el exterior son siempre los de la planta baja
   const pb = pisos.PB || d
@@ -697,7 +738,16 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
     centrar: () => {
       const c = controles.current
       if (!c) return
-      // vuelve a la vista isométrica inicial del edificio
+      // con una ruta a la vista: centra al personaje (de cerca, sin cambiar el giro) y vuelve a seguirlo
+      if (ruta && persona.current && !armado) {
+        libre.current.hasta = 0
+        const [px, py] = persona.current
+        const t = new THREE.Vector3(px, base + 1.3, -py)
+        // caminando, el seguimiento lo trae; quieto o en pausa, lo trae el zoom suave
+        pedidoZoom.current = { dist: Math.min(14, Math.max(6, distActual())), target: recorrer && !pausa ? undefined : t }
+        return
+      }
+      // sin ruta: vuelve a la vista isométrica inicial del edificio
       c.object.position.set(cx + 95, altura + 110, -cy + 95)
       pedidoZoom.current = { dist: Math.hypot(95, 110, 95), target: new THREE.Vector3(cx, altura, -cy) }
     },
@@ -742,14 +792,15 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
             <Puertas puertas={d.puertas} plano={plano} persona={persona} ruta={ruta} recorrer={recorrer} />
             <Letreros d={d} visibles={letreros} />
             {ruta && <Ruta ruta={ruta} andado={andado} />}
-            {ruta && <Caminante ruta={ruta} recorrer={recorrer} pausa={pausa} controles={controles} andado={andado} alTerminar={onFinRecorrer} onAvance={onAvance} desde={desde} persona={persona} base={base} />}
+            {ruta && <Caminante ruta={ruta} recorrer={recorrer} pausa={pausa} controles={controles} libre={libre} andado={andado} alTerminar={onFinRecorrer} onAvance={onAvance} desde={desde} persona={persona} base={base} />}
           </group>
         )}
         {foco && !armado && <MarcaFoco foco={foco} controles={controles} base={base} />}
         <SeguirAltura controles={controles} altura={altura} />
         <ZoomSuave controles={controles} pedido={pedidoZoom} />
+        <GestosLibres libre={libre} recorrer={recorrer} />
         <PlanoCercano controles={controles} />
-        <OrbitControls ref={controles} touches={{ ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN }} target={[cx, altura, -cy]} maxPolarAngle={recorrer ? Math.PI / 1.9 : Math.PI / 2.08} minDistance={recorrer ? 1.5 : 4} maxDistance={recorrer ? 30 : 460} enablePan={!recorrer} enableDamping zoomSpeed={1.8} />
+        <OrbitControls ref={controles} touches={{ ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN }} target={[cx, altura, -cy]} maxPolarAngle={recorrer ? Math.PI / 1.9 : Math.PI / 2.08} minDistance={recorrer ? 1.5 : 4} maxDistance={recorrer ? 160 : 460} enablePan enableDamping zoomSpeed={1.8} />
       </Canvas>
       <div className="pb-3d-ctrl" role="group" aria-label="Opciones de la vista 3D">
         <span className="pb-3d-t">Vista</span>
