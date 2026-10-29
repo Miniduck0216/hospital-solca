@@ -1,6 +1,7 @@
 // Cambio de piso durante el recorrido: una tarjeta con el edificio en corte (los pisos uno sobre otro) donde la cabina
 // del ascensor —o la persona, por las escaleras— va del piso de salida al de llegada. Luego el recorrido sigue en el
-// otro piso. Es solo CSS (sin 3D): liviano para el tótem. Se puede saltar con «Continuar».
+// otro piso. Es solo CSS (sin 3D): liviano para el tótem. La guía no sigue sola: espera a que la persona toque
+// «Ya llegué» (en la vida real el ascensor puede tardar), así el mapa no se adelanta.
 import { useEffect, useMemo, useState } from 'react'
 import { Icono } from '../ui/mapa2d/Iconos.jsx'
 
@@ -20,8 +21,7 @@ export function CambioPiso({ tipo = 'ascensor', de, a, nombre = '', pisos = [], 
     const reducir = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
     const t1 = setTimeout(() => setFase('viaja'), reducir ? 0 : 700)
     const t2 = setTimeout(() => setFase('abre'), reducir ? 600 : total - 800)
-    const t3 = setTimeout(() => onFin?.(), reducir ? 1500 : total)
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3) }
+    return () => { clearTimeout(t1); clearTimeout(t2) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   const n = Math.max(1, lista.length)
@@ -47,7 +47,8 @@ export function CambioPiso({ tipo = 'ascensor', de, a, nombre = '', pisos = [], 
           <small>{nombre || (tipo === 'escalera' ? 'Escaleras' : 'Ascensores')}</small>
           <h3><Icono nombre={sube ? 'subir' : 'bajar'} size={22} grosor={2.6} /> {verbo}</h3>
           <p>hasta <b>{destino?.nombre || a}</b></p>
-          <button className="btn-negro" onClick={() => onFin?.()}>Continuar</button>
+          <p className="cp-espera">{tipo === 'escalera' ? 'Cuando llegue' : 'Cuando el ascensor llegue'} a <b>{destino?.corto || destino?.nombre || a}</b>, toque el botón para seguir la guía.</p>
+          <button className="btn-negro" autoFocus onClick={() => onFin?.()}>Ya llegué · Continuar</button>
         </div>
       </div>
     </div>
