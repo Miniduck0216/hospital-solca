@@ -55,8 +55,10 @@ function libreMasCercana(nav, cx, cy, pasa) {
 }
 
 // línea de vista entre dos celdas: no puede cruzar muros ni salir de la franja
-function visible(nav, pasa, a, b, lim = 3) {
+// (y si se da maxRed, sin alejarse más de esas celdas de la red de pasillos)
+function visible(nav, pasa, a, b, lim = 3, maxRed = 255) {
   const { w, celdas } = nav
+  const dRed = nav.dRed
   let [x0, y0] = a
   const [x1, y1] = b
   const dx = Math.abs(x1 - x0), dy = Math.abs(y1 - y0)
@@ -64,7 +66,7 @@ function visible(nav, pasa, a, b, lim = 3) {
   let err = dx - dy
   for (;;) {
     const j = y0 * w + x0
-    if (!pasa(j) || celdas[j] > lim) return false
+    if (!pasa(j) || celdas[j] > lim || (dRed && dRed[j] > maxRed)) return false
     if (x0 === x1 && y0 === y1) return true
     const e2 = 2 * err
     if (e2 > -dy) { err -= dy; x0 += sx }
@@ -196,9 +198,17 @@ export function buscarRuta(d, desde, hasta, ids = [], opts = {}) {
   let k = 0
   while (k < camino.length - 1) {
     let j = camino.length - 1
+    // la línea no se aleja de la red de pasillos más que sus extremos (y al menos 1 m de tolerancia): sigue los
+    // pasillos en vez de cortar los halls en diagonal
+    const tope = (q) => {
+      const dr = nav.dRed
+      if (!dr) return 255
+      const da = dr[camino[k][1] * w + camino[k][0]], db = dr[camino[q][1] * w + camino[q][0]]
+      return Math.max(4, da, db) + 1
+    }
     // primero una línea que se aleje de las paredes; si no existe, una más cercana a ellas
-    while (j > k + 1 && !visible(nav, (q) => pasa(q) || meta(q), camino[k], camino[j], 3)) j--
-    if (j === k + 1) { j = camino.length - 1; while (j > k + 1 && !visible(nav, (q) => pasa(q) || meta(q), camino[k], camino[j], 6)) j-- }
+    while (j > k + 1 && !visible(nav, (q) => pasa(q) || meta(q), camino[k], camino[j], 3, tope(j))) j--
+    if (j === k + 1) { j = camino.length - 1; while (j > k + 1 && !visible(nav, (q) => pasa(q) || meta(q), camino[k], camino[j], 6, tope(j))) j-- }
     esq.push(camino[j])
     k = j
   }

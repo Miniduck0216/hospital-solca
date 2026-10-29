@@ -107,6 +107,9 @@ export async function cargarDatos(cambiosLocales = null, opciones = {}) {
   for (let i = 0; i < d.nav.banda.length; i++) if (d.nav.cuarto[i] && !d.nav.paso[d.nav.cuarto[i]] && !d.nav.red[i]) d.nav.banda[i] = 0
   unirPorDentro(d, d.nav.banda)
   abrirPuertas(d, d.nav.banda)
+  // distancia (en celdas) a la red de pasillos: al estirar la ruta, la línea no se aleja de la red (no corta los
+  // halls en diagonal ni pasa por el medio de las salas)
+  d.nav.dRed = distanciaARed(d.nav)
   d.nav.indice = Object.fromEntries(d.ambientes.map((a, k) => [a.id, k + 1]))
   d.nav.ventanilla = new Set(d.ambientes.flatMap((a, k) => (a.ventanilla ? [k + 1] : [])))
   d.nav.alcanzable = alcanzables(d)
@@ -117,6 +120,28 @@ export async function cargarDatos(cambiosLocales = null, opciones = {}) {
     if (!d.nav.bandaAdmin[i] && d.nav.celdas[i] && c && d.ambientes[c - 1].personal) d.nav.bandaAdmin[i] = 1
   }
   return d
+}
+
+// distancia de cada celda libre a la celda más cercana de la red (8 vecinos, en celdas, hasta 255)
+function distanciaARed(nav) {
+  const { w, h, celdas, red } = nav
+  const N = w * h
+  const dist = new Uint8Array(N).fill(255)
+  const cola = new Int32Array(N)
+  let ini = 0, fin = 0
+  for (let i = 0; i < N; i++) if (red[i] && celdas[i]) { dist[i] = 0; cola[fin++] = i }
+  while (ini < fin) {
+    const i = cola[ini++]
+    const x = i % w, y = (i / w) | 0, nd = dist[i] + 1
+    if (nd > 254) continue
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      const nx = x + dx, ny = y + dy
+      if ((!dx && !dy) || nx < 0 || ny < 0 || nx >= w || ny >= h) continue
+      const j = ny * w + nx
+      if (celdas[j] && dist[j] > nd) { dist[j] = nd; cola[fin++] = j }
+    }
+  }
+  return dist
 }
 
 // Un tramo trazado (verde o rojo) que solo se une al resto por la vereda exterior se conecta también por dentro:

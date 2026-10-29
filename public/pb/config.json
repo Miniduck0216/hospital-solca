@@ -130,43 +130,43 @@
    "si": "Vestíbulo de Ductos",
    "personal": true
   },
-  "a311": {
+  "a310": {
    "si": "Punciones",
    "personal": true
   },
-  "a323": {
+  "a322": {
    "si": "Seleccion Donantes",
    "personal": true
   },
-  "a333": {
+  "a332": {
    "si": "Baño",
    "personal": true
   },
-  "a335": {
+  "a334": {
    "si": "Baños",
    "personal": true
   },
-  "a427": {
+  "a426": {
    "si": "Gerencia Proyectos",
    "personal": true
   },
-  "a430": {
+  "a429": {
    "si": "Oficina",
    "personal": true
   },
-  "a439": {
+  "a438": {
    "si": "Sala Reuniones",
    "personal": true
   },
-  "a440": {
+  "a439": {
    "si": "Quimioterápicos",
    "personal": true
   },
-  "a441": {
+  "a440": {
    "si": "Nutrición Parental",
    "personal": true
   },
-  "a422": {
+  "a421": {
    "si": "S.H. M.",
    "personal": false
   },
@@ -210,7 +210,7 @@
    "nombre": "Tragaluz",
    "personal": true
   },
-  "a322": {
+  "a321": {
    "si": "Oficina",
    "personal": true
   },
@@ -266,40 +266,40 @@
    "si": "Apoyo",
    "nombre": "Gastroenterología"
   },
-  "a407": {
+  "a406": {
    "si": "Lenc.",
    "personal": true
   },
-  "a380": {
+  "a379": {
    "si": "U.U.",
    "personal": true
   },
-  "a265": {
+  "a264": {
    "si": "Toma de Muestras · Módulo 01",
    "nombre": "Toma de Muestras 01",
    "cat": "otro"
   },
-  "a318": {
+  "a317": {
    "si": "Módulo 02 · Toma de Muestras",
    "nombre": "Toma de Muestras 02",
    "cat": "otro"
   },
-  "a278": {
+  "a277": {
    "si": "Módulo 03 · Toma de Muestras",
    "nombre": "Toma de Muestras 03",
    "cat": "otro"
   },
-  "a271": {
+  "a270": {
    "si": "Módulo 04 · Toma de Muestras",
    "nombre": "Toma de Muestras 04",
    "cat": "otro"
   },
-  "a277": {
+  "a276": {
    "si": "Módulo 05 · Toma de Muestras",
    "nombre": "Toma de Muestras 05",
    "cat": "otro"
   },
-  "a303": {
+  "a302": {
    "si": "Lavachatas",
    "personal": true
   },
@@ -318,7 +318,7 @@
    "nombre": "Pasillo",
    "cat": "circulacion"
   },
-  "a261": {
+  "a260": {
    "si": "Secretaría",
    "dest": [
     89.3,
@@ -326,7 +326,7 @@
    ],
    "ventanilla": true
   },
-  "a307": {
+  "a306": {
    "si": "",
    "nombre": "SS.HH.",
    "cat": "banos",
@@ -337,7 +337,7 @@
    ],
    "ventanilla": true
   },
-  "a305": {
+  "a304": {
    "si": "",
    "nombre": "SS.HH.",
    "cat": "banos",
@@ -348,20 +348,24 @@
    ],
    "ventanilla": true
   },
-  "a349": {
+  "a348": {
    "si": "",
    "personal": true
+  },
+  "a303": {
+   "si": "",
+   "cat": "circulacion"
   },
   "a175": {
    "si": "Lavachatas · Utileria Sucia",
    "nombre": "Pasillo",
    "cat": "circulacion"
   },
-  "a400": {
+  "a399": {
    "si": "U. Usada",
    "personal": true
   },
-  "a409": {
+  "a408": {
    "si": "U. Limpia",
    "personal": true
   },
@@ -374,7 +378,7 @@
    "si": "",
    "cat": "circulacion"
   },
-  "a308": {
+  "a307": {
    "si": "",
    "cat": "circulacion"
   },
@@ -382,7 +386,7 @@
    "si": "",
    "nombre": "Oficina"
   },
-  "a347": {
+  "a346": {
    "si": "",
    "nombre": "Archivo",
    "personal": true
@@ -392,11 +396,11 @@
    "nombre": "Recepción Limpia",
    "personal": true
   },
-  "a369": {
+  "a368": {
    "si": "",
    "nombre": "Vestidor"
   },
-  "a367": {
+  "a366": {
    "si": "",
    "nombre": "Vestidor"
   },
@@ -435,7 +439,7 @@
    "si": "U. Limpia",
    "personal": true
   },
-  "a344": {
+  "a343": {
    "si": "Estacion",
    "personal": true
   },
@@ -456,27 +460,27 @@
    "si": "Sala · Rauniones",
    "nombre": "Sala Rauniones"
   },
-  "a330": {
+  "a329": {
    "si": "Coordinación",
    "personal": true
   },
-  "a384": {
+  "a383": {
    "si": "Tuberculosis",
    "personal": true
   },
-  "a379": {
+  "a378": {
    "si": "Baño",
    "personal": true
   },
-  "a317": {
+  "a316": {
    "si": "Medicos",
    "personal": true
   },
-  "a334": {
+  "a333": {
    "si": "",
    "cat": "circulacion"
   },
-  "a320": {
+  "a319": {
    "si": "",
    "cat": "circulacion"
   },
@@ -488,7 +492,7 @@
    "si": "",
    "cat": "circulacion"
   },
-  "a357": {
+  "a356": {
    "si": "",
    "cat": "circulacion"
   },
@@ -498,29 +502,29 @@
    "cat": "circulacion",
    "personal": false
   },
-  "a295": {
+  "a294": {
    "si": "Ascensores",
    "personal": true
   },
-  "a301": {
+  "a300": {
    "si": "Ascensores",
    "personal": true
   },
-  "a313": {
+  "a312": {
    "si": "",
    "nombre": "Baño",
    "cat": "banos",
    "personal": false
   },
+  "a360": {
+   "si": "",
+   "cat": "circulacion"
+  },
   "a361": {
    "si": "",
    "cat": "circulacion"
   },
-  "a362": {
-   "si": "",
-   "cat": "circulacion"
-  },
-  "a432": {
+  "a431": {
    "si": "",
    "cat": "circulacion"
   },
@@ -578,7 +582,7 @@
    ],
    "ventanilla": true
   },
-  "a296": {
+  "a295": {
    "si": "Baños",
    "personal": false,
    "dest": [
@@ -587,15 +591,19 @@
    ],
    "ventanilla": true
   },
-  "a348": {
+  "a347": {
    "si": "Baño",
    "personal": false
   },
-  "a363": {
+  "a362": {
    "si": "Baño",
    "personal": false
   },
-  "a374": {
+  "a373": {
+   "si": "Baño",
+   "personal": false
+  },
+  "a376": {
    "si": "Baño",
    "personal": false
   },
@@ -603,23 +611,19 @@
    "si": "Baño",
    "personal": false
   },
-  "a378": {
-   "si": "Baño",
-   "personal": false
-  },
-  "a383": {
+  "a382": {
    "si": "SS.HH.",
    "personal": false
   },
-  "a392": {
+  "a391": {
    "si": "SS.HH.",
    "personal": false
   },
-  "a396": {
+  "a395": {
    "si": "SS.HH.",
    "personal": false
   },
-  "a398": {
+  "a397": {
    "si": "SS.HH.",
    "personal": false,
    "dest": [
@@ -628,23 +632,23 @@
    ],
    "ventanilla": true
   },
-  "a399": {
+  "a398": {
    "si": "SS.HH.",
    "personal": false
   },
-  "a402": {
+  "a401": {
    "si": "SS.HH.",
+   "personal": false
+  },
+  "a418": {
+   "si": "S.H. H.",
    "personal": false
   },
   "a419": {
    "si": "S.H. H.",
    "personal": false
   },
-  "a420": {
-   "si": "S.H. H.",
-   "personal": false
-  },
-  "a434": {
+  "a433": {
    "si": "SS.HH.",
    "personal": false,
    "dest": [
@@ -653,7 +657,7 @@
    ],
    "ventanilla": true
   },
-  "a435": {
+  "a434": {
    "si": "SS.HH.",
    "personal": false,
    "dest": [
@@ -662,7 +666,7 @@
    ],
    "ventanilla": true
   },
-  "a436": {
+  "a435": {
    "si": "SS.HH.",
    "personal": false,
    "dest": [
@@ -671,7 +675,7 @@
    ],
    "ventanilla": true
   },
-  "a437": {
+  "a436": {
    "si": "SS.HH.",
    "personal": false,
    "dest": [

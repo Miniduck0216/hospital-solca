@@ -102,7 +102,8 @@ AJUSTES = {
         ('Secretaría', (88.6, 107.4), {'nombre': 'Pasillo', 'cat': 'circulacion'}),   # toma de muestras (C1-L1-085)
         ('Secretaría', (91.28, 93.13), 'ventanilla'),   # se atiende sobre el mostrador del pasillo
         ('', (112.5, 96.5), {'nombre': 'SS.HH.', 'cat': 'banos'}), ('', (112.5, 93.5), {'nombre': 'SS.HH.', 'cat': 'banos'}),
-        ('', (147.75, 35.3), 'personal'),   # cuarto C3-L1-03 (medicina nuclear), sin puerta en el plano
+        ('', (147.75, 35.3), 'personal'),
+        ('', (120.0, 26.6), {'cat': 'circulacion'}),   # antesala del biobanco (laboratorio de genética)   # cuarto C3-L1-03 (medicina nuclear), sin puerta en el plano
         ('Lavachatas · Utileria Sucia', (141.6, 82.0), {'nombre': 'Pasillo', 'cat': 'circulacion'}),
         # laboratorio: utilerías de la toma de muestras y el apoyo de microbiología
         ('U. Usada', (103.6, 17.0), 'personal'), ('U. Limpia', (103.6, 15.6), 'personal'),
@@ -186,9 +187,9 @@ AJUSTES = {
 # lugares sin cuarto propio (puntos con nombre): mostradores y zonas dentro de un hall, cuartos que el dibujo no cierra
 # pasos abiertos (puertas que el dibujo no tiene): [punto, punto] a través del muro
 PASOS = {
-    'PB': [[[139.95, 91.3], [139.95, 92.5]],
-           [[163.4, 102.8], [165.1, 101.0]],
-           [[146.5, 37.0], [146.5, 35.5]]],   # comedor de medicina nuclear: entrada desde la estación (vano de 0,6 m)   # clínica de heridas: puerta del pasillo junto a la fachada (frente a Triaje)   # emergencia: vestíbulo del baño (la rejilla lo deja cerrado en la esquina)
+    'PB': [[[139.95, 91.3], [139.95, 92.5]],     # emergencia: vestíbulo del baño (la rejilla lo deja cerrado en la esquina)
+           [[163.4, 102.8], [165.1, 101.0]],     # clínica de heridas: puerta del pasillo junto a la fachada (frente a Triaje)
+           [[146.5, 37.0], [146.5, 35.5]]],      # comedor de medicina nuclear: entrada desde la estación (vano de 0,6 m)
     'P1': [[[28.95, 83.6], [29.85, 83.6]]],   # puerta del baño de hombres del bloque de servicio
     'P3': [[[74.3, 87.33], [75.5, 87.33]]],      # vano entre el filtro de pacientes y los baños de Trasplantes
 }

@@ -160,12 +160,14 @@ QUITAR_MUROS = {
     'PB': [box(58.0, 27.8, 62.6, 37.0), box(90.4, 27.85, 99.4, 32.95),
            box(141.4, 72.4, 155.3, 72.8),   # línea del borde de la losa junto a las centrales de gases: no es muro
            box(141.95, 36.45, 143.85, 36.75),   # puerta de los ascensores hacia la estación de enfermería
-           box(147.05, 33.72, 148.45, 36.85)],   # interior del cuarto C3-L1-03
+           box(147.05, 33.72, 148.45, 36.85),   # interior del cuarto C3-L1-03
+           box(83.9, -8.65, 90.45, -6.25)],   # tramo de fachada con montantes junto a la Bodega Tics: no existe
     'P1': [box(72.17, 73.25, 74.83, 73.5)],
     'P2': [box(72.17, 73.25, 74.83, 73.5)],
 }
 # ventanas que no son ventanas: el borde de la jardinera y la pérgola al sur del ala oeste (piso 1)
 QUITAR_VENTANAS = {
+    'PB': [box(83.9, -8.65, 90.45, -6.25)],   # vidrios del tramo de fachada junto a la Bodega Tics (no existe)
     'P1': [box(3.9, 75.4, 50.7, 75.8), box(16.5, 77.55, 50.3, 77.75), box(45.3, 72.7, 45.7, 75.4)],
 }
 # ventanas que en el plano son muros (doble línea de la capa de vidrios): las centrales de gases de la U.C.I.
@@ -249,7 +251,8 @@ EXTERIOR = {
     # tragaluces (patios de luz con aspa en el plano): sin piso ni paso
     'PB': [box(58.0, 27.8, 62.6, 37.0), box(90.4, 27.85, 99.4, 32.95), box(128.35, 30.35, 134.95, 33.55),
            box(88.2, 49.8, 90.4, 53.1),   # franja entre los dos vacíos de gastroenterología
-           box(141.3, 32.15, 144.55, 33.6)],   # ducto con aspa bajo los ascensores de la estación de enfermería
+           box(141.3, 32.15, 144.55, 33.6),   # ducto con aspa bajo los ascensores de la estación de enfermería
+           box(83.9, -8.65, 90.45, -6.25)],   # el cuarto de fachada junto a la Bodega Tics (no existe)
     'P1': [box(76.8, 40.9, 81.0, 45.7),
            box(2.4, 89.9, 3.95, 95.6),
            box(3.5, 75.3, 50.6, 77.0)],   # franja de jardineras y pérgola entre el ventanal sur y la fachada   # balcón con baranda entre la escalera de emergencia y la habitación 16
@@ -676,6 +679,42 @@ def huecos_rotulados(m):
     return n
 
 
+def juntas(m):
+    """Paredes que no llegan a la puerta o a la otra pared (el dibujo deja rendijas): cada extremo del marco de una
+    puerta se completa con muro hasta la pared que sigue en su misma línea (si está a menos de 0,6 m), y las
+    rendijas de menos de 24 cm entre muros se cierran. Devuelve (rellenos de puertas, rellenos de rendijas)."""
+    import numpy as np
+    from shapely.geometry import Polygon
+    from shapely.prepared import prep
+    duro = unary_union(list(m.muros) + list(m.columnas) + [t['poligono'] for t in getattr(m, 'tabiques', [])])
+    pd = prep(duro)
+    nuevos = []
+    for p in m.puertas:
+        a, b = np.array(p['a']), np.array(p['b'])
+        d, n = p['dir'], p['nrm']
+        t0, t1 = p['t0'], p['t1']
+        c = (t0 + t1) / 2
+        for e, s in ((a, -1), (b, 1)):
+            if pd.contains(Point(*(e + d * s * 0.03 + n * c))):
+                continue
+            for k in np.arange(0.06, 0.62, 0.02):
+                if pd.contains(Point(*(e + d * s * k + n * c))):
+                    f = e + d * s * (k + 0.02)
+                    nuevos.append(Polygon([tuple(e + n * t0), tuple(f + n * t0), tuple(f + n * t1), tuple(e + n * t1)]))
+                    break
+    n_p = len(nuevos)
+    vanos = unary_union([p['rect'].buffer(0.02, join_style=2) for p in m.puertas] +
+                        [v.buffer(0.02, join_style=2) for v in m.ventanas])
+    todo = unary_union([duro] + nuevos)
+    cerrado = todo.buffer(0.12, join_style=2).buffer(-0.12, join_style=2)
+    rendijas = [q for q in lista_polis(cerrado.difference(todo).difference(vanos)) if q.area > 0.003]
+    relleno = nuevos + rendijas
+    if relleno:
+        m.muros = list(m.muros) + relleno
+        m.muros_raw = unary_union([m.muros_raw] + relleno)
+    return n_p, len(rendijas)
+
+
 def tragaluces(m):
     """Rectángulos con sus dos diagonales dibujadas (aspa): tragaluces del plano (marco de la web). No cuentan
     los ductos chicos ni los pozos de ascensor (rótulo «ASCENSOR» cerca)."""
@@ -824,6 +863,7 @@ def preparar(m, piso):
     obra(m, piso)
     if piso in PUERTAS_ARCO:
         print('puertas de arco', puertas_de_arco(m))
+    print('juntas (puertas, rendijas)', juntas(m))
     # «ambientes» que son el interior de un muro grueso (búnkeres): fuera
     duro = unary_union([m.muros_raw] + m.columnas)
     m.ambientes = [a for a in m.ambientes if a['poligono'].intersection(duro).area < 0.6 * a['poligono'].area]
