@@ -96,6 +96,11 @@ body { background: #E9EDF1; }
 .pb-3d-t { font-size: .72rem; font-weight: 800; color: var(--m-gris); text-transform: uppercase; letter-spacing: .06em; }
 .pb-3d-ctrl .pb-seg { box-shadow: none; background: #F1F4F7; }
 .pb-3d-ctrl .pb-seg button { flex: 1; padding: 7px 6px; }
+.pb-pisos3d { display: flex; flex-wrap: wrap; gap: 4px; background: #F1F4F7; border-radius: 14px; padding: 4px; }
+.pb-pisos3d button { flex: 1; border: 0; background: transparent; border-radius: 10px; padding: 7px 4px; font-weight: 800; font-size: .8rem; color: var(--m-gris); cursor: pointer; min-width: 0; }
+.pb-pisos3d button:first-child { flex-basis: 100%; }
+.pb-pisos3d button[aria-pressed="true"] { background: var(--m-tinta); color: #fff; }
+.pb-pisos3d button:hover:not([aria-pressed="true"]) { background: #E4E9EF; }
 .pb-check { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: .85rem; cursor: pointer; }
 .pb-recorrer { width: 100%; }
 .pb-ayuda3d { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); margin: 0; font-size: .75rem; font-weight: 700; color: #3D4A5A; background: rgba(255, 255, 255, .8); padding: 4px 10px; border-radius: 999px; z-index: 4; pointer-events: none; white-space: nowrap; }

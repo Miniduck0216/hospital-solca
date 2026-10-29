@@ -100,61 +100,123 @@ function colorDePiso(nombre) {
   return mejor ? mejor.color.clone() : null
 }
 
-// hojas de puerta y manijas del modelo: se ocultan porque la web dibuja sus propias puertas que se abren (ver Puertas)
+// hojas de puerta y manijas del modelo: en el piso que se mira se ocultan porque la web dibuja sus propias puertas que
+// se abren (ver Puertas); en los demás pisos quedan las del modelo, cerradas
 const OCULTOS = ['muros|0.360,0.160,0.053', 'muros|0.562,0.026,0.014', 'muebles|0.672,0.672,0.706']
-// tapa de los muros cortados: al recortar la altura, el interior hueco del muro se veía como un bloque gris
-// descuadrado; las caras traseras se pintan del color de la tapa y el corte se ve macizo
-const TAPA = new THREE.MeshBasicMaterial({ color: '#E6DED0', side: THREE.BackSide })
 
-// el piso puede venir en varias partes (la planta baja: lo que ya estaba + lo que se completó del plano 2025)
-function Edificio({ glb, ...props }) {
-  const partes = Array.isArray(glb) ? glb : [glb]
-  return <>{partes.map((u) => <ParteEdificio key={u} url={u} {...props} />)}</>
+// altura de un piso a otro (muros de 3,84 m + losa) y cuánto suben los pisos de arriba al mirar uno de abajo
+export const H_PISO = 4.2
+const ALZAR = 38
+
+// un piso del edificio: su modelo (una o varias partes), su techo y su posición. Estados:
+// 'activo' (el que se mira: muros cortados a la altura elegida, pisos de color y puertas que se abren),
+// 'abajo' (completo, con su techo), 'arriba' (sube y desaparece) y 'oculto' (el subsuelo bajo tierra)
+function Piso3D({ p, techo, estado, corte, letreros }) {
+  const grupo = useRef()
+  const plano = useMemo(() => new THREE.Plane(new THREE.Vector3(0, -1, 0), 9999), [])
+  const y0 = p.nivel * H_PISO
+  const meta = estado === 'arriba' ? y0 + ALZAR + Math.max(0, p.nivel) * 6 : y0
+  const activo = estado === 'activo'
+  useEffect(() => { plano.constant = activo && corte < 3.8 ? y0 + corte : 9999 }, [activo, corte, y0, plano])
+  useFrame((_, dt) => {
+    const g = grupo.current
+    if (!g) return
+    const k = 1 - Math.exp(-Math.min(dt, 0.25) * 3.2)
+    g.position.y += (meta - g.position.y) * k
+    // al subir se va desvaneciendo: deja de dibujarse cuando ya está lejos
+    g.visible = estado !== 'oculto' && !(estado === 'arriba' && g.position.y > y0 + ALZAR * 0.8)
+  })
+  const glb = Array.isArray(p.glb) ? p.glb : [p.glb]
+  return (
+    <group ref={grupo} position-y={y0} visible={estado !== 'oculto'}>
+      {glb.filter(Boolean).map((u) => (
+        <Suspense key={u} fallback={null}><ParteEdificio url={u} activo={activo} corte={activo ? corte : 9} letreros={activo && letreros} plano={plano} /></Suspense>
+      ))}
+      {techo && !activo && <Techo huella={techo} />}
+    </group>
+  )
 }
 
-function ParteEdificio({ corte, letreros, plano, url }) {
+function ParteEdificio({ url, activo, corte, letreros, plano }) {
   const { scene } = useGLTF(`${BASE}${url}?v=${__VERSION__}`)
   const { gl } = useThree()
-  useEffect(() => { gl.localClippingEnabled = true; TAPA.clippingPlanes = [plano] }, [gl, plano])
+  // tapa de los muros cortados: al recortar la altura, el interior hueco del muro se veía como un bloque gris
+  // descuadrado; las caras traseras se pintan del color de la tapa y el corte se ve macizo
+  const tapa = useMemo(() => new THREE.MeshBasicMaterial({ color: '#E6DED0', side: THREE.BackSide }), [])
+  useEffect(() => { gl.localClippingEnabled = true; tapa.clippingPlanes = [plano] }, [gl, plano, tapa])
   useEffect(() => {
     scene.traverse((o) => {
-      if (!o.isMesh) return
+      if (!o.isMesh || o.userData.tapa) return
       o.castShadow = true
       o.receiveShadow = true
       const nombre = o.name || o.parent?.name || ''
       const g = nombre.split('|')[0]
-      if (OCULTOS.some((k) => nombre.startsWith(k))) { o.visible = false; return }
-      // los pisos de color los dibuja PisosColor (paleta de maqueta); del modelo solo queda la losa base
-      if (g === 'pisos' && !nombre.startsWith('pisos|0.384')) { o.visible = false; return }
-      if (g === 'letreros') o.visible = letreros
-      if (g === 'viseras') o.visible = corte >= 3.8
+      if (OCULTOS.some((k) => nombre.startsWith(k))) { o.visible = !activo; return }
       const m = o.material
       if (g === 'pisos' && !o.userData.coloreado) {
-        const c = colorDePiso(o.name || o.parent?.name || '')
+        const c = colorDePiso(nombre)
         if (c) { o.material = m.clone(); o.material.color.copy(c); o.material.roughness = 0.85 }
         o.userData.coloreado = true
       }
-      // paleta de interiores: muros casi blancos con un toque celeste, mobiliario celeste suave
-      // (solo las piezas grises: puertas, vidrios y madera conservan su color)
-      if ((g === 'muros' || g === 'muebles') && !o.userData.tono && m?.color) {
-        const hsl = m.color.getHSL({})
-        // muros de maqueta: blanco cálido y mate; mobiliario gris en celeste suave
-        if (nombre.startsWith('muros|0.902')) { o.material = m.clone(); o.material.color.set('#FBF7EF'); o.material.roughness = 1 }
-        else if (hsl.s < 0.12) { o.material = m.clone(); o.material.color.set(g === 'muros' ? '#F3EFE6' : '#C6D8F0'); o.material.roughness = 0.9 }
+      // los pisos de color del piso que se mira los dibuja PisosColor (con el destino resaltado); en los demás
+      // quedan los del modelo
+      if (g === 'pisos') o.visible = !activo || nombre.startsWith('pisos|0.384')
+      if (g === 'letreros') o.visible = letreros
+      if (g === 'viseras') o.visible = corte >= 3.8
+      // paleta de interiores: muros casi blancos, mobiliario gris en celeste suave
+      if ((g === 'muros' || g === 'muebles') && !o.userData.tono && o.material?.color) {
+        const hsl = o.material.color.getHSL({})
+        if (nombre.startsWith('muros|0.902')) { o.material = o.material.clone(); o.material.color.set('#FBF7EF'); o.material.roughness = 1 }
+        else if (hsl.s < 0.12) { o.material = o.material.clone(); o.material.color.set(g === 'muros' ? '#F3EFE6' : '#C6D8F0'); o.material.roughness = 0.9 }
         o.userData.tono = true
       }
-      if (o.material && g !== 'pisos') { const m = o.material; m.clippingPlanes = [plano]; m.clipShadows = true; m.needsUpdate = true }
-      if (g === 'muros' && !o.userData.tapa && o.material && !o.material.transparent) {
+      if (o.material && g !== 'pisos') { o.material.clippingPlanes = [plano]; o.material.clipShadows = true; o.material.needsUpdate = true }
+      if (g === 'muros' && !o.userData.conTapa && o.material && !o.material.transparent) {
         o.material.side = THREE.FrontSide
-        const tapa = new THREE.Mesh(o.geometry, TAPA)
-        tapa.userData.tapa = true
-        tapa.raycast = () => {}
-        o.add(tapa)
-        o.userData.tapa = true
+        const t = new THREE.Mesh(o.geometry, tapa)
+        t.userData.tapa = true
+        t.raycast = () => {}
+        o.add(t)
+        o.userData.conTapa = true
       }
     })
-  }, [scene, corte, letreros, plano])
+  }, [scene, activo, corte, letreros, plano, tapa])
   return <primitive object={scene} />
+}
+
+// techo de un piso: losa sobre su huella (con los patios y tragaluces abiertos) y un antepecho en el borde
+const TECHO = new THREE.MeshStandardMaterial({ color: '#D8D2C6', roughness: 0.95 })
+const ANTEPECHO = new THREE.MeshStandardMaterial({ color: '#F1ECE2', roughness: 1 })
+function Techo({ huella }) {
+  const geos = useMemo(() => {
+    const V = ([x, y]) => new THREE.Vector2(x, y)
+    const losas = [], bordes = []
+    for (const pg of huella || []) {
+      const [ext, ...huecos] = pg
+      if (!ext || ext.length < 3) continue
+      const anillo = ext[0][0] === ext[ext.length - 1][0] && ext[0][1] === ext[ext.length - 1][1] ? ext.slice(0, -1) : ext
+      const forma = new THREE.Shape(anillo.map(V))
+      for (const h of huecos) forma.holes.push(new THREE.Path(h.map(V)))
+      const g = new THREE.ExtrudeGeometry(forma, { depth: 0.28, bevelEnabled: false })
+      g.rotateX(-Math.PI / 2)
+      losas.push(g)
+      // antepecho: el borde exterior, 25 cm hacia adentro, 0,9 m de alto
+      const borde = new THREE.Shape(anillo.map(V))
+      borde.holes.push(new THREE.Path(ensanchar(anillo, -0.25).map(V)))
+      const b = new THREE.ExtrudeGeometry(borde, { depth: 0.9, bevelEnabled: false })
+      b.rotateX(-Math.PI / 2)
+      b.translate(0, 0.28, 0)
+      bordes.push(b)
+    }
+    return { losas, bordes }
+  }, [huella])
+  // la losa va justo bajo el piso de arriba (que la tapa donde lo hay) y se ve como azotea donde no
+  return (
+    <group position-y={3.86}>
+      {geos.losas.map((g, k) => <mesh key={'l' + k} geometry={g} material={TECHO} receiveShadow castShadow />)}
+      {geos.bordes.map((g, k) => <mesh key={'b' + k} geometry={g} material={ANTEPECHO} castShadow />)}
+    </group>
+  )
 }
 
 // medidas de la ruta: largo total y punto/dirección a una distancia dada
@@ -277,10 +339,20 @@ function Personaje({ caminando }) {
   )
 }
 
-// puertas animadas: cada hoja gira sobre su bisagra; se abre (90°, hacia el lado contrario a la persona) cuando el
-// personaje se acerca a menos de 2,4 m y se cierra cuando se aleja
+// puertas animadas: cada hoja gira sobre su bisagra. Las que cruza la ruta se abren una tras otra (hacia donde se
+// camina) cuando aparece la ruta; en el recorrido se abren al acercarse el personaje (a menos de 2,4 m, hacia el lado
+// contrario a él) y se cierran cuando se aleja
 const MADERA = '#9C6B3E'
-function Puertas({ puertas, plano, persona }) {
+function cruce(a, b, p, q) {
+  // intersección de los segmentos a-b (puerta) y p-q (tramo de ruta): devuelve t en p-q o null
+  const r = [b[0] - a[0], b[1] - a[1]], s = [q[0] - p[0], q[1] - p[1]]
+  const den = r[0] * s[1] - r[1] * s[0]
+  if (Math.abs(den) < 1e-9) return null
+  const ap = [p[0] - a[0], p[1] - a[1]]
+  const u = (ap[0] * s[1] - ap[1] * s[0]) / den, t = (ap[0] * r[1] - ap[1] * r[0]) / den
+  return u >= -0.05 && u <= 1.05 && t >= 0 && t <= 1 ? t : null
+}
+function Puertas({ puertas, plano, persona, ruta, recorrer }) {
   const hojas = useMemo(() => {
     const out = []
     for (const p of puertas) {
@@ -296,13 +368,35 @@ function Puertas({ puertas, plano, persona }) {
         const n = [-D[1] / DL, D[0] / DL]
         const nl = [-uy, ux]   // normal propia de esta hoja
         const off = (p.c || 0) * (n[0] * nl[0] + n[1] * nl[1])
-        out.push({ h, L: p.doble ? L - 0.005 : L - 0.1, ini: p.doble ? 0.005 : 0.05, th: Math.atan2(uy, ux), off, nl, ducto: p.ducto, mid })
+        out.push({ h, a, b, L: p.doble ? L - 0.005 : L - 0.1, ini: p.doble ? 0.005 : 0.05, th: Math.atan2(uy, ux), off, nl, ducto: p.ducto, mid })
       }
     }
     return out
   }, [puertas])
+  // puertas que cruza la ruta: distancia a lo largo de la ruta y hacia qué lado se abren (hacia donde se camina)
+  const enRuta = useMemo(() => {
+    const m = new Map()
+    if (!ruta) return m
+    const P = ruta.pts
+    let acum = 0
+    for (let i = 1; i < P.length; i++) {
+      const p = P[i - 1], q = P[i], L = Math.hypot(q[0] - p[0], q[1] - p[1])
+      hojas.forEach((hj, k) => {
+        if (m.has(k)) return
+        const t = cruce(hj.a, hj.b, p, q)
+        if (t === null) return
+        const v = [q[0] - p[0], q[1] - p[1]]
+        m.set(k, { s: acum + t * L, abre: v[0] * hj.nl[0] + v[1] * hj.nl[1] > 0 ? Math.PI / 2 : -Math.PI / 2 })
+      })
+      acum += L
+    }
+    return m
+  }, [ruta, hojas])
+  const desde = useRef(0)
+  useEffect(() => { desde.current = performance.now() }, [ruta])
   const grupos = useRef([])
   const ang = useRef(new Float32Array(hojas.length))
+  useEffect(() => { ang.current = new Float32Array(hojas.length) }, [hojas])
   const mats = useMemo(() => ({
     madera: new THREE.MeshStandardMaterial({ color: MADERA, roughness: 0.7 }),
     roja: new THREE.MeshStandardMaterial({ color: '#C0392B', roughness: 0.7 }),
@@ -311,17 +405,25 @@ function Puertas({ puertas, plano, persona }) {
   useEffect(() => { for (const m of Object.values(mats)) m.clippingPlanes = [plano] }, [mats, plano])
   useFrame((_, dt) => {
     const q = persona.current
+    // la ruta "avanza" a 9 m/s desde que aparece: cada puerta que cruza se abre cuando le llega
+    const frente = ((performance.now() - desde.current) / 1000) * 9
     hojas.forEach((hj, k) => {
       const g = grupos.current[k]
       if (!g) return
       let meta = 0
-      if (q && Math.hypot(q[0] - hj.mid[0], q[1] - hj.mid[1]) < 2.4) {
-        // gira hacia el lado contrario de donde viene la persona
-        const lado = (q[0] - hj.h[0]) * hj.nl[0] + (q[1] - hj.h[1]) * hj.nl[1]
-        meta = lado > 0 ? -Math.PI / 2 : Math.PI / 2
-        if (ang.current[k] !== 0 && Math.sign(ang.current[k]) !== Math.sign(meta)) meta = ang.current[k] > 0 ? Math.PI / 2 : -Math.PI / 2
-      }
-      ang.current[k] += (meta - ang.current[k]) * (1 - Math.exp(-Math.min(dt, 0.1) * 6))
+      const r = enRuta.get(k)
+      if (recorrer) {
+        if (q && Math.hypot(q[0] - hj.mid[0], q[1] - hj.mid[1]) < 2.4) {
+          if (r) meta = r.abre
+          else {
+            // gira hacia el lado contrario de donde viene la persona
+            const lado = (q[0] - hj.h[0]) * hj.nl[0] + (q[1] - hj.h[1]) * hj.nl[1]
+            meta = lado > 0 ? -Math.PI / 2 : Math.PI / 2
+            if (ang.current[k] !== 0 && Math.sign(ang.current[k]) !== Math.sign(meta)) meta = ang.current[k] > 0 ? Math.PI / 2 : -Math.PI / 2
+          }
+        }
+      } else if (r && frente >= r.s) meta = r.abre * 0.92
+      ang.current[k] += (meta - ang.current[k]) * (1 - Math.exp(-Math.min(dt, 0.1) * 5))
       g.rotation.y = hj.th + ang.current[k]
     })
   })
@@ -346,7 +448,7 @@ function Puertas({ puertas, plano, persona }) {
 
 // el personaje recorre la ruta a 1,3 m/s. La cámara lo acompaña como en un juego en tercera persona: se traslada con
 // él, y con el ratón (o el dedo) se puede girar alrededor, subir o bajar la mirada y acercar, sin perderlo de foco
-function Caminante({ ruta, recorrer, controles, andado, alTerminar, persona }) {
+function Caminante({ ruta, recorrer, controles, andado, alTerminar, persona, base = 0 }) {
   const ref = useRef()
   const t = useRef(0)
   const caminando = useRef(false)
@@ -368,7 +470,7 @@ function Caminante({ ruta, recorrer, controles, andado, alTerminar, persona }) {
     ref.current.rotation.y = Math.atan2(q.dx, -q.dy)
     if (recorrer && controles.current) {
       const c = controles.current
-      const obj = new THREE.Vector3(q.x, 1.3, -q.y)
+      const obj = new THREE.Vector3(q.x, base + 1.3, -q.y)
       const kd = Math.min(dt, 0.1)
       llegada.current += kd
       if (llegada.current < 1.4) {
@@ -392,10 +494,10 @@ function Caminante({ ruta, recorrer, controles, andado, alTerminar, persona }) {
 }
 
 // la cámara llega al lugar elegido en el buscador y deja un anillo que pulsa unos segundos
-function MarcaFoco({ foco, controles }) {
+function MarcaFoco({ foco, controles, base = 0 }) {
   const grupo = useRef()
   const t0 = useRef(-1)
-  const meta = useMemo(() => new THREE.Vector3(foco.x, 0.4, -foco.y), [foco])
+  const meta = useMemo(() => new THREE.Vector3(foco.x, base + 0.4, -foco.y), [foco, base])
   useEffect(() => { t0.current = performance.now() }, [foco])
   useFrame(() => {
     if (!grupo.current || t0.current < 0) return
@@ -412,7 +514,7 @@ function MarcaFoco({ foco, controles }) {
     }
   })
   return (
-    <group ref={grupo} position={[meta.x, 0.08, meta.z]}>
+    <group ref={grupo} position={[meta.x, meta.y - 0.32, meta.z]}>
       <mesh rotation-x={-Math.PI / 2}><ringGeometry args={[1.6, 2.1, 48]} /><meshBasicMaterial color="#2F5BEA" transparent opacity={0.85} /></mesh>
       <mesh rotation-x={-Math.PI / 2}><circleGeometry args={[1.1, 40]} /><meshBasicMaterial color="#2F5BEA" transparent opacity={0.22} /></mesh>
     </group>
@@ -496,12 +598,54 @@ function ZoomSuave({ controles, pedido }) {
   return null
 }
 
-export const Vista3D = forwardRef(function Vista3D({ d, ruta, destino, foco, recorrer = false, setRecorrer = () => {}, onFinRecorrer }, fwd) {
+// la cámara sigue al piso que se mira: al cambiar de piso (o al armar el edificio) se traslada en altura, suave
+function SeguirAltura({ controles, altura }) {
+  const actual = useRef(altura)
+  useFrame((_, dt) => {
+    const c = controles.current
+    if (!c) return
+    const k = 1 - Math.exp(-Math.min(dt, 0.1) * 3.2)
+    const dy = (altura - actual.current) * k
+    if (Math.abs(altura - actual.current) < 0.005) return
+    actual.current += dy
+    c.target.y += dy
+    c.object.position.y += dy
+    c.update()
+  })
+  return null
+}
+
+const ORDEN = (a, b) => a.nivel - b.nivel
+export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destino, foco, recorrer = false, setRecorrer = () => {}, onFinRecorrer, onPiso }, fwd) {
   const [corte, setCorte] = useState(1.2)   // muros bajos por defecto: se ven los pisos, como en una maqueta isométrica
   const [letreros, setLetreros] = useState(true)
+  // edificio completo (con sus techos) o un piso a la vista (los de arriba suben y se apartan)
+  const [armado, setArmado] = useState(!ruta && !foco)
+  const pisoId = d.piso?.id || 'PB'
+  const lista = useMemo(() => (d.edificio?.pisos || [{ ...(d.piso || {}), id: pisoId, nivel: 0, glb: d.piso?.glb || 'pb/solca_pb.glb', disponible: true }])
+    .filter((p) => p.disponible).sort(ORDEN), [d, pisoId])
+  const nivel = lista.find((p) => p.id === pisoId)?.nivel ?? 0
+  const base = nivel * H_PISO
+  // al elegir un piso (en el selector o en el buscador) o al trazar una ruta, se mira ese piso
+  const pisoAntes = useRef(pisoId)
+  useEffect(() => { if (pisoAntes.current !== pisoId) { pisoAntes.current = pisoId; setArmado(false) } }, [pisoId])
+  useEffect(() => { if (ruta || foco) setArmado(false) }, [ruta, foco])
+  useEffect(() => { if (recorrer) setArmado(false) }, [recorrer])
+  const [techos, setTechos] = useState({})
+  useEffect(() => {
+    let vivo = true
+    fetch(`${BASE}techos.json?v=${__VERSION__}`).then((r) => (r.ok ? r.json() : {})).then((t) => vivo && setTechos(t)).catch(() => {})
+    return () => { vivo = false }
+  }, [])
   const controles = useRef()
   const pedidoZoom = useRef(null)
   const distActual = () => { const c = controles.current; return c ? c.object.position.distanceTo(c.target) : 150 }
+  // el suelo y el exterior son siempre los de la planta baja
+  const pb = pisos.PB || d
+  const hu = pb.huella.flatMap((pg) => pg[0])
+  const cx = (Math.min(...hu.map((p) => p[0])) + Math.max(...hu.map((p) => p[0]))) / 2
+  const cy = (Math.min(...hu.map((p) => p[1])) + Math.max(...hu.map((p) => p[1]))) / 2
+  const altura = armado ? 6 : base
   useImperativeHandle(fwd, () => ({
     acercar: () => { pedidoZoom.current = { dist: (pedidoZoom.current?.dist ?? distActual()) / 1.6 } },
     alejar: () => { pedidoZoom.current = { dist: (pedidoZoom.current?.dist ?? distActual()) * 1.6 } },
@@ -509,50 +653,74 @@ export const Vista3D = forwardRef(function Vista3D({ d, ruta, destino, foco, rec
       const c = controles.current
       if (!c) return
       // vuelve a la vista isométrica inicial del edificio
-      c.object.position.set(cx + 95, 110, -cy + 95)
-      pedidoZoom.current = { dist: Math.hypot(95, 110, 95), target: new THREE.Vector3(cx, 0, -cy) }
+      c.object.position.set(cx + 95, altura + 110, -cy + 95)
+      pedidoZoom.current = { dist: Math.hypot(95, 110, 95), target: new THREE.Vector3(cx, altura, -cy) }
     },
   }))
-  const hu = d.huella.flatMap((pg) => pg[0])
-  const cx = (Math.min(...hu.map((p) => p[0])) + Math.max(...hu.map((p) => p[0]))) / 2
-  const cy = (Math.min(...hu.map((p) => p[1])) + Math.max(...hu.map((p) => p[1]))) / 2
   const andado = useRef(null)
   const persona = useRef(null)
-  const plano = useMemo(() => new THREE.Plane(new THREE.Vector3(0, -1, 0), 99), [])
-  useEffect(() => { plano.constant = corte >= 3.8 ? 99 : corte }, [corte, plano])
+  // plano de corte del piso a la vista (puertas y muros agregados); los modelos tienen el suyo (ver Piso3D)
+  const plano = useMemo(() => new THREE.Plane(new THREE.Vector3(0, -1, 0), 9999), [])
+  useEffect(() => { plano.constant = corte >= 3.8 ? 9999 : base + corte }, [corte, plano, base])
   useEffect(() => { if (!ruta) persona.current = null }, [ruta])
+  // para revisar la maqueta desde la consola o pruebas automáticas: window.__vista3d.controles
+  useEffect(() => { window.__vista3d = { controles, setCorte, setArmado } }, [])
+  const estadoDe = (p) => {
+    if (armado) return p.nivel < 0 ? 'oculto' : 'abajo'
+    if (p.id === pisoId) return 'activo'
+    if (p.nivel > nivel) return 'arriba'
+    // bajo tierra: el subsuelo solo se ve cuando es el piso a la vista
+    return p.nivel < 0 ? 'oculto' : 'abajo'
+  }
+  const enSubsuelo = !armado && nivel < 0
   return (
     <div className="pb-3d">
-      <Canvas shadows flat dpr={[1, 2]} camera={{ position: [cx + 95, 110, -cy + 95], fov: 32, near: 0.5, far: 3000 }} gl={{ antialias: true }}>
+      <Canvas shadows flat dpr={[1, 2]} camera={{ position: [cx + 95, altura + 110, -cy + 95], fov: 32, near: 0.5, far: 3000 }} gl={{ antialias: true }}>
         <color attach="background" args={['#F2EAD8']} />
-        <fog attach="fog" args={['#F2EAD8', 300, 700]} />
+        <fog attach="fog" args={['#F2EAD8', 320, 760]} />
         <hemisphereLight args={['#FFFFFF', '#D8CDB8', 1.25]} />
-        <directionalLight position={[cx + 70, 120, -cy + 30]} intensity={2.1} castShadow shadow-mapSize={[2048, 2048]}
-          shadow-camera-left={-90} shadow-camera-right={90} shadow-camera-top={90} shadow-camera-bottom={-90} shadow-camera-near={10} shadow-camera-far={400}
+        <directionalLight position={[cx + 70, 140, -cy + 30]} intensity={2.1} castShadow shadow-mapSize={[2048, 2048]}
+          shadow-camera-left={-110} shadow-camera-right={110} shadow-camera-top={110} shadow-camera-bottom={-110} shadow-camera-near={10} shadow-camera-far={450}
           shadow-bias={-0.0004} shadow-normalBias={0.06} target-position={[cx, 0, -cy]} />
-        <Suspense fallback={<Html center><div className="pb-cargando">Cargando el modelo 3D…</div></Html>}>
-          <Edificio corte={corte} letreros={letreros} plano={plano} glb={d.piso?.glb || 'pb/solca_pb.glb'} />
-        </Suspense>
-        <SueloMapa centro={[cx, cy]} />
-        <PisosColor d={d} destino={destino} />
-        <MurosExtra muros={d.murosExtra || []} plano={plano} />
-        <Puertas puertas={d.puertas} plano={plano} persona={persona} />
-        <Exterior d={d} />
-        <Letreros d={d} visibles={letreros} />
-        {ruta && <Ruta ruta={ruta} andado={andado} />}
-        {foco && <MarcaFoco foco={foco} controles={controles} />}
-        {ruta && <Caminante ruta={ruta} recorrer={recorrer} controles={controles} andado={andado} alTerminar={onFinRecorrer} persona={persona} />}
+        {lista.map((p) => (
+          <Piso3D key={p.id} p={p} techo={techos[p.id]} estado={estadoDe(p)} corte={corte} letreros={letreros} />
+        ))}
+        {!enSubsuelo && <SueloMapa centro={[cx, cy]} />}
+        {!enSubsuelo && <Exterior d={pb} />}
+        {/* lo del piso a la vista: pisos de color, puertas, letreros, ruta y personaje, a su altura */}
+        {!armado && (
+          <group position-y={base}>
+            <PisosColor d={d} destino={destino} />
+            <MurosExtra muros={d.murosExtra || []} plano={plano} />
+            <Puertas puertas={d.puertas} plano={plano} persona={persona} ruta={ruta} recorrer={recorrer} />
+            <Letreros d={d} visibles={letreros} />
+            {ruta && <Ruta ruta={ruta} andado={andado} />}
+            {ruta && <Caminante ruta={ruta} recorrer={recorrer} controles={controles} andado={andado} alTerminar={onFinRecorrer} persona={persona} base={base} />}
+          </group>
+        )}
+        {foco && !armado && <MarcaFoco foco={foco} controles={controles} base={base} />}
+        <SeguirAltura controles={controles} altura={altura} />
         <ZoomSuave controles={controles} pedido={pedidoZoom} />
-        <OrbitControls ref={controles} touches={{ ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN }} target={[cx, 0, -cy]} maxPolarAngle={recorrer ? Math.PI / 1.9 : Math.PI / 2.08} minDistance={recorrer ? 1.5 : 4} maxDistance={recorrer ? 30 : 420} enablePan={!recorrer} enableDamping />
+        <OrbitControls ref={controles} touches={{ ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN }} target={[cx, altura, -cy]} maxPolarAngle={recorrer ? Math.PI / 1.9 : Math.PI / 2.08} minDistance={recorrer ? 1.5 : 4} maxDistance={recorrer ? 30 : 460} enablePan={!recorrer} enableDamping />
       </Canvas>
       <div className="pb-3d-ctrl" role="group" aria-label="Opciones de la vista 3D">
-        <span className="pb-3d-t">Altura de muros</span>
-        <div className="pb-seg">
-          {[[1.2, 'Bajos'], [2.6, 'Medios'], [3.9, 'Completos']].map(([v, t]) => (
-            <button key={v} aria-pressed={corte === v} onClick={() => setCorte(v)}>{t}</button>
+        <span className="pb-3d-t">Vista</span>
+        <div className="pb-pisos3d" role="group" aria-label="Piso a la vista">
+          <button aria-pressed={armado} onClick={() => setArmado(true)} title="Todo el hospital, con sus techos">Edificio completo</button>
+          {[...lista].reverse().map((p) => (
+            <button key={p.id} aria-pressed={!armado && p.id === pisoId} title={p.nombre}
+              onClick={() => { setArmado(false); if (p.id !== pisoId) onPiso?.(p.id) }}>{p.corto || p.id}</button>
           ))}
         </div>
-        <label className="pb-check"><input type="checkbox" checked={letreros} onChange={(e) => setLetreros(e.target.checked)} /> Letreros</label>
+        {!armado && (<>
+          <span className="pb-3d-t">Altura de muros</span>
+          <div className="pb-seg">
+            {[[1.2, 'Bajos'], [2.6, 'Medios'], [3.9, 'Completos']].map(([v, t]) => (
+              <button key={v} aria-pressed={corte === v} onClick={() => setCorte(v)}>{t}</button>
+            ))}
+          </div>
+          <label className="pb-check"><input type="checkbox" checked={letreros} onChange={(e) => setLetreros(e.target.checked)} /> Letreros</label>
+        </>)}
         {ruta && <button className="btn-negro pb-recorrer" onClick={() => setRecorrer(!recorrer)}>{recorrer ? 'Detener recorrido' : `Recorrer hasta ${destino?.nombre || 'el destino'}`}</button>}
       </div>
       <p className="pb-ayuda3d">{TACTIL
