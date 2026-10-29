@@ -67,12 +67,12 @@ function capas(d) {
 
 const vacio = FC([])
 
-export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, hover, onElegir, onHover, lugaresIcono, pick = false, onPick, recorrer = false, onFinRecorrer, onAvance, desde, trazo = null }, fwd) {
+export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, hover, onElegir, onHover, lugaresIcono, pick = false, onPick, recorrer = false, pausa = false, onFinRecorrer, onAvance, desde, trazo = null }, fwd) {
   const ref = useRef(null)
   const mapa = useRef(null)
   const [listo, setListo] = useState(false)
   const cb = useRef({})
-  cb.current = { onElegir, onHover, onPick, pick, onFinRecorrer, onAvance, desde }
+  cb.current = { onElegir, onHover, onPick, pick, onFinRecorrer, onAvance, desde, pausa }
   const marcas = useRef([])
   const marcasRuta = useRef([])
   const anim = useRef(0)
@@ -80,12 +80,24 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
   const animCam = useRef(0)
 
   useImperativeHandle(fwd, () => ({
-    // +/−: 1,5 niveles por toque (antes 1: había que tocar muchas veces)
-    acercar: () => { const m = mapa.current; if (m) m.easeTo({ zoom: Math.min(m.getMaxZoom(), m.getZoom() + 1.5), duration: 300 }) },
-    alejar: () => { const m = mapa.current; if (m) m.easeTo({ zoom: Math.max(m.getMinZoom(), m.getZoom() - 1.5), duration: 300 }) },
+    // +/−: 1,5 niveles por toque; si se toca de nuevo mientras anima, suma sobre la meta anterior (no sobre el zoom a
+    // medio camino), así dos toques rápidos acercan 3 niveles y no se "traba"
+    acercar: () => zoomBoton(1.5),
+    alejar: () => zoomBoton(-1.5),
     centrar: () => encuadrar(),
     irA: (x, y, z = 20) => mapa.current?.easeTo({ center: aLonLat(x, y), zoom: z, duration: 700 }),
   }))
+
+  const metaZoom = useRef(null)
+  const zoomBoton = (dz) => {
+    const m = mapa.current
+    if (!m) return
+    const ahora = performance.now()
+    const base = metaZoom.current && ahora < metaZoom.current.hasta ? metaZoom.current.z : m.getZoom()
+    const z = Math.min(m.getMaxZoom(), Math.max(m.getMinZoom(), base + dz))
+    metaZoom.current = { z, hasta: ahora + 350 }
+    m.easeTo({ zoom: z, duration: 320 })
+  }
 
   const encuadrar = (pts) => {
     const map = mapa.current
@@ -116,7 +128,6 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
     mapa.current = map
     // rueda del ratón más rápida (por defecto 1/450: había que girar mucho para acercarse)
     map.scrollZoom.setWheelZoomRate(1 / 200)
-    map.scrollZoom.setZoomRate(1 / 60)
     window.__mapa2d = map   // para revisar desde la consola o pruebas automáticas (como window.__vista3d)
     const ro = new ResizeObserver(() => map.resize())
     ro.observe(ref.current)
@@ -420,19 +431,57 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
     let t0 = null
     let ultAv = 0
     let ultCuadro = 0
+    let ultT = null
+    let sAvz = s0
+    // cámara libre durante el recorrido: mientras la persona toca el mapa (arrastra, gira, inclina o pellizca), usa
+    // la rueda o los botones + y −, la cámara no se recentra; al soltar, si movió el mapa, se espera un momento y
+    // vuelve al caminante con suavidad. Se detecta desde el primer toque (pointerdown): si se esperara al aviso de
+    // maplibre, el seguimiento cuadro a cuadro (jumpTo) cancelaba el gesto antes de empezar y el mapa no se dejaba
+    // mover ni acercar. Acercar con la rueda o el pellizco se hace sobre el caminante, no sobre el cursor.
+    let libreHasta = 0
+    const dedos = new Set()
+    let movio = false
+    const lienzo = map.getCanvasContainer()
+    const abajo = (e) => { dedos.add(e.pointerId); movio = false; libreHasta = Infinity }
+    const arriba = (e) => {
+      if (!dedos.delete(e.pointerId) || dedos.size) return
+      libreHasta = performance.now() + (movio ? 2500 : 200)
+    }
+    const rueda = () => { if (!dedos.size) libreHasta = Math.max(libreHasta, performance.now() + 900) }
+    const alEmpezar = (e) => { if (e.originalEvent) { movio = true; if (!dedos.size) libreHasta = Infinity } }
+    const alSoltar = (e) => { if (!dedos.size && (e.originalEvent || libreHasta === Infinity)) libreHasta = performance.now() + (e.type === 'dragend' ? 2500 : 600) }
+    const eventos = [['dragstart', alEmpezar], ['rotatestart', alEmpezar], ['pitchstart', alEmpezar], ['zoomstart', alEmpezar],
+      ['dragend', alSoltar], ['rotateend', alSoltar], ['pitchend', alSoltar], ['zoomend', alSoltar]]
+    for (const [ev, fn] of eventos) map.on(ev, fn)
+    lienzo.addEventListener('pointerdown', abajo, true)
+    lienzo.addEventListener('wheel', rueda, { capture: true, passive: true })
+    window.addEventListener('pointerup', arriba, true)
+    window.addEventListener('pointercancel', arriba, true)
+    map.scrollZoom.disable(); map.scrollZoom.enable({ around: 'center' })
+    map.touchZoomRotate.disable(); map.touchZoomRotate.enable({ around: 'center' })
     const paso = (now) => {
       if (t0 === null) t0 = now + espera
       // modo ligero: 30 cuadros por segundo bastan para seguir la ruta
       if (LIGERO && now - ultCuadro < 33) { animCam.current = requestAnimationFrame(paso); return }
+      // avance a 1,3 m/s; en pausa (p. ej. esperando el ascensor) la flecha se queda quieta y la cámara queda libre
+      const dt = ultT === null ? 0 : Math.min(0.25, (now - ultT) / 1000)
+      ultT = now
+      if (now >= t0 && !cb.current.pausa) sAvz = Math.min(L, sAvz + dt * 1.3)
       ultCuadro = now
-      const sAct = Math.max(0, Math.min(L, s0 + (Math.max(0, now - t0) / 1000) * 1.3))
+      const sAct = Math.max(0, sAvz)
       // avance para la barra de navegación (paso actual y metros que faltan), unas 4 veces por segundo
       if (now - ultAv > 250 || sAct >= L) { ultAv = now; cb.current.onAvance?.(sAct, L) }
       const q = en(sAct)
       andado.current = sAct
       dibujar(q)
-      if (now >= t0) map.jumpTo({ center: aLonLat(q.x, q.y) })
-      else {
+      const libre = map.isMoving() || now < libreHasta || (cb.current.pausa && now >= t0)
+      if (libre) { /* la persona maneja la cámara */ }
+      else if (now >= t0) {
+        // vuelve al caminante con suavidad si la persona había movido el mapa; si no, lo sigue cuadro a cuadro
+        const c = map.getCenter(), [lo, la] = aLonLat(q.x, q.y)
+        const lejos = Math.hypot((lo - c.lng) * 111320, (la - c.lat) * 110574) > 1.5
+        map.jumpTo({ center: lejos ? [c.lng + (lo - c.lng) * 0.12, c.lat + (la - c.lat) * 0.12] : [lo, la] })
+      } else {
         const k = 1 - Math.pow(1 - Math.min(1, (now - (t0 - espera)) / espera), 3)
         const [lo, la] = aLonLat(q.x, q.y)
         map.jumpTo({ center: [c0.lng + (lo - c0.lng) * k, c0.lat + (la - c0.lat) * k], zoom: z0 + (zoomMeta - z0) * k, pitch: i0 + (inclMeta - i0) * k })
@@ -441,7 +490,16 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
       animCam.current = requestAnimationFrame(paso)
     }
     animCam.current = requestAnimationFrame(paso)
-    return () => { cancelAnimationFrame(animCam.current); fuente.setData(vacio); andado.current = null }
+    return () => {
+      cancelAnimationFrame(animCam.current); fuente.setData(vacio); andado.current = null
+      for (const [ev, fn] of eventos) map.off(ev, fn)
+      lienzo.removeEventListener('pointerdown', abajo, true)
+      lienzo.removeEventListener('wheel', rueda, true)
+      window.removeEventListener('pointerup', arriba, true)
+      window.removeEventListener('pointercancel', arriba, true)
+      map.scrollZoom.disable(); map.scrollZoom.enable()
+      map.touchZoomRotate.disable(); map.touchZoomRotate.enable()
+    }
   }, [listo, ruta, recorrer])
 
   // ---------- resaltar desde la lista (hover externo)

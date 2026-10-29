@@ -3,7 +3,7 @@
 import {
   Accessibility, Activity, Armchair, ArrowDown, ArrowDownUp, ArrowUp, Banknote, BedDouble, Box, BriefcaseMedical,
   ChevronLeft, ChevronRight, Church, ClipboardList, Clock, Coffee, CornerUpLeft, CornerUpRight, Cross, DoorOpen,
-  Flag, FlaskConical, Footprints, Info, Layers, LocateFixed, Map as MapaI, Minus, Pill, Plus, QrCode, Search, Settings,
+  Flag, FlaskConical, Footprints, Info, Layers, LocateFixed, Map as MapaI, Minus, Pause, Pill, Play, Plus, QrCode, Search, Settings,
   Stethoscope, X,
 } from 'lucide-react'
 
@@ -13,7 +13,7 @@ const LUCIDE = {
   cafe: Coffee, capilla: Church, silla: Armchair, buscar: Search, cerrar: X, volver: ChevronLeft, intercambiar: ArrowDownUp,
   mas: Plus, menos: Minus, centrar: LocateFixed, flecha: ChevronRight, subir: ArrowUp, bajar: ArrowDown, caminar: Footprints,
   reloj: Clock, piso: Layers, izquierda: CornerUpLeft, derecha: CornerUpRight, destino: Flag, qr: QrCode, ajustes: Settings,
-  cubo: Box, mapa: MapaI, accesible: Accessibility,
+  cubo: Box, mapa: MapaI, accesible: Accessibility, pausa: Pause, seguir: Play,
 }
 
 const PROPIOS = {

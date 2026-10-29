@@ -222,7 +222,7 @@ const avance = {
 const usarAvance = () => useSyncExternalStore((f) => avance.sub(f), () => avance.v)
 
 // barra compacta mientras se camina: la próxima indicación y cuánto falta; se despliega para ver todos los pasos
-function BarraNav({ ruta, pisoId, pisos, llego, destino, onDetener, onListo, onVerPiso }) {
+function BarraNav({ ruta, pisoId, pisos, llego, destino, onDetener, onListo, onVerPiso, pausa, onPausa }) {
   const [abierta, setAbierta] = useState(false)
   const lista = useRef(null)
   const a = usarAvance()
@@ -258,8 +258,14 @@ function BarraNav({ ruta, pisoId, pisos, llego, destino, onDetener, onListo, onV
         <span className="pb-nav-ic"><Icono nombre={icono} size={22} color="#fff" grosor={2.4} /></span>
         <div className="pb-nav-txt">
           <b>{titulo}</b>
-          <small>{llego ? `${Math.round(ruta.metros)} m recorridos` : [prox && !llego && prox.faltan >= 1 && `en ${Math.round(prox.faltan)} m`, `faltan ${quedan} m`, ruta.tramos.length > 1 && (pisos[pisoId]?.piso?.corto || pisoId)].filter(Boolean).join(' · ')}</small>
+          <small>{pausa && !llego ? 'En pausa · ▶ para seguir' : llego ? `${Math.round(ruta.metros)} m recorridos` : [prox && !llego && prox.faltan >= 1 && `en ${Math.round(prox.faltan)} m`, `faltan ${quedan} m`, ruta.tramos.length > 1 && (pisos[pisoId]?.piso?.corto || pisoId)].filter(Boolean).join(' · ')}</small>
         </div>
+        {!llego && onPausa && (
+          <button className={`pb-nav-btn pausa${pausa ? ' on' : ''}`} onClick={onPausa} aria-pressed={pausa}
+            aria-label={pausa ? 'Seguir el recorrido' : 'Pausar el recorrido'} title={pausa ? 'Seguir' : 'Pausar'}>
+            <Icono nombre={pausa ? 'seguir' : 'pausa'} size={18} grosor={2.4} />
+          </button>
+        )}
         {!llego && <button className="pb-nav-btn" onClick={() => setAbierta((v) => !v)} aria-expanded={abierta} aria-label={abierta ? 'Ocultar los pasos' : 'Ver los pasos'}><Icono nombre={abierta ? 'bajar' : 'subir'} size={18} grosor={2.4} /></button>}
         {llego
           ? <button className="pb-nav-btn listo" onClick={onListo}>Listo</button>
@@ -300,6 +306,7 @@ export default function App() {
   const [pisosAbierto, setPisosAbierto] = useState(false)
   const [accesible, setAccesible] = useState(ACCESIBLE_INICIAL)
   const [via, setVia] = useState(VIA_INICIAL)   // ascensor (por defecto) o escaleras, en rutas entre pisos
+  const [pausa, setPausa] = useState(false)   // recorrido en pausa: el personaje se detiene y la cámara queda libre
   const [recorrer, setRecorrer] = useState(false)   // el personaje camina la ruta (en 2D o en 3D, según la vista)
   const [transicion, setTransicion] = useState(null)   // cambio de piso animado durante el recorrido (ascensor o escaleras)
   const [llego, setLlego] = useState(false)   // terminó el recorrido: la barra compacta dice «Llegaste»
@@ -526,11 +533,11 @@ export default function App() {
   const desdeAvance = () => (avance.v && avance.v.piso === pisoRef.current ? avance.v.s : 0)
   const empezar = () => {
     if (!rutaOk) return
-    setLlego(false); setTransicion(null); avance.set(null)
+    setLlego(false); setTransicion(null); avance.set(null); setPausa(false)
     if (rutaOk.tramos[0].piso !== pisoId) verPiso(rutaOk.tramos[0].piso)
     setRecorrer(true)
   }
-  const detener = () => { setRecorrer(false); setTransicion(null); setLlego(false) }
+  const detener = () => { setRecorrer(false); setTransicion(null); setLlego(false); setPausa(false) }
   const finTramo = () => {
     if (!rutaOk) { setRecorrer(false); return }
     const k = rutaOk.tramos.findIndex((t) => t.piso === pisoRef.current)
@@ -545,11 +552,11 @@ export default function App() {
   const finTransicion = () => {
     const t = transicion
     setTransicion(null)
-    if (t) { avance.set(null); verPiso(t.a) }
+    if (t) { avance.set(null); setPausa(false); verPiso(t.a) }
   }
   // estado inicial para el siguiente paciente (OM3 lo pide al volver al inicio del tótem)
   reiniciarRef.current = () => {
-    setRecorrer(false); setTransicion(null); setLlego(false); avance.set(null)
+    setRecorrer(false); setTransicion(null); setLlego(false); avance.set(null); setPausa(false)
     setBuscando(null); setFicha(null); setFoco(null); setVerPasos(false); setPedido(null)
     setDestino(null)
     setOrigen(porId['entrada-puerta-1'] || lugares.find((l) => l.entrada) || null)
@@ -606,8 +613,8 @@ export default function App() {
   return (
     <div className={`pb-app modo-${modo}${INSERTADO ? ` insertado-${INSERTADO}` : ''}${LIGERO ? ' ligero' : ''}`}>
       {modo === '2d'
-        ? <Mapa ref={mapa} d={d} ruta={tramo} origen={local(origen)} destino={destinoVista} foco={focoVista} hover={hover} onElegir={elegirDesdeMapa} onHover={setHover} lugaresIcono={lugaresIcono} pick={!!pick} onPick={onPick} trazo={pick?.tipo === 'trazo' ? { tipo: pick.paso, puntos: pick.puntos } : null} recorrer={recorrer && !transicion} onFinRecorrer={finTramo} onAvance={onAvance} desde={desdeAvance} />
-        : <Suspense fallback={<Cargando texto="Preparando el 3D…" />}><Vista3D ref={vista3d} d={d} pisos={pisos} onPiso={verPiso} ruta={tramo} destino={destinoVista} foco={focoVista} recorrer={recorrer && !transicion} onFinRecorrer={finTramo} onAvance={onAvance} desde={desdeAvance} /></Suspense>}
+        ? <Mapa ref={mapa} d={d} ruta={tramo} origen={local(origen)} destino={destinoVista} foco={focoVista} hover={hover} onElegir={elegirDesdeMapa} onHover={setHover} lugaresIcono={lugaresIcono} pick={!!pick} onPick={onPick} trazo={pick?.tipo === 'trazo' ? { tipo: pick.paso, puntos: pick.puntos } : null} recorrer={recorrer && !transicion} pausa={pausa} onFinRecorrer={finTramo} onAvance={onAvance} desde={desdeAvance} />
+        : <Suspense fallback={<Cargando texto="Preparando el 3D…" />}><Vista3D ref={vista3d} d={d} pisos={pisos} onPiso={verPiso} ruta={tramo} destino={destinoVista} foco={focoVista} recorrer={recorrer && !transicion} pausa={pausa} onFinRecorrer={finTramo} onAvance={onAvance} desde={desdeAvance} /></Suspense>}
 
       {/* columna izquierda: marca, búsqueda y ruta */}
       {admin && (
@@ -633,6 +640,7 @@ export default function App() {
 
           {destino && rutaOk && (recorrer || llego || transicion) && (
             <BarraNav ruta={rutaOk} pisoId={pisoId} pisos={pisos} llego={llego} destino={destino} onDetener={detener} onVerPiso={verPiso}
+              pausa={pausa} onPausa={recorrer && !transicion ? () => setPausa((v) => !v) : null}
               onListo={() => setLlego(false)} />
           )}
 

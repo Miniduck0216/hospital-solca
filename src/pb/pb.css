@@ -299,6 +299,8 @@ body { background: #E9EDF1; }
 .pb-nav-txt small { color: var(--m-gris); font-weight: 700; font-size: .8rem; }
 .pb-nav-btn { flex: none; min-width: 40px; height: 40px; border: 0; border-radius: 12px; display: grid; place-items: center; background: #F1F4F7; color: var(--m-tinta); cursor: pointer; font: 800 .9rem var(--m-fuente); }
 .pb-nav-btn.parar { background: #FDECEA; color: #B03A2E; }
+.pb-nav-btn.pausa { background: #FFF4D6; color: #8A5A00; }
+.pb-nav-btn.pausa[aria-pressed="true"] { background: #2E9D5B; color: #fff; }
 .pb-nav-btn.listo { padding: 0 16px; background: var(--m-tinta); color: #fff; }
 .pb-nav-barra { position: absolute; left: 0; bottom: 0; height: 4px; width: var(--p); background: var(--m-azul); transition: width .3s linear; }
 .pb-nav-pasos { max-height: 38vh; }
@@ -333,6 +335,7 @@ body { background: #E9EDF1; }
 .cp-txt h3 { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 1.25rem; font-weight: 900; }
 .cp-txt p { margin: 0 0 10px; font-size: 1rem; color: #3D4A5A; }
 .cp-txt .btn-negro { align-self: flex-start; }
+.cp-txt p.cp-espera { font-size: .9rem; color: var(--m-gris); }
 @media (max-width: 560px) { .cp-tarjeta { flex-direction: column; text-align: center; } .cp-txt { align-items: center; } .cp-txt .btn-negro { align-self: center; } }
 @media (prefers-reduced-motion: reduce) { .cp-movil, .cp-hoja { transition: none; } .cp-persona { animation: none !important; } }
 
