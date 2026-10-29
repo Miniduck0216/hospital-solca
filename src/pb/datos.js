@@ -53,6 +53,13 @@ export async function cargarDatos(cambiosLocales = null, opciones = {}) {
   d.cfg = compilarConfig((piso.config && (await pedirJson(`${BASE}${piso.config}?v=${__VERSION__}`))) || {})
   // pisos altos: el perfil del hospital (contorno de la planta baja) se dibuja debajo, como en el plano de cada piso
   d.perfil = piso.nivel > 0 ? ((await pedirJson(`${BASE}perfil.json?v=${__VERSION__}`))?.huella || []) : []
+  // alrededores tomados de la foto satelital (parqueaderos, canchas y zonas de árboles): ver planta_real/pisos/exterior.py
+  if (piso.nivel === 0) {
+    const ext = await pedirJson(`${BASE}exterior.json?v=${__VERSION__}`)
+    if (ext?.parqueos?.length) d.parqueos = ext.parqueos
+    d.canchas = ext?.canchas || []
+    d.zonasArboles = ext?.arboles || []
+  }
   // cambios del administrador publicados: en OM3 (cambiosUrl) o, si no, en el repositorio
   // (en el editor de OM3 el borrador ya es el estado completo: no se suman los publicados)
   const publicados = opciones.sinPublicados ? null : await pedirJson(opciones.cambiosUrl || `${BASE}pb/cambios.json?v=${__VERSION__}`)

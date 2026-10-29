@@ -89,7 +89,13 @@ function cajones(pts) {
   return out
 }
 
-export function Exterior({ d }) {
+// ruido suave con semilla (suma de ondas): agrupa los árboles en bosquecillos en vez de repartirlos parejo
+function ruido(x, y) {
+  return (Math.sin(x * 0.071 + 1.3) * Math.cos(y * 0.063 - 0.7) + Math.sin((x + y) * 0.037 + 2.1) * 0.8 +
+    Math.cos((x - y) * 0.052 - 1.1) * 0.6) / 2.4
+}
+
+export function Exterior({ d, mapa = null, losa: losaPiso = null }) {
   const datos = useMemo(() => {
     const rnd = azar(11)
     // en los pisos altos el suelo es el perfil del hospital (planta baja): los árboles van afuera de él, no
@@ -97,46 +103,100 @@ export function Exterior({ d }) {
     const suelo = d.perfil?.length ? d.perfil : d.huella
     const huellas = suelo.map((pg) => pg[0])
     const parqueos = d.parqueos.map((p) => p.ll.map(([lo, la]) => dePlano(lo, la)))
-    const dentroEdif = (p) => huellas.some((h) => enPoli(p, h))
-    const enParqueo = (p, m = 0) => parqueos.some((q) => enPoli(p, m ? ensanchar(q, m) : q))
+    // contornos ensanchados calculados una vez (se consultan miles de veces al repartir los árboles)
+    const cache = new Map()
+    const ancho = (lista, m, k) => { const c = `${k}${m}`; if (!cache.has(c)) cache.set(c, lista.map((h) => ensanchar(h, m))); return cache.get(c) }
+    const dentroEdif = (p, m = 0) => (m ? ancho(huellas, m, 'h') : huellas).some((h) => enPoli(p, h))
+    const enParqueo = (p, m = 0) => (m ? ancho(parqueos, m, 'p') : parqueos).some((q) => enPoli(p, q))
     const cercaEntrada = (p, r) => d.entradas.some((e) => Math.hypot(p[0] - e.x, p[1] - e.y) < r)
 
-    // base del edificio (canto de maqueta) y vereda
-    const base = suelo.map((pg) => losa(forma(ensanchar(pg[0], 0.3)), 0.55))
-    const vereda = suelo.map((pg) => losa(forma(ensanchar(pg[0], 2.6)), 0.3))
+    // base del edificio (canto de maqueta) y vereda; la base queda 3 cm bajo la losa (no comparten plano)
+    const anillos = (losaPiso || suelo).map((pg) => pg[0])
+    const base = anillos.map((h) => losa(forma(ensanchar(h, 0.3)), 0.55))
+    const vereda = anillos.map((h) => losa(forma(ensanchar(h, 2.6)), 0.3))
     // parqueaderos
     const asfalto = parqueos.map((q) => losa(forma(q), 0.12))
     const borde = parqueos.map((q) => losa(forma(ensanchar(q, 0.7), [q.slice().reverse()]), 0.22))
     const plazas = parqueos.flatMap((q) => cajones(q))
-    const autos = plazas.filter(() => rnd() < 0.62).map((c) => ({ ...c, color: COLORES_AUTO[Math.floor(rnd() * COLORES_AUTO.length)], giro: c.frente ? Math.PI : 0 }))
-    // árboles: anillo a 5 m del edificio y alrededor de los parqueaderos, sin tapar entradas ni parqueos
+    const autos = plazas.filter(() => rnd() < 0.7).map((c) => ({ ...c, color: COLORES_AUTO[Math.floor(rnd() * COLORES_AUTO.length)], giro: c.frente ? Math.PI : 0 }))
+
+    // árboles: en el pasto del mapa (no en calles, veredas ni otros edificios), agrupados en bosquecillos como en
+    // el terreno real, con aire alrededor del hospital y de los parqueaderos. Sin mapa: unos pocos alrededor.
     const arboles = []
-    const sumar = (p) => {
-      if (dentroEdif(p) || enParqueo(p, 0.5) || cercaEntrada(p, 5)) return
-      if (arboles.some((a) => Math.hypot(a.x - p[0], a.y - p[1]) < 4)) return
-      arboles.push({ x: p[0], y: p[1], s: 0.85 + rnd() * 0.45, c: VERDES[Math.floor(rnd() * VERDES.length)] })
+    const libre = (p, sep) => !arboles.some((a) => Math.hypot(a.x - p[0], a.y - p[1]) < sep)
+    const poner = (p, s0 = 0.85) => arboles.push({ x: p[0], y: p[1], s: s0 + rnd() * 0.5, c: VERDES[Math.floor(rnd() * VERDES.length)] })
+    const fuera = (p) => !dentroEdif(p, 6) && !enParqueo(p, 2.5) && !cercaEntrada(p, 9)
+    // zonas de árboles de la foto satelital: se llenan a la separación de cada zona (bosques más tupidos que hileras)
+    const zonas = (d.zonasArboles || []).map((z) => ({ sep: z.sep, pg: z.ll.map(([lo, la]) => dePlano(lo, la)) }))
+    for (const z of zonas) {
+      const xs = z.pg.map((p) => p[0]), ys = z.pg.map((p) => p[1])
+      for (let y = Math.min(...ys); y <= Math.max(...ys); y += z.sep * 0.62) {
+        for (let x = Math.min(...xs); x <= Math.max(...xs); x += z.sep * 0.62) {
+          const p = [x + (rnd() - 0.5) * z.sep * 0.7, y + (rnd() - 0.5) * z.sep * 0.7]
+          if (!enPoli(p, z.pg) || !fuera(p) || !libre(p, z.sep * 0.85)) continue
+          poner(p, z.sep < 5.5 ? 1.0 : 0.85)
+        }
+      }
     }
-    for (const h of huellas) for (const p of aLoLargo(ensanchar(h, 5.2), 7)) sumar(p)
-    for (const q of parqueos) for (const p of aLoLargo(ensanchar(q, 2.4), 8)) sumar(p)
+    if (zonas.length) { /* con las zonas de la foto no se reparten árboles al azar */ } else if (mapa) {
+      const { px, PX, LADO, centro } = mapa
+      const pasto = (x, y) => {
+        const c = Math.round(((x - centro[0]) / LADO + 0.5) * PX), f = Math.round((0.5 - (y - centro[1]) / LADO) * PX)
+        if (c < 0 || f < 0 || c >= PX || f >= PX) return false
+        const i = (f * PX + c) * 4, r = px[i], g = px[i + 1], b = px[i + 2]
+        return g > r + 12 && g > b + 12
+      }
+      // pasto en un radio de 3 m (lejos del borde de calles y veredas)
+      const enPasto = (x, y) => pasto(x, y) && pasto(x + 3, y) && pasto(x - 3, y) && pasto(x, y + 3) && pasto(x, y - 3)
+      const xs = huellas.flat().map((p) => p[0]), ys = huellas.flat().map((p) => p[1])
+      const x0 = Math.min(...xs) - 70, x1 = Math.max(...xs) + 70, y0 = Math.min(...ys) - 70, y1 = Math.max(...ys) + 70
+      const PASO = 3.2
+      for (let y = y0; y <= y1; y += PASO) {
+        for (let x = x0; x <= x1; x += PASO) {
+          const p = [x + (rnd() - 0.5) * PASO * 0.9, y + (rnd() - 0.5) * PASO * 0.9]
+          const n = ruido(p[0], p[1])
+          // bosquecillos donde el ruido es alto; árboles sueltos en el resto del pasto
+          const prob = n > 0.25 ? 0.55 : n > 0.05 ? 0.12 : 0.025
+          if (rnd() > prob || !enPasto(p[0], p[1]) || !fuera(p)) continue
+          if (!libre(p, n > 0.25 ? 4.6 : 7)) continue
+          poner(p, n > 0.25 ? 0.95 : 0.8)
+        }
+      }
+    } else {
+      for (const h of huellas) for (const p of aLoLargo(ensanchar(h, 9), 16)) if (fuera(p) && libre(p, 8)) poner(p)
+    }
     // postes de luz en los bordes de los parqueaderos
-    const postes = parqueos.flatMap((q) => aLoLargo(ensanchar(q, 0.35), 16)).filter((p) => !dentroEdif(p))
+    const postes = parqueos.flatMap((q) => aLoLargo(ensanchar(q, 0.35), 22)).filter((p) => !dentroEdif(p))
     // personas en algunas entradas, un poco afuera
     const gente = d.entradas.map((e, k) => {
       const dx = (e.fx ?? e.x) - e.x, dy = (e.fy ?? e.y) - e.y, L = Math.hypot(dx, dy) || 1
       return { x: e.x + (dx / L) * 3.2 + (k % 2 ? 0.8 : -0.8), y: e.y + (dy / L) * 3.2, giro: Math.atan2(-dx, -dy), c: ['#E67E22', '#16A085', '#C0392B', '#2980B9', '#8E44AD', '#27AE60', '#D35400', '#2C3E50'][k % 8] }
     })
-    return { base, vereda, asfalto, borde, plazas, autos, arboles, postes, gente }
-  }, [d])
+    // canchas deportivas: piso de color con su borde claro y las líneas de juego
+    const canchas = (d.canchas || []).map((c) => {
+      const q = c.ll.map(([lo, la]) => dePlano(lo, la))
+      return { tipo: c.tipo, piso: losa(forma(q), 0.1), borde: losa(forma(ensanchar(q, 1.2), [q.slice().reverse()]), 0.08),
+        lineas: losa(forma(ensanchar(q, -1.0), [ensanchar(q, -1.12).reverse()]), 0.11) }
+    })
+    return { base, vereda, asfalto, borde, plazas, autos, arboles, postes, gente, canchas }
+  }, [d, mapa, losaPiso])
 
   return (
     <group>
-      {datos.base.map((g, k) => <mesh key={'b' + k} geometry={g} position-y={-0.55} receiveShadow castShadow><meshLambertMaterial color="#E7D7BC" /></mesh>)}
+      {datos.base.map((g, k) => <mesh key={'b' + k} geometry={g} position-y={-0.58} receiveShadow castShadow><meshLambertMaterial color="#E7D7BC" /></mesh>)}
       {datos.vereda.map((g, k) => <mesh key={'v' + k} geometry={g} position-y={-0.5} receiveShadow><meshLambertMaterial color="#E9E6DF" /></mesh>)}
       {datos.asfalto.map((g, k) => <mesh key={'a' + k} geometry={g} position-y={-0.2} receiveShadow><meshLambertMaterial color="#59616D" /></mesh>)}
       {datos.borde.map((g, k) => <mesh key={'o' + k} geometry={g} position-y={-0.2} receiveShadow><meshLambertMaterial color="#DCD8CF" /></mesh>)}
+      {datos.canchas.map((c, k) => (
+        <group key={'c' + k} position-y={-0.2}>
+          <mesh geometry={c.borde} receiveShadow><meshLambertMaterial color="#DCD8CF" /></mesh>
+          <mesh geometry={c.piso} receiveShadow><meshLambertMaterial color={c.tipo === 'tenis' ? '#5B7FB8' : '#6E9BD1'} /></mesh>
+          <mesh geometry={c.lineas}><meshLambertMaterial color="#F4F4F0" /></mesh>
+        </group>
+      ))}
       <Cajones plazas={datos.plazas} />
       <Autos autos={datos.autos} />
-      <Arboles arboles={datos.arboles} />
+      <Arboles key={datos.arboles.length} arboles={datos.arboles} />
       <Postes postes={datos.postes} />
       {datos.gente.map((p, k) => <Persona key={k} {...p} />)}
     </group>
@@ -170,7 +230,7 @@ function Cajones({ plazas }) {
   }), [plazas])
   return (
     <Instancias items={rayas} geo={<boxGeometry args={[1, 0.02, 1]} />} color="#F4F4F0"
-      poner={(o, r) => { o.position.set(r.x, -0.07, -r.y); o.rotation.set(0, r.ang, 0); o.scale.set(r.lado ? 0.12 : 2.6, 1, r.lado ? 5 : 0.12) }} />
+      poner={(o, r) => { o.position.set(r.x, -0.062, -r.y); o.rotation.set(0, r.ang, 0); o.scale.set(r.lado ? 0.12 : 2.6, 1, r.lado ? 5 : 0.12) }} />
   )
 }
 
