@@ -194,6 +194,9 @@ const INSERTADO = ['totem', 'guia', 'admin'].includes(PARAMS.get('modo')) ? PARA
 const URL_OK = (u) => { try { const x = new URL(u); return x.protocol === 'https:' || x.protocol === 'http:' ? x : null } catch { return null } }
 const PADRE = INSERTADO === 'admin' ? URL_OK(PARAMS.get('padre') || '')?.origin || null : null
 const MODO_ADMIN = !!PADRE
+// tótem de OM3 con el mapa siempre cargado (?modo=totem&padre=<origen de OM3>): el iframe no se desmonta entre
+// pacientes; OM3 le pide el destino por mensaje (sin recargar) y lo reinicia al volver al inicio
+const PADRE_TOTEM = INSERTADO === 'totem' ? URL_OK(PARAMS.get('padre') || '')?.origin || null : null
 // cambios publicados en OM3 (?config=<url pública>); si no, los del repositorio
 const CONFIG_URL = URL_OK(PARAMS.get('config') || '')?.href || null
 // preferencias de ruta: ?via=ascensor|escalera|cualquiera (entre pisos) y ?accesible=1 (sin escalones)
@@ -418,6 +421,49 @@ export default function App() {
   }, [lugares, porId, pisos, d])
 
   useEffect(() => { setRecorrer(false); setTransicion(null); setLlego(false); avance.set(null) }, [origen, destino])
+
+  // ---------- mensajes del tótem de OM3 (solo desde la ventana padre y el origen indicado en ?padre=)
+  // { tipo: 'mapa-ir', destino?: id, consulta?: texto, origen?: id, recorrer?: true, vista?: '2d'|'3d' }
+  // { tipo: 'mapa-reiniciar' }: vuelve al estado inicial para el siguiente paciente
+  // El mapa responde { tipo: 'mapa-listo' } al cargar el primer piso y { tipo: 'mapa-pisos-listos' } con todos.
+  const [pedido, setPedido] = useState(null)
+  const reiniciarRef = useRef(() => {})
+  useEffect(() => {
+    if (!PADRE_TOTEM) return
+    const alRecibir = (e) => {
+      if (e.origin !== PADRE_TOTEM || e.source !== window.parent || !e.data || typeof e.data !== 'object') return
+      if (e.data.tipo === 'mapa-ir') setPedido({ ...e.data, t: Date.now() })
+      else if (e.data.tipo === 'mapa-reiniciar') reiniciarRef.current()
+    }
+    window.addEventListener('message', alRecibir)
+    return () => window.removeEventListener('message', alRecibir)
+  }, [])
+  const avisado = useRef({ listo: false, pisos: false })
+  useEffect(() => {
+    if (!PADRE_TOTEM || !d) return
+    if (!avisado.current.listo) { avisado.current.listo = true; window.parent.postMessage({ tipo: 'mapa-listo' }, PADRE_TOTEM) }
+    const disponibles = (d.edificio?.pisos || []).filter((p) => p.disponible).length
+    if (!avisado.current.pisos && Object.keys(pisos).length >= disponibles) {
+      avisado.current.pisos = true
+      window.parent.postMessage({ tipo: 'mapa-pisos-listos' }, PADRE_TOTEM)
+    }
+  }, [d, pisos])
+  // el pedido se aplica cuando ya están los lugares (si el destino es de un piso que todavía carga, espera)
+  useEffect(() => {
+    if (!pedido || !lugares.length) return
+    const disponibles = (d?.edificio?.pisos || []).filter((p) => p.disponible).length
+    const todosListos = Object.keys(pisos).length >= disponibles
+    const dest = pedido.destino ? porId[pedido.destino] : pedido.consulta && todosListos ? buscarLugar(lugares, pedido.consulta) : null
+    if (!dest && !todosListos) return
+    const ori = pedido.origen ? porId[pedido.origen] : null
+    if (pedido.origen && !ori && !todosListos) return
+    setPedido(null)
+    setBuscando(null); setFicha(null)
+    if (pedido.vista === '2d' || pedido.vista === '3d') setModo(pedido.vista)
+    if (ori) setOrigen(ori)
+    if (dest) { setDestino(dest); if (pedido.recorrer) autoRecorrer.current = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pedido, lugares, porId, pisos])
   // ruta completa (puede tener tramos en dos pisos): { tramos: [{ piso, pts, metros, pasos }], metros, vertical, alternativa }
   const ruta = useMemo(() => {
     if (!origen || !destino || origen.id === destino.id) return null
@@ -492,6 +538,16 @@ export default function App() {
     const t = transicion
     setTransicion(null)
     if (t) { avance.set(null); verPiso(t.a) }
+  }
+  // estado inicial para el siguiente paciente (OM3 lo pide al volver al inicio del tótem)
+  reiniciarRef.current = () => {
+    setRecorrer(false); setTransicion(null); setLlego(false); avance.set(null)
+    setBuscando(null); setFicha(null); setFoco(null); setVerPasos(false); setPedido(null)
+    setDestino(null)
+    setOrigen(porId['entrada-puerta-1'] || lugares.find((l) => l.entrada) || null)
+    setModo(VISTA_INICIAL)
+    if (pisoId !== (d?.edificio?.pisoInicial || 'PB')) verPiso(d?.edificio?.pisoInicial || 'PB')
+    setTimeout(() => vista()?.centrar?.(), 300)
   }
   // ?recorrer=1 (enlace de OM3 con la consulta de la cita): empieza a caminar solo, una vez, cuando la ruta está lista
   const autoRecorrer = useRef(RECORRER_AUTO)
