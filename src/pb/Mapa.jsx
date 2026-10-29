@@ -236,13 +236,13 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
     marcas.current = []
     for (const l of lugaresIcono) {
       const el = document.createElement('button')
-      el.className = 'pb-pin' + (l.entrada ? ' entrada' : '') + (l.entrada && /^Acceso/.test(l.nombre) ? ' menor' : '')
-      el.title = l.nombre
+      el.className = 'pb-pin' + (l.entrada ? ' entrada' : '') + (l.entrada && /^Acceso/.test(l.etiqueta || l.nombre) ? ' menor' : '') + (l.privado ? ' privado' : '')
+      el.title = l.privado ? `${l.nombre} (privado${l.dentroDe ? ` de ${l.dentroDe}` : ''})` : l.nombre
       // insignia redonda del color de su categoría con el ícono en blanco (como los mapas de interiores)
       const color = l.entrada ? TINTA_RUTA : (CATS[l.cat] || CATS.otro).acento
       el.style.setProperty('--pin', color)
       el.innerHTML = renderToStaticMarkup(<span className="pb-pin-c"><Icono nombre={l.icono} size={14} color="#fff" grosor={2.2} /></span>)
-        + (l.entrada ? `<span class="pb-pin-t">${l.nombre}</span>` : '')   // el nombre de los demás lo pone la capa de rótulos, debajo del ícono
+        + (l.entrada ? `<span class="pb-pin-t">${l.etiqueta || l.nombre}</span>` : '')   // el nombre de los demás lo pone la capa de rótulos, debajo del ícono
       el.addEventListener('click', (ev) => { ev.stopPropagation(); cb.current.onElegir?.(l.id, null) })
       const mk = new maplibregl.Marker({ element: el }).setLngLat(aLonLat(l.x, l.y)).addTo(map)
       mk._sobreTecho = !l.entrada && !['circulacion', 'espera'].includes(l.cat)   // ícono de un bloque: va sobre su techo

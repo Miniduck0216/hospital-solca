@@ -61,7 +61,12 @@ export const idGlobal = (piso, id) => (piso === 'PB' ? id : `${piso}:${id}`)
 // lugares: ambientes con nombre y destino alcanzable, más las entradas del edificio
 function armarLugares(d) {
   const piso = d.piso?.id || 'PB'
-  return armarLugaresPiso(d).map((l) => ({ ...l, local: l.id, id: idGlobal(piso, l.id), piso, pisoCorto: d.piso?.corto || piso, pisoNombre: d.piso?.nombre || piso }))
+  const corto = d.piso?.corto || piso
+  return armarLugaresPiso(d).map((l) => ({
+    ...l, local: l.id, id: idGlobal(piso, l.id), piso, pisoCorto: corto, pisoNombre: d.piso?.nombre || piso,
+    // las entradas se llaman igual en varios pisos («Acceso 1»): en la guía y en la búsqueda llevan su piso
+    ...(l.entrada ? { etiqueta: l.nombre, nombre: l.nombre.includes(corto) ? l.nombre : `${l.nombre} (${corto})` } : {}),
+  }))
 }
 function armarLugaresPiso(d) {
   const zonas = d.ambientes.filter((a) => a.nombre && (a.cat === 'circulacion' || a.cat === 'espera') && a.area > 30)
@@ -77,12 +82,19 @@ function armarLugaresPiso(d) {
         if (dd < m) { m = dd; cerca = z.nombre }
       }
     }
-    // baño dentro de una habitación (la ruta llega a la puerta de la habitación): se busca, pero sin ícono en el mapa
-    const enCuarto = a.cat === 'banos' && !!a.ventanilla
-    lugares.push({ id: a.id, nombre: a.nombre, cat: a.cat, area: a.area, x: a.dest[0], y: a.dest[1], lbl: a.lbl, cerca, enCuarto, icono: ICONO_LUGAR[a.icono] || ICONO_CAT[a.cat] })
+    // baño dentro de un consultorio, una habitación o un área del personal: se ve en el mapa (atenuado) pero no es
+    // destino (no sale en la guía ni en la búsqueda); al tocarlo, se ofrece ir al cuarto al que pertenece
+    const enCuarto = a.cat === 'banos' && (!!a.enCuarto || !!a.ventanilla)
+    lugares.push({ id: a.id, nombre: a.nombre, cat: a.cat, area: a.area, x: a.dest[0], y: a.dest[1], lbl: a.lbl, cerca, enCuarto, dentroDe: a.dentroDe || null, icono: ICONO_LUGAR[a.icono] || ICONO_CAT[a.cat] })
+  }
+  // la zona más cercana de un punto (para decir junto a qué hall o pasillo queda cada entrada)
+  const zonaCerca = (p) => {
+    let m = Infinity, n = null
+    for (const z of zonas) { const dd = dentro(p, z.pg[0]) ? 0 : distPoli(p, z.pg[0]); if (dd < m) { m = dd; n = z.nombre } }
+    return m < 25 ? n : null
   }
   for (const e of d.entradas) {
-    lugares.push({ id: e.id, nombre: e.nombre === 'Puerta 1' ? 'Puerta 1 · Entrada principal' : e.nombre, cat: 'entrada', x: e.x, y: e.y, lbl: [e.x, e.y], entrada: true, icono: 'salida' })
+    lugares.push({ id: e.id, nombre: e.nombre === 'Puerta 1' ? 'Puerta 1 · Entrada principal' : e.nombre, cat: 'entrada', x: e.x, y: e.y, lbl: [e.x, e.y], entrada: true, icono: 'salida', cerca: zonaCerca([e.x, e.y]) })
   }
   return lugares
 }
@@ -106,7 +118,7 @@ function Fila({ l, onElegir }) {
     <li>
       <button onClick={() => onElegir(l)}>
         <Insignia icono={l.icono} color={colorDe(l)} size={34} />
-        <span><b>{l.nombre}{l.cuantos > 1 && <em className="guia-n" aria-label={`${l.cuantos} lugares`}>×{l.cuantos}</em>}</b><small>{l.cuantos > 1 ? `${l.pisoCorto} · ${l.cuantos} en este piso; te lleva al más cercano` : l.entrada ? `Entrada del edificio${l.piso !== 'PB' ? ` · ${l.pisoCorto}` : ''}` : [l.pisoCorto, CATS[l.cat]?.nombre, l.cerca && `junto a ${l.cerca}`].filter(Boolean).join(' · ')}</small></span>
+        <span><b>{l.nombre}{l.cuantos > 1 && <em className="guia-n" aria-label={`${l.cuantos} lugares`}>×{l.cuantos}</em>}</b><small>{l.cuantos > 1 ? `${l.pisoCorto} · ${l.cuantos} en este piso; te lleva al más cercano` : l.entrada ? ['Entrada y salida', l.cerca && `junto a ${l.cerca}`].filter(Boolean).join(' · ') : [l.pisoCorto, CATS[l.cat]?.nombre, l.cerca && `junto a ${l.cerca}`].filter(Boolean).join(' · ')}</small></span>
       </button>
     </li>
   )
@@ -123,7 +135,7 @@ function Buscador({ lugares, pisos, origen, modo, cat, onElegir, onCerrar }) {
       if (filtro === 'escaleras' && !['escaleras', 'ascensores'].includes(l.cat)) return false
       if (filtro && filtro !== 'escaleras' && l.cat !== filtro) return false
       if (!t) return modo === 'origen' ? true : l.cat !== 'circulacion' || l.area > 60
-      return plano(l.nombre).includes(t) || plano(l.cerca).includes(t) || plano(CATS[l.cat]?.nombre).includes(t)
+      return plano(l.nombre).includes(t) || plano(l.cerca).includes(t) || plano(CATS[l.cat]?.nombre).includes(t) || (l.entrada && /^(entrada|salida|puerta|acceso)/.test(t))
     }).sort((a, b) => (a.entrada === b.entrada ? a.nombre.localeCompare(b.nombre, 'es', { numeric: true }) : a.entrada ? -1 : 1))
     // al buscar a dónde ir, los que se llaman igual en un piso van en una fila (lleva al más cercano)
     return modo === 'origen' ? filtrados : juntarIguales(filtrados, origen)
@@ -368,16 +380,18 @@ export default function App() {
   }
   const cambiarPiso = (p) => { if (p.disponible) verPiso(p.id) }
   // lugares de todos los pisos cargados (el buscador encuentra servicios de cualquier piso)
-  const lugares = useMemo(() => {
+  const todos = useMemo(() => {
     const orden = (d?.edificio?.pisos || []).map((p) => p.id)
     return Object.values(pisos).sort((a, b) => orden.indexOf(a.piso.id) - orden.indexOf(b.piso.id)).flatMap(armarLugares)
   }, [pisos, d])
+  // destinos de la guía y la búsqueda: sin los baños privados (esos solo se ven en el mapa)
+  const lugares = useMemo(() => todos.filter((l) => !l.enCuarto), [todos])
   // ¿se llega caminando por pasillos abiertos? (si no, la app lo dice en vez de trazar por consultorios)
   const alcanzable = (l) => {
     const dl = pisos[l.piso]
     return !!dl && (l.entrada || !dl.nav.indice[l.local] || dl.nav.alcanzable.has(dl.nav.indice[l.local]))
   }
-  const porId = useMemo(() => Object.fromEntries(lugares.map((l) => [l.id, l])), [lugares])
+  const porId = useMemo(() => Object.fromEntries(todos.map((l) => [l.id, l])), [todos])
 
   // origen por defecto (Puerta 1) o el del enlace / QR (?origen=…&destino=…)
   // (los pisos se cargan de a uno: el lugar del enlace se aplica una sola vez, cuando aparece su piso)
@@ -502,8 +516,8 @@ export default function App() {
     history.replaceState(null, '', `${location.pathname}?${p}`)
   }, [origen, destino, accesible, via])
 
-  const lugaresIcono = useMemo(() => lugares.filter((l) => l.piso === pisoId && !l.enCuarto).filter((l) => l.entrada || ['banos', 'escaleras', 'ascensores', 'farmacia'].includes(l.cat) || ['caja', 'info', 'capilla'].includes(l.icono))
-    .map((l) => ({ ...l, id: l.local, x: l.entrada ? l.x : l.lbl[0], y: l.entrada ? l.y : l.lbl[1], color: l.entrada ? TINTA : '#FFFFFF' })), [lugares, pisoId])
+  const lugaresIcono = useMemo(() => todos.filter((l) => l.piso === pisoId).filter((l) => l.entrada || ['banos', 'escaleras', 'ascensores', 'farmacia'].includes(l.cat) || ['caja', 'info', 'capilla'].includes(l.icono))
+    .map((l) => ({ ...l, id: l.local, x: l.entrada ? l.x : l.lbl[0], y: l.entrada ? l.y : l.lbl[1], color: l.entrada ? TINTA : '#FFFFFF', privado: !!l.enCuarto })), [todos, pisoId])
 
   const elegirDesdeMapa = (id) => {
     const l = porId[idGlobal(pisoId, id)]
@@ -642,14 +656,26 @@ export default function App() {
         <Hoja clase="pb-ficha" resumen={ficha.nombre} arrastrable={false}>
           <div className="pb-ficha-cab">
             <Insignia icono={ficha.icono} color={colorDe(ficha)} size={40} />
-            <div><small>{ficha.entrada ? 'Entrada del edificio' : `${ficha.pisoCorto} · ${CATS[ficha.cat]?.nombre || ''}${ficha.area ? ` · ${ficha.area.toFixed(0)} m²` : ''}`}{ficha.cerca ? ` · junto a ${ficha.cerca}` : ''}</small>
-              {!alcanzable(ficha) && <small className="ficha-aviso">Sin camino por pasillos abiertos en el plano</small>}</div>
+            <div><small>{ficha.enCuarto ? `Baño privado${ficha.dentroDe ? ` de ${ficha.dentroDe}` : ' (uso interno)'} · ${ficha.pisoCorto}` : ficha.entrada ? `Entrada y salida · ${ficha.pisoNombre}` : `${ficha.pisoCorto} · ${CATS[ficha.cat]?.nombre || ''}${ficha.area ? ` · ${ficha.area.toFixed(0)} m²` : ''}`}{ficha.cerca && !ficha.enCuarto ? ` · junto a ${ficha.cerca}` : ''}</small>
+              {!ficha.enCuarto && !alcanzable(ficha) && <small className="ficha-aviso">Sin camino por pasillos abiertos en el plano</small>}</div>
             <button className="icono-btn mini" onClick={() => setFicha(null)} aria-label="Cerrar"><Icono nombre="cerrar" size={16} /></button>
           </div>
-          <div className="acciones">
-            <button className="btn-negro" onClick={() => irA(ficha)}>Cómo llegar</button>
-            <button className="btn-claro" onClick={() => { setOrigen(ficha); setFicha(null) }}>Estoy aquí</button>
-          </div>
+          {ficha.enCuarto ? (() => {
+            // no es un destino: se ofrece el cuarto al que pertenece, si es un lugar de pacientes
+            const cuarto = ficha.dentroDe && lugares.find((l) => l.piso === ficha.piso && l.nombre === ficha.dentroDe)
+            return (
+              <div className="acciones">
+                <p className="ruta-nota">Este baño es parte de {ficha.dentroDe || 'un área interna'}. Para pacientes, busca «Baños» en la guía.</p>
+                {cuarto && <button className="btn-negro" onClick={() => irA(cuarto)}>Cómo llegar a {cuarto.nombre}</button>}
+                <button className="btn-claro" onClick={() => { setFicha(null); setBuscando({ modo: 'destino', cat: 'banos' }) }}>Baños para pacientes</button>
+              </div>
+            )
+          })() : (
+            <div className="acciones">
+              <button className="btn-negro" onClick={() => irA(ficha)}>Cómo llegar</button>
+              <button className="btn-claro" onClick={() => { setOrigen(ficha); setFicha(null) }}>Estoy aquí</button>
+            </div>
+          )}
         </Hoja>
       )}
 

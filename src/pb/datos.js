@@ -105,6 +105,8 @@ export async function cargarDatos(cambiosLocales = null, opciones = {}) {
   const bin4 = atob(d.nav.vereda)
   d.nav.vereda = new Uint8Array(bin4.length)
   for (let i = 0; i < bin4.length; i++) d.nav.vereda[i] = bin4.charCodeAt(i)
+  // baños dentro de un consultorio, una habitación o un área del personal: se ven en el mapa pero no son destino
+  marcarBanosPrivados(d)
   // pasos del administrador: muros nuevos, pasos abiertos y líneas de recorrido de pacientes
   aplicarPasos(d)
   // escalones (gradas de escaleras y desniveles): la ruta accesible no pasa por ellos
@@ -567,4 +569,63 @@ export function ambienteEn(d, p) {
     if (!mejor || a.area < mejor.area) mejor = a
   }
   return mejor
+}
+
+/**
+ * Baños generales y privados. Desde las celdas del baño se avanza por las celdas libres (la puerta) hasta tocar otro
+ * ambiente: si la puerta da a un pasillo, una sala de espera, un hall o la red de pasillos, el baño es general (para
+ * pacientes); si solo da a un consultorio, una habitación o un área del personal, es privado de ese cuarto.
+ * Marca a.enCuarto = true y a.dentroDe = nombre del cuarto al que pertenece.
+ */
+export function marcarBanosPrivados(d) {
+  const { w, h, celdas, cuarto, red, vereda, paso } = d.nav
+  const N = w * h
+  const PROF = 8   // hasta 2 m desde el baño (celdas de 25 cm): el vano de la puerta y un poco más
+  const porCuarto = new Map()
+  d.ambientes.forEach((a, k) => { if (a.cat === 'banos') porCuarto.set(k + 1, []) })
+  if (!porCuarto.size) return
+  for (let i = 0; i < N; i++) { const l = porCuarto.get(cuarto[i]); if (l) l.push(i) }
+  const visto = new Int32Array(N)
+  let marca = 0
+  const soloBanos = []   // baños que solo dan a otro baño (antesala compartida): se deciden al final
+  for (const [q, celdasBano] of porCuarto) {
+    const a = d.ambientes[q - 1]
+    // baños del personal por su nombre (el plano los rotula «SS.HH. Personal», «Baño Residentes»…)
+    if (/personal|residente/i.test(a.nombre || '')) { a.enCuarto = true; a.dentroDe = null; continue }
+    marca++
+    let frente = []
+    for (const i of celdasBano) { visto[i] = marca; frente.push(i) }
+    const toca = new Map()
+    let abierto = false
+    for (let prof = 0; prof < PROF && frente.length && !abierto; prof++) {
+      const sig = []
+      for (const i of frente) {
+        const x = i % w, y = (i - x) / w
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const nx = x + dx, ny = y + dy
+          if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue
+          const j = ny * w + nx
+          if (visto[j] === marca || !celdas[j]) continue
+          visto[j] = marca
+          const c = cuarto[j]
+          if (c && c !== q) { toca.set(c, (toca.get(c) || 0) + 1); if (paso[c]) abierto = true; continue }
+          if ((red && red[j]) || (vereda && vereda[j])) { abierto = true; continue }
+          sig.push(j)
+        }
+      }
+      frente = sig
+    }
+    if (abierto || !toca.size) { a.enCuarto = false; continue }
+    // el cuarto que más toca la puerta (sin contar otros baños)
+    const [c] = [...toca.entries()].filter(([k]) => d.ambientes[k - 1]?.cat !== 'banos').sort((x, y) => y[1] - x[1])[0] || []
+    if (!c) { soloBanos.push([a, [...toca.keys()]]); continue }
+    a.enCuarto = true
+    a.dentroDe = d.ambientes[c - 1]?.nombre || null
+  }
+  // un baño al que se entra por otro (p. ej. el de minusválidos dentro de la batería de baños) es general si aquel lo es
+  for (const [a, vecinos] of soloBanos) {
+    const general = vecinos.some((k) => d.ambientes[k - 1]?.enCuarto === false)
+    a.enCuarto = !general
+    if (!general) a.dentroDe = vecinos.map((k) => d.ambientes[k - 1]?.dentroDe).find(Boolean) || null
+  }
 }

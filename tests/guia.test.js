@@ -65,3 +65,17 @@ test('la guía empieza en la planta baja y deja los subsuelos al final', () => {
   const g = agruparGuia([{ id: 'x', nombre: 'A', cat: 'otro', piso: 'SB' }, { id: 'y', nombre: 'B', cat: 'otro', piso: 'P1' }, { id: 'z', nombre: 'C', cat: 'otro', piso: 'PB' }], pisos)
   assert.deepEqual(g.map((p) => p.piso), ['PB', 'P1', 'SB'])
 })
+
+test('los baños generales se distinguen de los privados (de habitación o consultorio)', async () => {
+  const p1 = await cargarDatos(null, { pisoId: 'P1' })
+  const banos = p1.ambientes.filter((a) => a.cat === 'banos')
+  const privados = banos.filter((a) => a.enCuarto)
+  // en el piso 1 (hospitalización) la mayoría de los baños son de las habitaciones
+  assert.ok(privados.length > banos.length / 2, `privados: ${privados.length} de ${banos.length}`)
+  assert.ok(privados.some((a) => /^Hab/.test(a.dentroDe || '')))
+  // en la planta baja las baterías SS.HH. Mujeres y Hombres son generales
+  const pb = d.ambientes.filter((a) => /^SS\.HH\. (Mujeres|Hombres)/.test(a.nombre || ''))
+  assert.ok(pb.length && pb.every((a) => !a.enCuarto))
+  // y el baño de minusválidos de esa batería también
+  assert.ok(d.ambientes.filter((a) => a.nombre === 'Minusválidos').some((a) => !a.enCuarto))
+})

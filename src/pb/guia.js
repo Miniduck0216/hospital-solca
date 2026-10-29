@@ -5,7 +5,7 @@ import { CATS, plano } from './datos.js'
 // orden de los tipos dentro de cada piso: primero lo que más se busca
 // las entradas van al final: casi nunca son el destino de un paciente
 export const ORDEN_CATS = ['consulta', 'administracion', 'farmacia', 'espera', 'banos', 'ascensores', 'escaleras', 'apoyo', 'circulacion', 'otro', 'entrada']
-const nombreCat = (c) => (c === 'entrada' ? 'Entradas' : c === 'ascensores' ? 'Ascensores' : CATS[c]?.nombre || 'Otros')
+const nombreCat = (c) => (c === 'entrada' ? 'Entradas y salidas' : c === 'ascensores' ? 'Ascensores' : CATS[c]?.nombre || 'Otros')
 
 const rango = (n = 0) => (n >= 0 ? n : 100 - n)
 

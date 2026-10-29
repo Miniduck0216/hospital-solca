@@ -49,6 +49,8 @@ export function Letreros({ d, visibles = true }) {
       if (!a.nombre || !a.lbl) continue
       // menos letreros (la vista se veía recargada): fuera los cuartos del personal y los muy pequeños,
       // salvo baños, escaleras y ascensores, que el paciente busca
+      // los baños privados (de una habitación o consultorio) no llevan letrero: no son un destino
+      if (a.cat === 'banos' && a.enCuarto) continue
       const clave = ['banos', 'escaleras', 'ascensores', 'farmacia'].includes(a.cat)
       if (a.personal && !clave) continue
       if (!clave && a.area < (LIGERO ? 15 : 8)) continue

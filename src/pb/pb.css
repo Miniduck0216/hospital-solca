@@ -356,3 +356,7 @@ body { background: #E9EDF1; }
 .ligero .foco-luz, .ligero .foco-amb { display: none; }
 .ligero .hoja, .ligero .pb-buscador, .ligero .pb-ficha, .ligero .pb-nav { animation: none; }
 .pb-lista .guia-n { display: inline-block; margin-left: 6px; padding: 0 7px; border-radius: 999px; background: #EEF1F5; color: #4A586C; font: 800 .72rem/1.6 var(--m-fuente); vertical-align: 2px; }
+
+/* baños privados (de una habitación o un consultorio): se ven en el mapa, atenuados y solo de cerca; no son destino */
+.pb-pin.privado { opacity: .5; filter: grayscale(.6); }
+.pb-mapa:not(.pb-medio) .pb-pin.privado { display: none; }
