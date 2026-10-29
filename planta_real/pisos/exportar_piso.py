@@ -702,6 +702,8 @@ def juntas(m):
                     f = e + d * s * (k + 0.02)
                     nuevos.append(Polygon([tuple(e + n * t0), tuple(f + n * t0), tuple(f + n * t1), tuple(e + n * t1)]))
                     break
+    # solo el hueco: si el relleno se superpone a la pared, sus caras coinciden con las de ella y en el 3D parpadean
+    nuevos = [q for n in nuevos for q in lista_polis(n.difference(duro)) if q.area > 0.002]
     n_p = len(nuevos)
     vanos = unary_union([p['rect'].buffer(0.02, join_style=2) for p in m.puertas] +
                         [v.buffer(0.02, join_style=2) for v in m.ventanas])

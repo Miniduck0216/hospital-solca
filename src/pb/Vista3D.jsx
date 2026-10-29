@@ -612,6 +612,19 @@ function ZoomSuave({ controles, pedido }) {
   return null
 }
 
+// plano cercano de la cámara según lo lejos que mire: de cerca (recorrido) 0,1 m para que no corte las paredes junto
+// al personaje (se veían huecas); de lejos más grande, para que el piso, las veredas y el pasto no parpadeen
+function PlanoCercano({ controles }) {
+  useFrame(({ camera }) => {
+    const c = controles.current
+    if (!c) return
+    const dist = camera.position.distanceTo(c.target)
+    const near = Math.min(4, Math.max(0.1, dist * 0.012))
+    if (Math.abs(camera.near - near) / camera.near > 0.15) { camera.near = near; camera.updateProjectionMatrix() }
+  })
+  return null
+}
+
 // la cámara sigue al piso que se mira: al cambiar de piso (o al armar el edificio) se traslada en altura, suave
 function SeguirAltura({ controles, altura }) {
   const actual = useRef(altura)
@@ -678,8 +691,8 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
   const cy = (Math.min(...hu.map((p) => p[1])) + Math.max(...hu.map((p) => p[1]))) / 2
   const altura = armado ? 6 : base
   useImperativeHandle(fwd, () => ({
-    acercar: () => { pedidoZoom.current = { dist: (pedidoZoom.current?.dist ?? distActual()) / 1.6 } },
-    alejar: () => { pedidoZoom.current = { dist: (pedidoZoom.current?.dist ?? distActual()) * 1.6 } },
+    acercar: () => { pedidoZoom.current = { dist: (pedidoZoom.current?.dist ?? distActual()) / 2.2 } },
+    alejar: () => { pedidoZoom.current = { dist: (pedidoZoom.current?.dist ?? distActual()) * 2.2 } },
     centrar: () => {
       const c = controles.current
       if (!c) return
@@ -705,8 +718,8 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
   }
   return (
     <div className="pb-3d">
-      <Canvas shadows={!LIGERO} flat dpr={LIGERO ? 1 : [1, 2]} frameloop={LIGERO ? 'demand' : 'always'} camera={{ position: [cx + 95, altura + 110, -cy + 95], fov: 32, near: 1, far: 2400 }}
-        gl={{ antialias: !LIGERO, logarithmicDepthBuffer: true, powerPreference: LIGERO ? 'low-power' : 'high-performance' }}>
+      <Canvas shadows={!LIGERO} flat dpr={LIGERO ? 1 : [1, 2]} frameloop={LIGERO ? 'demand' : 'always'} camera={{ position: [cx + 95, altura + 110, -cy + 95], fov: 32, near: 0.5, far: 2400 }}
+        gl={{ antialias: !LIGERO, powerPreference: LIGERO ? 'low-power' : 'high-performance' }}>
         {LIGERO && <Cuadros fps={30} />}
         <color attach="background" args={['#F2EAD8']} />
         <fog attach="fog" args={['#F2EAD8', 320, 760]} />
@@ -734,7 +747,8 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
         {foco && !armado && <MarcaFoco foco={foco} controles={controles} base={base} />}
         <SeguirAltura controles={controles} altura={altura} />
         <ZoomSuave controles={controles} pedido={pedidoZoom} />
-        <OrbitControls ref={controles} touches={{ ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN }} target={[cx, altura, -cy]} maxPolarAngle={recorrer ? Math.PI / 1.9 : Math.PI / 2.08} minDistance={recorrer ? 1.5 : 4} maxDistance={recorrer ? 30 : 460} enablePan={!recorrer} enableDamping />
+        <PlanoCercano controles={controles} />
+        <OrbitControls ref={controles} touches={{ ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN }} target={[cx, altura, -cy]} maxPolarAngle={recorrer ? Math.PI / 1.9 : Math.PI / 2.08} minDistance={recorrer ? 1.5 : 4} maxDistance={recorrer ? 30 : 460} enablePan={!recorrer} enableDamping zoomSpeed={1.8} />
       </Canvas>
       <div className="pb-3d-ctrl" role="group" aria-label="Opciones de la vista 3D">
         <span className="pb-3d-t">Vista</span>
