@@ -58,11 +58,11 @@
   },
   "a7": {
    "si": "Reloj",
-   "nombre": "Despacho"
+   "nombre": "Despacho · Recepción · Reloj"
   },
   "a125": {
    "si": "Reloj",
-   "nombre": "Despacho"
+   "nombre": "Despacho · Recepción · Reloj"
   },
   "a17": {
    "si": "Vestidor",
@@ -137,7 +137,8 @@
     131.54,
     41.24
    ],
-   "ventanilla": true
+   "ventanilla": true,
+   "nombre": "Información · Secretaría"
   },
   "a110": {
    "si": "Recepcion",
@@ -146,6 +147,24 @@
     28.05
    ],
    "ventanilla": true
+  },
+  "a75": {
+   "si": "",
+   "nombre": "Consultorio",
+   "cat": "consulta"
+  },
+  "a59": {
+   "si": "Vestidor",
+   "nombre": "Vestidor · Taller"
+  },
+  "a16": {
+   "si": "Despacho",
+   "nombre": "Depósito Estéril · Despacho",
+   "personal": true
+  },
+  "a79": {
+   "si": "Recepcion",
+   "nombre": "Recepción Docencia"
   },
   "a66": {
    "si": "Mujeres",
@@ -595,6 +614,118 @@
    "cat": "apoyo",
    "x": 106.3,
    "y": 41.6,
+   "personal": true
+  },
+  {
+   "id": "L-sb-jefatura-talento",
+   "nombre": "Jefatura de Talento Humano",
+   "cat": "administracion",
+   "x": 71.1,
+   "y": 25.2,
+   "personal": true
+  },
+  {
+   "id": "L-sb-radioterapia-estacion",
+   "nombre": "Estación · Apoyo",
+   "cat": "apoyo",
+   "x": 151.5,
+   "y": 45.0,
+   "personal": true
+  },
+  {
+   "id": "L-sb-auditorio-vestidor",
+   "nombre": "Vestidor del Auditorio",
+   "cat": "apoyo",
+   "x": 47.4,
+   "y": 41.5,
+   "personal": true
+  },
+  {
+   "id": "L-sb-servicio-1",
+   "nombre": "Jefe de Calderas",
+   "cat": "apoyo",
+   "x": 89.0,
+   "y": -24.45,
+   "personal": true
+  },
+  {
+   "id": "L-sb-servicio-2",
+   "nombre": "Casa de Máquinas",
+   "cat": "apoyo",
+   "x": 82.1,
+   "y": -18.45,
+   "personal": true
+  },
+  {
+   "id": "L-sb-servicio-3",
+   "nombre": "Generador de Emergencia",
+   "cat": "apoyo",
+   "x": 80.6,
+   "y": -30.55,
+   "personal": true
+  },
+  {
+   "id": "L-sb-servicio-4",
+   "nombre": "Recepción de Combustible",
+   "cat": "apoyo",
+   "x": 85.2,
+   "y": -9.2,
+   "personal": true
+  },
+  {
+   "id": "L-sb-servicio-5",
+   "nombre": "Desechos",
+   "cat": "apoyo",
+   "x": 88.45,
+   "y": -50.1,
+   "personal": true
+  },
+  {
+   "id": "L-sb-servicio-6",
+   "nombre": "Residuos Contaminados",
+   "cat": "apoyo",
+   "x": 84.5,
+   "y": -47.9,
+   "personal": true
+  },
+  {
+   "id": "L-sb-servicio-7",
+   "nombre": "Residuos Reciclables",
+   "cat": "apoyo",
+   "x": 82.7,
+   "y": -46.0,
+   "personal": true
+  },
+  {
+   "id": "L-sb-servicio-8",
+   "nombre": "Bodega Líquidos Inflamables",
+   "cat": "apoyo",
+   "x": 77.8,
+   "y": -48.35,
+   "personal": true
+  },
+  {
+   "id": "L-sb-servicio-9",
+   "nombre": "Cuarto Eléctrico",
+   "cat": "apoyo",
+   "x": 97.3,
+   "y": -46.5,
+   "personal": true
+  },
+  {
+   "id": "L-sb-servicio-10",
+   "nombre": "Garita",
+   "cat": "apoyo",
+   "x": 102.5,
+   "y": -46.6,
+   "personal": true
+  },
+  {
+   "id": "L-sb-servicio-11",
+   "nombre": "Plataforma de Descarga",
+   "cat": "apoyo",
+   "x": 116.8,
+   "y": 17.55,
    "personal": true
   }
  ],
