@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, lazy, Suspense } from 'react'
 import QRCode from 'qrcode'
 import { cargarDatos, cambiosDelPiso, usarGeo, CATS, ICONO_LUGAR, plano, dentro } from './datos.js'
+import { cargarDatosEnHilo } from './cargaEnHilo.js'
 import { buscarRuta, indicaciones, metrosHasta, proximoPaso } from './ruta.js'
 import { rutaEdificio } from './rutaEdificio.js'
 import { Mapa } from './Mapa.jsx'
@@ -59,7 +60,13 @@ function distPoli(p, anillo) {
 export const idGlobal = (piso, id) => (piso === 'PB' ? id : `${piso}:${id}`)
 
 // lugares: ambientes con nombre y destino alcanzable, más las entradas del edificio
+// cada piso arma sus lugares una sola vez (al llegar otro piso no se rehacen los ya cargados)
+const LUGARES_DE = new WeakMap()
 function armarLugares(d) {
+  if (!LUGARES_DE.has(d)) LUGARES_DE.set(d, armarLugaresSinCache(d))
+  return LUGARES_DE.get(d)
+}
+function armarLugaresSinCache(d) {
   const piso = d.piso?.id || 'PB'
   const corto = d.piso?.corto || piso
   return armarLugaresPiso(d).map((l) => ({
@@ -68,20 +75,30 @@ function armarLugares(d) {
     ...(l.entrada ? { etiqueta: l.nombre, nombre: l.nombre.includes(corto) ? l.nombre : `${l.nombre} (${corto})` } : {}),
   }))
 }
+// distancia de un punto al recuadro de un polígono: si ya es mayor que la mejor encontrada, el polígono no se mide
+// (medir cada lugar contra todos los pasillos, vértice por vértice, trababa la carga en el tótem)
+const distCaja = (p, [x0, y0, x1, y1]) => Math.hypot(Math.max(x0 - p[0], 0, p[0] - x1), Math.max(y0 - p[1], 0, p[1] - y1))
 function armarLugaresPiso(d) {
-  const zonas = d.ambientes.filter((a) => a.nombre && (a.cat === 'circulacion' || a.cat === 'espera') && a.area > 30)
+  const zonas = d.ambientes.filter((a) => a.nombre && (a.cat === 'circulacion' || a.cat === 'espera') && a.area > 30).map((z) => {
+    const xs = z.pg[0].map((q) => q[0]), ys = z.pg[0].map((q) => q[1])
+    return { id: z.id, nombre: z.nombre, anillo: z.pg[0], caja: [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)] }
+  })
+  // la zona más cercana de un punto (la que lo contiene está a 0): las más cercanas por recuadro primero
+  const masCerca = (p, sin = null) => {
+    let m = Infinity, n = null
+    for (const [c, z] of zonas.map((z) => [distCaja(p, z.caja), z]).sort((u, v) => u[0] - v[0])) {
+      if (c >= m) break
+      if (z.id === sin) continue
+      const dd = dentro(p, z.anillo) ? 0 : distPoli(p, z.anillo)
+      if (dd < m) { m = dd; n = z.nombre }
+    }
+    return [m, n]
+  }
   const lugares = []
   for (const a of d.ambientes) {
     if (!a.nombre || !a.dest || a.personal) continue
     let cerca = null
-    if (a.cat !== 'circulacion' && a.area < 120) {
-      let m = Infinity
-      for (const z of zonas) {
-        if (z.id === a.id) continue
-        const dd = dentro(a.lbl, z.pg[0]) ? 0 : distPoli(a.lbl, z.pg[0])
-        if (dd < m) { m = dd; cerca = z.nombre }
-      }
-    }
+    if (a.cat !== 'circulacion' && a.area < 120) cerca = masCerca(a.lbl, a.id)[1]
     // baño dentro de un consultorio, una habitación o un área del personal: se ve en el mapa (atenuado) pero no es
     // destino (no sale en la guía ni en la búsqueda); al tocarlo, se ofrece ir al cuarto al que pertenece
     const enCuarto = a.cat === 'banos' && (!!a.enCuarto || !!a.ventanilla)
@@ -89,8 +106,7 @@ function armarLugaresPiso(d) {
   }
   // la zona más cercana de un punto (para decir junto a qué hall o pasillo queda cada entrada)
   const zonaCerca = (p) => {
-    let m = Infinity, n = null
-    for (const z of zonas) { const dd = dentro(p, z.pg[0]) ? 0 : distPoli(p, z.pg[0]); if (dd < m) { m = dd; n = z.nombre } }
+    const [m, n] = masCerca(p)
     return m < 25 ? n : null
   }
   for (const e of d.entradas) {
@@ -318,8 +334,9 @@ export default function App() {
   const vista = () => (modo === '3d' ? vista3d.current : mapa.current)
 
   // carga (o recarga, tras un cambio del administrador) un piso; `ver` lo deja como el piso a la vista
+  // los pisos que no se ven se preparan en otro hilo: así el mapa no se traba mientras tanto (el tótem es lento)
   const cargarPiso = (c, piso, ver = true) =>
-    cargarDatos(c, { pisoId: piso || undefined, cambiosUrl: CONFIG_URL, sinPublicados: MODO_ADMIN })
+    (ver ? cargarDatos : cargarDatosEnHilo)(c, { pisoId: piso || undefined, cambiosUrl: CONFIG_URL, sinPublicados: MODO_ADMIN })
       .then((datos) => {
         usarGeo(datos.geo)
         setPisos((ps) => ({ ...ps, [datos.piso.id]: datos }))

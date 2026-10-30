@@ -352,8 +352,21 @@ body { background: #E9EDF1; }
 }
 .ligero .foco-luz, .ligero .foco-amb { display: none; }
 .ligero .hoja, .ligero .pb-buscador, .ligero .pb-ficha, .ligero .pb-nav { animation: none; }
+/* íconos del mapa: el mapa los mueve en cada cuadro; cada uno en su capa y sin sombras, filtros ni animaciones (si no,
+   se repintaban todos en cada cuadro y el recorrido iba a saltos) */
+.ligero .maplibregl-marker { will-change: transform; }
+.ligero .pb-pin-c, .ligero .pb-pin-t, .ligero .marca-origen b { box-shadow: none !important; }
+.ligero .pb-pin-t { text-shadow: none !important; }
+.ligero .pb-pin:not(.entrada) .pb-pin-t { background: rgba(255, 255, 255, .9) !important; border-radius: 4px; padding: 0 3px !important; }
+.ligero .pb-pin.privado { filter: none; }
+.ligero .pb-pin { transition: none; }
+.ligero .marca-origen i { animation: none; opacity: .25; }
+.ligero .marca-destino svg { filter: none; animation: none; }
 .pb-lista .guia-n { display: inline-block; margin-left: 6px; padding: 0 7px; border-radius: 999px; background: #EEF1F5; color: #4A586C; font: 800 .72rem/1.6 var(--m-fuente); vertical-align: 2px; }
 
 /* baños privados (de una habitación o un consultorio): se ven en el mapa, atenuados y solo de cerca; no son destino */
 .pb-pin.privado { opacity: .5; filter: grayscale(.6); }
 .pb-mapa:not(.pb-medio) .pb-pin.privado { display: none; }
+
+/* flecha del recorrido en modo ligero (tótem): un ícono que el mapa solo mueve y gira */
+.pb-flecha-ligera { pointer-events: none; line-height: 0; }
