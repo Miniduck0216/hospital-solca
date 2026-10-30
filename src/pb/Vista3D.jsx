@@ -176,6 +176,10 @@ function ParteEdificio({ url, activo, corte, letreros, plano }) {
         o.userData.tono = true
       }
       if (o.material && g !== 'pisos') { o.material.clippingPlanes = [plano]; o.material.clipShadows = true; o.material.needsUpdate = true }
+      // el modelo queda en memoria al salir del 3D: al volver, su tapa tenía el plano de corte de la vista anterior
+      // (ya sin uso) y no se recortaba; los cuartos se veían como bloques macizos con muros bajos o medios
+      const tapaVieja = o.userData.conTapa && o.children.find((c) => c.userData.tapa)
+      if (tapaVieja && tapaVieja.material !== tapa) tapaVieja.material = tapa
       if (g === 'muros' && !o.userData.conTapa && o.material && !o.material.transparent) {
         o.material.side = THREE.FrontSide
         const t = new THREE.Mesh(o.geometry, tapa)
@@ -693,6 +697,13 @@ function Cuadros({ fps = 30 }) {
   return null
 }
 
+// para revisar la escena desde la consola o pruebas automáticas: window.__escena3d.scene / .gl
+function Depurar() {
+  const { gl, scene } = useThree()
+  useEffect(() => { window.__escena3d = { gl, scene } }, [gl, scene])
+  return null
+}
+
 const ORDEN = (a, b) => a.nivel - b.nivel
 export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destino, foco, recorrer = false, pausa = false, onFinRecorrer, onAvance, desde, onPiso }, fwd) {
   const [corte, setCorte] = useState(1.2)   // muros bajos por defecto: se ven los pisos, como en una maqueta isométrica
@@ -772,6 +783,7 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
       <Canvas shadows={!LIGERO} flat dpr={LIGERO ? 1 : [1, 2]} frameloop={LIGERO ? 'demand' : 'always'} camera={{ position: [cx + 95, altura + 110, -cy + 95], fov: 32, near: 0.5, far: 2400 }}
         gl={{ antialias: !LIGERO, powerPreference: LIGERO ? 'low-power' : 'high-performance' }}>
         {LIGERO && <Cuadros fps={30} />}
+        <Depurar />
         <color attach="background" args={['#F2EAD8']} />
         <fog attach="fog" args={['#F2EAD8', 320, 760]} />
         <hemisphereLight args={['#FFFFFF', '#D8CDB8', 1.25]} />
