@@ -23,7 +23,7 @@ AJUSTES = {
         # nombres del plano: un espacio con varios rótulos los lleva juntos; las zonas de servicio que el dibujo junta
         # en un solo espacio llevan el nombre de la zona
         ('Dietas · Estacion Carros Thermo', (0, 0), {'nombre': 'Alimentación y Dietética'}),
-        ('Reloj', (0, 0), {'nombre': 'Despacho'}),
+        ('Reloj', (0, 0), {'nombre': 'Despacho · Recepción · Reloj'}),   # un espacio, varios rótulos del plano
         ('Vestidor', (93.26, -24.66), {'nombre': 'Mantenimiento'}),
         ('Registro Nacional Tumores', (0, 0), {'nombre': 'Estadística · Registro Nacional Tumores'}),
         ('Despacho', (99.6, 15.13), {'nombre': 'Bodega Central'}),
@@ -43,7 +43,13 @@ AJUSTES = {
         # baños dentro de los vestidores de la unidad de inserciones
         ('Baño', (161.15, 53.83), 'personal'), ('Baño', (160.92, 54.99), 'personal'),
         ('Información', (133.2, 38.6), 'ventanilla'),
+        ('Información', (133.2, 38.6), {'nombre': 'Información · Secretaría'}),   # los dos rótulos del plano
         ('Recepcion', (104.5, 29.0), 'ventanilla'),
+        # rótulos del DWG 2025 que el dibujo deja en cuartos sin nombre o con otro nombre
+        ('', (134.07, 54.69), {'nombre': 'Consultorio', 'cat': 'consulta'}),   # junto a Secretaría · Información
+        ('Vestidor', (105.72, -34.06), {'nombre': 'Vestidor · Taller'}),
+        ('Despacho', (113.27, 43.62), {'nombre': 'Depósito Estéril · Despacho', 'personal': True}),   # esterilización
+        ('Recepcion', (52.84, 35.09), {'nombre': 'Recepción Docencia'}),
         # baño de mujeres: el cuarto de inodoros se llega por la antesala (también rotulada «Mujeres»)
         ('Mujeres', (0, 0), {'cat': 'banos'}),
         ('Mujeres', (97.9, 51.3), 'por-antesala'),
@@ -210,6 +216,18 @@ LUGARES = {
         *[(f'L-sb-esterilizacion-{k}', n, 'apoyo', p, True) for k, (n, p) in enumerate([
             ('Mantenimiento · Lubricado de Instrumental', (103.3, 34.2)), ('Preparación · Carga', (113.9, 36.95)),
             ('Autoclaves', (112.2, 39.4)), ('Área Equipos', (106.3, 41.6))], 1)],
+        # zonas dentro de un área mayor (rótulos del DWG 2025)
+        ('L-sb-jefatura-talento', 'Jefatura de Talento Humano', 'administracion', (71.1, 25.2), True),
+        ('L-sb-radioterapia-estacion', 'Estación · Apoyo', 'apoyo', (151.5, 45.0), True),
+        ('L-sb-auditorio-vestidor', 'Vestidor del Auditorio', 'apoyo', (47.4, 41.5), True),
+        # patio de servicio al sur (fuera del edificio): instalaciones y desechos, solo del personal
+        *[(f'L-sb-servicio-{k}', n, 'apoyo', p, True) for k, (n, p) in enumerate([
+            ('Jefe de Calderas', (89.0, -24.45)), ('Casa de Máquinas', (82.1, -18.45)),
+            ('Generador de Emergencia', (80.6, -30.55)), ('Recepción de Combustible', (85.2, -9.2)),
+            ('Desechos', (88.45, -50.1)), ('Residuos Contaminados', (84.5, -47.9)),
+            ('Residuos Reciclables', (82.7, -46.0)), ('Bodega Líquidos Inflamables', (77.8, -48.35)),
+            ('Cuarto Eléctrico', (97.3, -46.5)), ('Garita', (102.5, -46.6)),
+            ('Plataforma de Descarga', (116.8, 17.55))], 1)],
     ],
     'PB': [
         # U.C.I.: habitaciones abiertas al área común
@@ -240,6 +258,12 @@ LUGARES = {
         ('L-pb-gastro-recuperacion', 'Recuperación · Preparación', 'otro', (100.48, 55.7)),
         ('L-pb-espera-citologia', 'Espera Citología', 'espera', (80.0, 100.5)),
         ('L-pb-gastro-estacion', 'Estación', 'otro', (105.19, 58.96), True),
+        # rótulos del DWG 2025 dentro de un área mayor
+        ('L-pb-gastro-vestidores', 'Vestidores', 'apoyo', (101.8, 60.1), True),
+        ('L-pb-quimio-drogas', 'Preparación de Drogas', 'apoyo', (95.5, 42.45), True),
+        ('L-pb-quirurgico-camillas', 'Camillas', 'apoyo', (120.3, 52.4), True),
+        ('L-pb-telefonos', 'Teléfonos', 'otro', (51.4, 68.0)),   # en el Pasillo Central
+        ('L-pb-terraza-calderos', 'Terraza Calderos', 'apoyo', (82.4, -14.8), True),   # junto a las bodegas
     ],
     'P1': [
         ('L-p1-recepcion', 'Recepción', 'administracion', (54.1, 91.0)),
@@ -458,7 +482,8 @@ def main():
                 elif que == 'personal':
                     aj[a['id']] = {'si': nombre, 'personal': True}
                 else:
-                    aj[a['id']] = {'si': nombre, **que}
+                    # se suma a lo que ya tenga (una ventanilla que además lleva otro nombre)
+                    aj[a['id']] = {**aj.get(a['id'], {}), 'si': nombre, **que}
         # ascensores de servicio: no son destino de pacientes
         for i in personales.get(piso, []):
             a = next(a for a in d['ambientes'] if a['id'] == i)

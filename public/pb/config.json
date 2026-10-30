@@ -925,6 +925,46 @@
    "x": 105.19,
    "y": 58.96,
    "personal": true
+  },
+  {
+   "id": "L-pb-gastro-vestidores",
+   "nombre": "Vestidores",
+   "cat": "apoyo",
+   "x": 101.8,
+   "y": 60.1,
+   "personal": true
+  },
+  {
+   "id": "L-pb-quimio-drogas",
+   "nombre": "Preparación de Drogas",
+   "cat": "apoyo",
+   "x": 95.5,
+   "y": 42.45,
+   "personal": true
+  },
+  {
+   "id": "L-pb-quirurgico-camillas",
+   "nombre": "Camillas",
+   "cat": "apoyo",
+   "x": 120.3,
+   "y": 52.4,
+   "personal": true
+  },
+  {
+   "id": "L-pb-telefonos",
+   "nombre": "Teléfonos",
+   "cat": "otro",
+   "x": 51.4,
+   "y": 68.0,
+   "personal": false
+  },
+  {
+   "id": "L-pb-terraza-calderos",
+   "nombre": "Terraza Calderos",
+   "cat": "apoyo",
+   "x": 82.4,
+   "y": -14.8,
+   "personal": true
   }
  ],
  "pasos": [
