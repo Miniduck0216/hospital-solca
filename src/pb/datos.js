@@ -50,7 +50,9 @@ export async function cargarDatos(cambiosLocales = null, opciones = {}) {
   const d = await r.json()
   d.edificio = edificio
   d.piso = piso
-  d.cfg = compilarConfig((piso.config && (await pedirJson(`${BASE}${piso.config}?v=${__VERSION__}`))) || {})
+  // (la configuración tal cual queda en d.cfgCruda para rearmar d.cfg si el piso se preparó en otro hilo)
+  d.cfgCruda = (piso.config && (await pedirJson(`${BASE}${piso.config}?v=${__VERSION__}`))) || {}
+  d.cfg = compilarConfig(d.cfgCruda)
   // pisos altos: el perfil del hospital (contorno de la planta baja) se dibuja debajo, como en el plano de cada piso
   d.perfil = piso.nivel > 0 ? ((await pedirJson(`${BASE}perfil.json?v=${__VERSION__}`))?.huella || []) : []
   // alrededores tomados de la foto satelital (parqueaderos, canchas y zonas de árboles): ver planta_real/pisos/exterior.py

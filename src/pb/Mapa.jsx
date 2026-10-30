@@ -21,11 +21,16 @@ const TINTA_RUTA = '#1E2A4A'
 
 // Con el mapa inclinado, un punto a h metros de altura se ve h·sen(inclinación)/(metros por píxel) más arriba que su
 // pie. Los rótulos y los íconos de los bloques se suben eso para quedar sobre el techo (y no por debajo, en el piso).
-function alzarSobreTechos(map, marcas = []) {
+function alzarSobreTechos(map, marcas = [], forzar = false) {
   const lat = map.getCenter().lat
   const mpp = (40075016.686 * Math.cos((lat * Math.PI) / 180)) / (512 * 2 ** map.getZoom())
   const px = Math.round(((ALTO + 0.12) * Math.sin((map.getPitch() * Math.PI) / 180)) / mpp)
+  // solo si cambió: al seguir el recorrido el mapa se mueve en cada cuadro y rehacer el estilo y los íconos cada vez
+  // trababa los equipos lentos (el tótem)
+  if (!forzar && map._alzado === px) return
+  map._alzado = px
   if (map.getLayer('rotulos-techo')) map.setPaintProperty('rotulos-techo', 'text-translate', [0, -px])
+  if (map.getLayer('pines-techo')) map.setPaintProperty('pines-techo', 'icon-translate', [0, -px])
   for (const m of marcas) if (m._sobreTecho) m.setOffset([0, -px])
 }
 // ambientes que llevan ícono en el mapa (los mismos que arma App.jsx): su nombre va justo debajo del ícono
@@ -96,6 +101,25 @@ const girarHacia = (b, meta, k) => b + ((((meta - b) % 360) + 540) % 360 - 180) 
 
 const vacio = FC([])
 
+// modo ligero (tótem): los íconos de lugares se dibujan dentro del mapa (en la tarjeta gráfica) y no como elementos de
+// la página, que el mapa debía reubicar uno por uno en cada cuadro: con decenas en pantalla, el recorrido iba a saltos.
+// Cada ícono es la insignia redonda de su categoría con el dibujo en blanco, hecha una vez como imagen
+async function imagenesPines(map, lista) {
+  const hechas = []
+  for (const l of lista) {
+    const k = l.img
+    if (map.hasImage(k) || hechas.includes(k)) continue
+    hechas.push(k)
+    // el dibujo (24 × 24) se corre al centro con un grupo: el svg del ícono ya trae su ancho y alto
+    const icono = renderToStaticMarkup(<Icono nombre={l.icono} size={24} color="#fff" grosor={2.2} />)
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 52 52"><circle cx="26" cy="26" r="23" fill="${l.color}" stroke="#fff" stroke-width="4"/><g transform="translate(14 14)">${icono}</g></svg>`
+    const img = new Image(52, 52)
+    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
+    try { await img.decode() } catch { continue }
+    if (!map.hasImage(k)) map.addImage(k, img, { pixelRatio: 2 })
+  }
+}
+
 export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, hover, onElegir, onHover, lugaresIcono, pick = false, onPick, recorrer = false, pausa = false, onFinRecorrer, onAvance, desde, trazo = null, plano = false }, fwd) {
   const ref = useRef(null)
   const mapa = useRef(null)
@@ -129,6 +153,7 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
   const metaZoom = useRef(null)
   const posFlecha = useRef(null)   // dónde va la flecha del recorrido (coordenadas del plano)
   const soltarCamara = useRef(null)   // vuelve a seguir la flecha aunque la persona haya movido el mapa
+  const refrescarRuta = useRef(null)   // repinta la fila de puntos (lo caminado en gris) cuando no está animada
   const zoomBoton = (dz) => {
     const m = mapa.current
     if (!m) return
@@ -176,8 +201,9 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
     const C = capas(d)
     const preparar = () => {
       if (map.getSource('huella')) return
-      // el mapa base más suave: menos rótulos de comercios
-      for (const l of map.getStyle().layers) if (/poi|housenumber/.test(l.id)) map.setLayoutProperty(l.id, 'visibility', 'none')
+      // el mapa base más suave: menos rótulos de comercios; en modo ligero (tótem), ninguno (ni nombres de calles):
+      // ubicarlos en cada cuadro es de lo que más trabaja el procesador al mover el mapa
+      for (const l of map.getStyle().layers) if (/poi|housenumber/.test(l.id) || (LIGERO && l.type === 'symbol')) map.setLayoutProperty(l.id, 'visibility', 'none')
       for (const [k, v] of Object.entries(C)) map.addSource(k, { type: 'geojson', data: v })
       map.addSource('ruta', { type: 'geojson', data: vacio })
       map.addSource('ruta-puntos', { type: 'geojson', data: vacio })
@@ -266,6 +292,16 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
         alzarSobreTechos(map, marcas.current)
         map.on('move', () => alzarSobreTechos(map, marcas.current))
       }
+      // modo ligero: íconos de lugares dentro del mapa (ver imagenesPines); los de los bloques van sobre su techo
+      if (LIGERO) {
+        map.addSource('pines', { type: 'geojson', data: vacio })
+        const pin = (id, techo) => ({ id, type: 'symbol', source: 'pines', filter: ['all', ['==', ['get', 'techo'], techo], ['any', ['==', ['get', 'entrada'], 1], ['>=', ['zoom'], 17.6]]], layout: {
+          'icon-image': ['get', 'img'], 'icon-size': ['step', ['zoom'], 0.7, 18.6, 1], 'icon-allow-overlap': true, 'icon-ignore-placement': true,
+          ...(fuente ? { 'text-field': ['step', ['zoom'], '', 18.6, ['get', 'etiqueta']], 'text-font': fuente, 'text-size': 11, 'text-anchor': 'top', 'text-offset': [0, 1.3], 'text-allow-overlap': true, 'text-ignore-placement': true } : {}),
+        }, paint: { 'icon-opacity': ['case', ['==', ['get', 'privado'], 1], 0.5, 1], 'text-color': '#FFFFFF', 'text-halo-color': TINTA_RUTA, 'text-halo-width': 3, 'icon-translate-anchor': 'viewport' } })
+        map.addLayer(pin('pines', 0))
+        map.addLayer(pin('pines-techo', 1))
+      }
       // interacción: resaltar al pasar el cursor y elegir con clic
       let hoverId = null
       // con el mapa inclinado, lo que se ve bajo el cursor es el techo del bloque (no su piso, que queda más abajo en
@@ -296,7 +332,13 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
         if (!cb.current.pick) map.getCanvas().style.cursor = 'pointer'
       })
       map.on('mouseout', soltar)
-      map.on('click', (e) => { if (cb.current.pick) return; const f = ambienteEn(e.point); if (f) cb.current.onElegir?.(f.properties.id, e.point) })
+      map.on('click', (e) => {
+        if (cb.current.pick) return
+        // modo ligero: un ícono de lugar bajo el dedo gana al cuarto donde está
+        const p = LIGERO && map.queryRenderedFeatures(e.point, { layers: ['pines', 'pines-techo'] })[0]
+        if (p) { cb.current.onElegir?.(p.properties.id, null); return }
+        const f = ambienteEn(e.point); if (f) cb.current.onElegir?.(f.properties.id, e.point)
+      })
       map.on('click', (e) => { if (cb.current.pick) { const [x, y] = dePlano(e.lngLat.lng, e.lngLat.lat); cb.current.onPick?.(x, y) } })
       setListo(true)
       encuadrar()
@@ -313,6 +355,23 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
     if (!map || !listo || !map.getSource('ambientes')) return
     marcas.current.forEach((m) => m.remove())
     marcas.current = []
+    if (LIGERO && map.getSource('pines')) {
+      // modo ligero: íconos dentro del mapa (ver imagenesPines)
+      const lista = lugaresIcono.map((l) => {
+        const color = l.entrada ? TINTA_RUTA : (CATS[l.cat] || CATS.otro).acento
+        return { ...l, color, img: `pin|${l.icono}|${color}` }
+      })
+      let vivo = true
+      imagenesPines(map, lista).then(() => {
+        if (!vivo || !map.getSource('pines')) return
+        map.getSource('pines').setData(FC(lista.map((l) => ({ type: 'Feature', properties: {
+          id: l.id, img: l.img, entrada: l.entrada ? 1 : 0, privado: l.privado ? 1 : 0, etiqueta: l.entrada ? (l.etiqueta || l.nombre) : '',
+          techo: !l.entrada && !['circulacion', 'espera'].includes(l.cat) ? 1 : 0,
+        }, geometry: { type: 'Point', coordinates: aLonLat(l.x, l.y) } }))))
+        alzarSobreTechos(map, [], true)
+      })
+      return () => { vivo = false }
+    }
     for (const l of lugaresIcono) {
       const el = document.createElement('button')
       el.className = 'pb-pin' + (l.entrada ? ' entrada' : '') + (l.entrada && /^Acceso/.test(l.etiqueta || l.nombre) ? ' menor' : '') + (l.privado ? ' privado' : '')
@@ -327,7 +386,7 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
       mk._sobreTecho = !l.entrada && !['circulacion', 'espera'].includes(l.cat)   // ícono de un bloque: va sobre su techo
       marcas.current.push(mk)
     }
-    alzarSobreTechos(map, marcas.current)
+    alzarSobreTechos(map, marcas.current, true)   // íconos nuevos: hay que subirlos aunque el mapa no haya cambiado
     const zoomClase = () => {
       ref.current?.classList.toggle('pb-cerca', map.getZoom() >= 18.6)
       ref.current?.classList.toggle('pb-medio', map.getZoom() >= 17.6)
@@ -411,7 +470,10 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
     }
     const src = map.getSource('ruta-puntos')
     const reducir = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-    if (reducir) src.setData(puntos(L, 0, null))
+    // modo ligero (tótem): la fila de puntos queda quieta; rehacerla varias veces por segundo obligaba a recalcular el
+    // mapa todo el tiempo. Durante el recorrido se repinta lo caminado cada segundo (ver refrescarRuta)
+    refrescarRuta.current = () => src.setData(puntos(L, 0, null))
+    if (reducir || LIGERO) src.setData(puntos(L, 0, null))
     else {
       const t0 = performance.now()
       let ult = 0
@@ -466,7 +528,17 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
       const mpp = (40075016.686 * Math.cos((map.getCenter().lat * Math.PI) / 180)) / (512 * 2 ** map.getZoom())
       return Math.min(3, Math.max(1, (7 * mpp) / 0.26))
     }
+    // modo ligero (tótem): la flecha es un ícono que solo se mueve y gira en pantalla; dibujarla en el mapa obligaba a
+    // recalcular sus datos en cada cuadro
+    let flechaLigera = null
+    if (LIGERO) {
+      const el = document.createElement('div')
+      el.className = 'pb-flecha-ligera'
+      el.innerHTML = '<svg width="38" height="38" viewBox="-19 -19 38 38"><circle r="17" fill="#4C6FFF" fill-opacity=".22" stroke="#4C6FFF" stroke-opacity=".6" stroke-width="1.5"/><path d="M0 -13 L9 9 L0 4 L-9 9 Z" fill="#4C6FFF" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg>'
+      flechaLigera = new maplibregl.Marker({ element: el, rotationAlignment: 'map', pitchAlignment: 'map' }).setLngLat(aLonLat(P[0][0], P[0][1])).addTo(map)
+    }
     const dibujar = (q) => {
+      if (flechaLigera) { flechaLigera.setLngLat(aLonLat(q.x, q.y)).setRotation(rumboHacia(q.dx, q.dy)); return }
       const e = escala()
       const L2 = Math.hypot(q.dx, q.dy) || 1, ux = q.dx / L2, uy = q.dy / L2
       const f = (a, b) => [q.x + (ux * a - uy * b) * e, q.y + (uy * a + ux * b) * e]
@@ -490,6 +562,7 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
     const adelante = () => (cb.current.plano ? { top: Math.round((ref.current?.clientHeight || 600) * 0.38), bottom: 0, left: 0, right: 0 } : { top: 0, bottom: 0, left: 0, right: 0 })
     let t0 = null
     let ultAv = 0
+    let ultRuta = 0
     let ultCuadro = 0
     let ultT = null
     let sAvz = s0
@@ -532,6 +605,7 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
       const sAct = Math.max(0, sAvz)
       // avance para la barra de navegación (paso actual y metros que faltan), unas 4 veces por segundo
       if (now - ultAv > 250 || sAct >= L) { ultAv = now; cb.current.onAvance?.(sAct, L) }
+      if (LIGERO && (now - ultRuta > 1000 || sAct >= L)) { ultRuta = now; refrescarRuta.current?.() }
       const q = en(sAct)
       andado.current = sAct
       posFlecha.current = q
@@ -557,6 +631,7 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
     animCam.current = requestAnimationFrame(paso)
     return () => {
       cancelAnimationFrame(animCam.current); fuente.setData(vacio); andado.current = null
+      flechaLigera?.remove()
       // la flecha ya no va abajo: el centro vuelve al medio. Solo si el mapa sigue vivo: al pasar al 3D el mapa ya se
       // eliminó (su limpieza corre antes) y moverlo rompía la página (quedaba en blanco)
       if (mapa.current === map) map.setPadding({ top: 0, bottom: 0, left: 0, right: 0 })
