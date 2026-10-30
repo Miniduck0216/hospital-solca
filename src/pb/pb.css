@@ -125,7 +125,8 @@ body { background: #E9EDF1; }
   .hoja.sheet .hoja-cuerpo { padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
   .pb-pasos { max-height: none; }
   .pb-ficha { bottom: 16px; }
-  .modo-3d .pb-3d-ctrl { top: 196px; bottom: auto; left: 8px; right: 8px; width: auto; padding: 10px; gap: 6px; }
+  /* a la izquierda del dock (antes quedaba debajo y tapaba el botón SB) */
+  .modo-3d .pb-3d-ctrl { top: 196px; bottom: auto; left: 8px; right: 84px; width: auto; padding: 10px; gap: 6px; }
   .modo-3d .pb-3d-t { display: none; }
   .modo-3d .pb-piso, .modo-3d .pb-ley-btn, .modo-3d .pb-leyenda { display: none; }
   .pb-ayuda3d { display: none; }

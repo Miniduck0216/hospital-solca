@@ -202,7 +202,8 @@ const CONFIG_URL = URL_OK(PARAMS.get('config') || '')?.href || null
 // preferencias de ruta: ?via=ascensor|escalera|cualquiera (entre pisos) y ?accesible=1 (sin escalones)
 const VIA_INICIAL = ['ascensor', 'escalera', 'cualquiera'].includes(PARAMS.get('via')) ? PARAMS.get('via') : 'ascensor'
 const ACCESIBLE_INICIAL = PARAMS.get('accesible') === '1'
-const VISTA_INICIAL = PARAMS.get('vista') === '3d' ? '3d' : '2d'
+const VISTAS = ['2d', 'aerea', '3d']   // aerea: la maqueta 3D vista desde arriba (?vista=aerea)
+const VISTA_INICIAL = VISTAS.includes(PARAMS.get('vista')) ? PARAMS.get('vista') : '2d'
 // piso a la vista al abrir: el del origen del enlace (?origen=P1:a12) o ?piso=P1; si no, el inicial del edificio
 const PISO_INICIAL = (PARAMS.get('origen') || '').match(/^(SB|P\d):/)?.[1] || PARAMS.get('piso') || null
 
@@ -430,7 +431,7 @@ export default function App() {
   useEffect(() => { setRecorrer(false); setTransicion(null); setLlego(false); avance.set(null) }, [origen, destino])
 
   // ---------- mensajes del tótem de OM3 (solo desde la ventana padre y el origen indicado en ?padre=)
-  // { tipo: 'mapa-ir', destino?: id, consulta?: texto, origen?: id, recorrer?: true, vista?: '2d'|'3d' }
+  // { tipo: 'mapa-ir', destino?: id, consulta?: texto, origen?: id, recorrer?: true, vista?: '2d'|'aerea'|'3d' }
   // { tipo: 'mapa-reiniciar' }: vuelve al estado inicial para el siguiente paciente
   // El mapa responde { tipo: 'mapa-listo' } al cargar el primer piso y { tipo: 'mapa-pisos-listos' } con todos.
   const [pedido, setPedido] = useState(null)
@@ -466,7 +467,7 @@ export default function App() {
     if (pedido.origen && !ori && !todosListos) return
     setPedido(null)
     setBuscando(null); setFicha(null)
-    if (pedido.vista === '2d' || pedido.vista === '3d') setModo(pedido.vista)
+    if (VISTAS.includes(pedido.vista)) setModo(pedido.vista)
     if (ori) setOrigen(ori)
     if (dest) { setDestino(dest); if (pedido.recorrer) autoRecorrer.current = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -611,10 +612,10 @@ export default function App() {
   const focoVista = foco && foco.piso === pisoId ? foco : null
 
   return (
-    <div className={`pb-app modo-${modo}${INSERTADO ? ` insertado-${INSERTADO}` : ''}${LIGERO ? ' ligero' : ''}`}>
+    <div className={`pb-app modo-${modo === 'aerea' ? '3d modo-aerea' : modo}${INSERTADO ? ` insertado-${INSERTADO}` : ''}${LIGERO ? ' ligero' : ''}`}>
       {modo === '2d'
         ? <Mapa ref={mapa} d={d} ruta={tramo} origen={local(origen)} destino={destinoVista} foco={focoVista} hover={hover} onElegir={elegirDesdeMapa} onHover={setHover} lugaresIcono={lugaresIcono} pick={!!pick} onPick={onPick} trazo={pick?.tipo === 'trazo' ? { tipo: pick.paso, puntos: pick.puntos } : null} recorrer={recorrer && !transicion} pausa={pausa} onFinRecorrer={finTramo} onAvance={onAvance} desde={desdeAvance} />
-        : <Suspense fallback={<Cargando texto="Preparando el 3D…" />}><Vista3D ref={vista3d} d={d} pisos={pisos} onPiso={verPiso} ruta={tramo} destino={destinoVista} foco={focoVista} recorrer={recorrer && !transicion} pausa={pausa} onFinRecorrer={finTramo} onAvance={onAvance} desde={desdeAvance} /></Suspense>}
+        : <Suspense fallback={<Cargando texto="Preparando el 3D…" />}><Vista3D ref={vista3d} d={d} pisos={pisos} onPiso={verPiso} ruta={tramo} destino={destinoVista} foco={focoVista} recorrer={recorrer && !transicion} pausa={pausa} onFinRecorrer={finTramo} onAvance={onAvance} desde={desdeAvance} aerea={modo === 'aerea'} /></Suspense>}
 
       {/* columna izquierda: marca, búsqueda y ruta */}
       {admin && (
@@ -751,16 +752,18 @@ export default function App() {
         </Hoja>
       )}
 
-      {/* columna derecha: 2D / 3D, zoom y pisos */}
+      {/* columna derecha: 2D / aérea / 3D, zoom y pisos */}
       <div className="pb-der">
         <div className="pb-seg pb-modo" role="tablist" aria-label="Vista">
           <button role="tab" aria-selected={modo === '2d'} onClick={() => setModo('2d')}>2D</button>
+          <button role="tab" aria-selected={modo === 'aerea'} onClick={() => setModo('aerea')} title="La maqueta 3D vista desde arriba">Aérea</button>
           <button role="tab" aria-selected={modo === '3d'} onClick={() => setModo('3d')}>3D</button>
         </div>
         <Dock items={[
           { id: 'mas', icono: 'mas', titulo: 'Acercar', onClick: () => vista()?.acercar() },
           { id: 'menos', icono: 'menos', titulo: 'Alejar', onClick: () => vista()?.alejar() },
           { id: 'centrar', icono: 'centrar', titulo: tramo ? 'Centrar en la persona' : 'Centrar el edificio', onClick: () => vista()?.centrar() },
+          ...(modo === 'aerea' ? [{ id: 'norte', icono: 'brujula', titulo: 'Enderezar el plano', onClick: () => vista()?.norte?.() }] : []),
           { id: 'piso', texto: d.piso?.corto || 'PB', titulo: 'Cambiar de piso', on: pisosAbierto, onClick: () => setPisosAbierto((v) => !v) },
           ...(INSERTADO ? [] : [{ id: 'admin', icono: 'ajustes', titulo: admin ? 'Salir de administración' : 'Administración', on: admin, onClick: () => (admin ? setAdmin(false) : setPedirClave(true)) }]),
         ]} />
