@@ -557,7 +557,9 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
     animCam.current = requestAnimationFrame(paso)
     return () => {
       cancelAnimationFrame(animCam.current); fuente.setData(vacio); andado.current = null
-      map.setPadding({ top: 0, bottom: 0, left: 0, right: 0 })   // la flecha ya no va abajo: el centro vuelve al medio
+      // la flecha ya no va abajo: el centro vuelve al medio. Solo si el mapa sigue vivo: al pasar al 3D el mapa ya se
+      // eliminó (su limpieza corre antes) y moverlo rompía la página (quedaba en blanco)
+      if (mapa.current === map) map.setPadding({ top: 0, bottom: 0, left: 0, right: 0 })
       for (const [ev, fn] of eventos) map.off(ev, fn)
       lienzo.removeEventListener('pointerdown', abajo, true)
       lienzo.removeEventListener('wheel', rueda, true)
