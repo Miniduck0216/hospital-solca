@@ -451,19 +451,9 @@ function Puertas({ puertas, plano, persona, ruta, recorrer }) {
   )
 }
 
-// flecha plana bajo el personaje (vista aérea): desde arriba solo se ve su cabeza, la flecha marca hacia dónde camina
-const FLECHA = (() => {
-  const s = new THREE.Shape()
-  s.moveTo(0, 1.1); s.lineTo(0.75, -0.55); s.lineTo(0, -0.2); s.lineTo(-0.75, -0.55); s.closePath()
-  const g = new THREE.ShapeGeometry(s)
-  g.rotateX(Math.PI / 2)   // la punta (+y de la forma) queda hacia +z local, el frente del personaje
-  return g
-})()
-
 // el personaje recorre la ruta a 1,3 m/s. La cámara lo acompaña como en un juego en tercera persona: se traslada con
-// él, y con el ratón (o el dedo) se puede girar alrededor, subir o bajar la mirada y acercar, sin perderlo de foco.
-// En la vista aérea la cámara va encima, con el sentido de la marcha hacia arriba de la pantalla
-function Caminante({ ruta, recorrer, pausa = false, controles, libre, andado, alTerminar, onAvance, desde, persona, base = 0, aerea = false }) {
+// él, y con el ratón (o el dedo) se puede girar alrededor, subir o bajar la mirada y acercar, sin perderlo de foco
+function Caminante({ ruta, recorrer, pausa = false, controles, libre, andado, alTerminar, onAvance, desde, persona, base = 0 }) {
   const ref = useRef()
   const t = useRef(0)
   const caminando = useRef(false)
@@ -500,13 +490,10 @@ function Caminante({ ruta, recorrer, pausa = false, controles, libre, andado, al
       // al soltar, tras un momento, cámara y foco se trasladan juntos de vuelta al personaje (sin cambiar el giro)
       const suelta = !pausa && libre.current.dedos === 0 && performance.now() >= libre.current.hasta
       if (llegada.current < 1.4 && !libre.current.tocado) {
-        // al empezar: la cámara se coloca detrás del personaje (en la vista aérea, encima y un poco atrás, para que
-        // la marcha apunte hacia arriba de la pantalla)
+        // al empezar: la cámara se coloca detrás del personaje
         c.target.lerp(obj, 1 - Math.exp(-kd * 6))
         const atras = new THREE.Vector3(-q.dx, 0, q.dy).normalize()
-        const meta = aerea ? obj.clone().add(atras.multiplyScalar(1)).add(new THREE.Vector3(0, 34, 0))
-          : obj.clone().add(atras.multiplyScalar(6)).add(new THREE.Vector3(0, 3.2, 0))
-        c.object.position.lerp(meta, 1 - Math.exp(-kd * 4))
+        c.object.position.lerp(obj.clone().add(atras.multiplyScalar(6)).add(new THREE.Vector3(0, 3.2, 0)), 1 - Math.exp(-kd * 4))
         c.update()
       } else if (suelta) {
         const falta = obj.clone().sub(c.target)
@@ -522,19 +509,11 @@ function Caminante({ ruta, recorrer, pausa = false, controles, libre, andado, al
     if (recorrer && (llegada.current - (ultAv.current || 0) > 0.25 || s >= L)) { ultAv.current = llegada.current; onAvance?.(s, L) }
     if (recorrer && s >= L && !fin.current) { fin.current = true; alTerminar?.() }
   })
-  return (
-    <group ref={ref}>
-      <Personaje caminando={caminando} />
-      {aerea && <>
-        <mesh geometry={FLECHA} position-y={0.07} scale={1.7}><meshBasicMaterial color="#FFFFFF" side={THREE.DoubleSide} toneMapped={false} /></mesh>
-        <mesh geometry={FLECHA} position-y={0.08} scale={1.4}><meshBasicMaterial color="#4C6FFF" side={THREE.DoubleSide} toneMapped={false} /></mesh>
-      </>}
-    </group>
-  )
+  return <group ref={ref}><Personaje caminando={caminando} /></group>
 }
 
 // la cámara llega al lugar elegido en el buscador y deja un anillo que pulsa unos segundos
-function MarcaFoco({ foco, controles, base = 0, aerea = false }) {
+function MarcaFoco({ foco, controles, base = 0 }) {
   const grupo = useRef()
   const t0 = useRef(-1)
   const meta = useMemo(() => new THREE.Vector3(foco.x, base + 0.4, -foco.y), [foco, base])
@@ -549,9 +528,7 @@ function MarcaFoco({ foco, controles, base = 0, aerea = false }) {
     const c = controles.current
     if (c && s < 2.2) {
       c.target.lerp(meta, 0.07)
-      // en la vista aérea llega desde arriba, sin cambiar el giro del plano
-      const off = aerea ? c.object.position.clone().sub(c.target).setLength(38) : new THREE.Vector3(0, 30, 24)
-      c.object.position.lerp(meta.clone().add(off), 0.035)
+      c.object.position.lerp(meta.clone().add(new THREE.Vector3(0, 30, 24)), 0.035)
       c.update()
     }
   })
@@ -705,36 +682,6 @@ function SeguirAltura({ controles, altura }) {
   return null
 }
 
-// vista aérea: la cámara se inclina hasta quedar sobre el plano (o vuelve a la isométrica) y la brújula gira el plano
-// hasta dejarlo derecho; los dos cambios son suaves. Ya encima, los límites de OrbitControls la dejan fija arriba
-const PHI_AEREA = 0.001
-const PHI_ISO = Math.atan2(Math.hypot(95, 95), 110)
-function Orientar({ controles, pedido, onListo }) {
-  useFrame((_, dt) => {
-    const c = controles.current, p = pedido.current
-    if (!c || !p) return
-    const k = 1 - Math.exp(-Math.min(dt, 0.1) * 4.5)
-    const s = new THREE.Spherical().setFromVector3(c.object.position.clone().sub(c.target))
-    let listo = true
-    if (p.phi !== undefined) {
-      s.phi += (p.phi - s.phi) * k
-      if (Math.abs(p.phi - s.phi) > 0.003) listo = false
-      else s.phi = p.phi
-    }
-    if (p.theta !== undefined) {
-      const d = Math.atan2(Math.sin(p.theta - s.theta), Math.cos(p.theta - s.theta))   // por el lado más corto
-      s.theta += d * k
-      if (Math.abs(d) > 0.003) listo = false
-      else s.theta = p.theta
-    }
-    s.makeSafe()
-    c.object.position.copy(c.target).add(new THREE.Vector3().setFromSpherical(s))
-    c.update()
-    if (listo) { pedido.current = null; onListo?.(p) }
-  })
-  return null
-}
-
 // modo ligero: el lienzo se dibuja a pedido y este reloj lo pide a 30 cuadros por segundo (la mitad del trabajo de la
 // tarjeta gráfica del tótem; los movimientos se ven igual de suaves para seguir la ruta)
 function Cuadros({ fps = 30 }) {
@@ -747,17 +694,13 @@ function Cuadros({ fps = 30 }) {
 }
 
 const ORDEN = (a, b) => a.nivel - b.nivel
-// `aerea`: la misma maqueta vista desde arriba, como un plano 2D con relieve (se cambia sin recargar el 3D)
-export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destino, foco, recorrer = false, pausa = false, onFinRecorrer, onAvance, desde, onPiso, aerea = false }, fwd) {
+export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destino, foco, recorrer = false, pausa = false, onFinRecorrer, onAvance, desde, onPiso }, fwd) {
   const [corte, setCorte] = useState(1.2)   // muros bajos por defecto: se ven los pisos, como en una maqueta isométrica
   const [letreros, setLetreros] = useState(true)
   const [opciones, setOpciones] = useState(false)   // altura de muros y letreros: plegados para no recargar la pantalla
-  // la ayuda de gestos se ve unos segundos al abrir el 3D (o al pasar a la vista aérea, que tiene otros gestos) y se va
+  // la ayuda de gestos se ve unos segundos al abrir el 3D y se va
   const [ayuda, setAyuda] = useState(true)
-  useEffect(() => { setAyuda(true); const t = setTimeout(() => setAyuda(false), 7000); return () => clearTimeout(t) }, [aerea])
-  // ya encima del plano: la cámara queda fija arriba (solo gira sobre su eje, acerca y se mueve)
-  const [fijaArriba, setFijaArriba] = useState(aerea)
-  const pedidoOrientar = useRef(null)
+  useEffect(() => { const t = setTimeout(() => setAyuda(false), 7000); return () => clearTimeout(t) }, [])
   // edificio completo (con sus techos) o un piso a la vista (los de arriba suben y se apartan)
   const [armado, setArmado] = useState(!ruta && !foco)
   const pisoId = d.piso?.id || 'PB'
@@ -789,22 +732,6 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
   const cx = (Math.min(...hu.map((p) => p[0])) + Math.max(...hu.map((p) => p[0]))) / 2
   const cy = (Math.min(...hu.map((p) => p[1])) + Math.max(...hu.map((p) => p[1]))) / 2
   const altura = armado ? 6 : base
-  // altura de la cámara aérea para ver el edificio entero según la forma de la pantalla (fov vertical de 32°: se ve
-  // 0,573 × la altura); con el plano derecho, el ancho del edificio va a lo ancho de la pantalla
-  const asp = typeof window !== 'undefined' ? window.innerWidth / Math.max(1, window.innerHeight) : 1.5
-  const anchoE = Math.max(...hu.map((p) => p[0])) - Math.min(...hu.map((p) => p[0]))
-  const altoE = Math.max(...hu.map((p) => p[1])) - Math.min(...hu.map((p) => p[1]))
-  const dAerea = Math.min(440, (1.2 * Math.max(altoE, anchoE / asp)) / 0.573)
-  // al cambiar entre 3D y vista aérea la cámara se inclina sin saltos (no al abrir: ya empieza en su sitio)
-  const primera = useRef(true)
-  useEffect(() => {
-    if (primera.current) { primera.current = false; return }
-    setFijaArriba(false)
-    pedidoOrientar.current = { ...pedidoOrientar.current, phi: aerea ? PHI_AEREA : PHI_ISO, aerea }
-    // siguiendo al personaje de cerca, desde arriba se aleja un poco para ver el pasillo
-    if (aerea && distActual() < 28) pedidoZoom.current = { dist: 34 }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [aerea])
   useImperativeHandle(fwd, () => ({
     acercar: () => { pedidoZoom.current = { dist: (pedidoZoom.current?.dist ?? distActual()) / 2.2 } },
     alejar: () => { pedidoZoom.current = { dist: (pedidoZoom.current?.dist ?? distActual()) * 2.2 } },
@@ -817,20 +744,13 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
         const [px, py] = persona.current
         const t = new THREE.Vector3(px, base + 1.3, -py)
         // caminando, el seguimiento lo trae; quieto o en pausa, lo trae el zoom suave
-        pedidoZoom.current = { dist: aerea ? Math.min(34, Math.max(18, distActual())) : Math.min(14, Math.max(6, distActual())), target: recorrer && !pausa ? undefined : t }
+        pedidoZoom.current = { dist: Math.min(14, Math.max(6, distActual())), target: recorrer && !pausa ? undefined : t }
         return
       }
-      // sin ruta: vuelve a la vista inicial del edificio (isométrica, o desde arriba con el plano derecho)
-      if (aerea) {
-        c.object.position.copy(c.target).add(new THREE.Vector3(0, dAerea, dAerea * PHI_AEREA))
-        pedidoZoom.current = { dist: dAerea, target: new THREE.Vector3(cx, altura, -cy) }
-        return
-      }
+      // sin ruta: vuelve a la vista isométrica inicial del edificio
       c.object.position.set(cx + 95, altura + 110, -cy + 95)
       pedidoZoom.current = { dist: Math.hypot(95, 110, 95), target: new THREE.Vector3(cx, altura, -cy) }
     },
-    // brújula de la vista aérea: gira el plano hasta dejarlo derecho (como el 2D)
-    norte: () => { pedidoOrientar.current = { ...pedidoOrientar.current, theta: 0 } },
   }))
   const andado = useRef(null)
   const persona = useRef(null)
@@ -849,7 +769,7 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
   }
   return (
     <div className="pb-3d">
-      <Canvas shadows={!LIGERO} flat dpr={LIGERO ? 1 : [1, 2]} frameloop={LIGERO ? 'demand' : 'always'} camera={{ position: aerea ? [cx, altura + dAerea, -cy + dAerea * PHI_AEREA] : [cx + 95, altura + 110, -cy + 95], fov: 32, near: 0.5, far: 2400 }}
+      <Canvas shadows={!LIGERO} flat dpr={LIGERO ? 1 : [1, 2]} frameloop={LIGERO ? 'demand' : 'always'} camera={{ position: [cx + 95, altura + 110, -cy + 95], fov: 32, near: 0.5, far: 2400 }}
         gl={{ antialias: !LIGERO, powerPreference: LIGERO ? 'low-power' : 'high-performance' }}>
         {LIGERO && <Cuadros fps={30} />}
         <color attach="background" args={['#F2EAD8']} />
@@ -872,21 +792,15 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
             <Puertas puertas={d.puertas} plano={plano} persona={persona} ruta={ruta} recorrer={recorrer} />
             <Letreros d={d} visibles={letreros} />
             {ruta && <Ruta ruta={ruta} andado={andado} />}
-            {ruta && <Caminante ruta={ruta} recorrer={recorrer} pausa={pausa} controles={controles} libre={libre} andado={andado} alTerminar={onFinRecorrer} onAvance={onAvance} desde={desde} persona={persona} base={base} aerea={aerea} />}
+            {ruta && <Caminante ruta={ruta} recorrer={recorrer} pausa={pausa} controles={controles} libre={libre} andado={andado} alTerminar={onFinRecorrer} onAvance={onAvance} desde={desde} persona={persona} base={base} />}
           </group>
         )}
-        {foco && !armado && <MarcaFoco foco={foco} controles={controles} base={base} aerea={aerea} />}
+        {foco && !armado && <MarcaFoco foco={foco} controles={controles} base={base} />}
         <SeguirAltura controles={controles} altura={altura} />
         <ZoomSuave controles={controles} pedido={pedidoZoom} />
-        <Orientar controles={controles} pedido={pedidoOrientar} onListo={(p) => { if (p.aerea) setFijaArriba(true) }} />
         <GestosLibres libre={libre} recorrer={recorrer} />
         <PlanoCercano controles={controles} />
-        {/* vista aérea: como un mapa, se arrastra para mover y se gira con clic derecho o con dos dedos */}
-        <OrbitControls ref={controles} target={[cx, altura, -cy]}
-          mouseButtons={aerea ? { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE } : { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN }}
-          touches={aerea ? { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_ROTATE } : { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN }}
-          minPolarAngle={fijaArriba ? PHI_AEREA : 0} maxPolarAngle={fijaArriba ? PHI_AEREA : recorrer ? Math.PI / 1.9 : Math.PI / 2.08}
-          minDistance={recorrer ? (aerea ? 6 : 1.5) : 4} maxDistance={recorrer ? 160 : 460} enablePan enableDamping zoomSpeed={1.8} />
+        <OrbitControls ref={controles} touches={{ ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN }} target={[cx, altura, -cy]} maxPolarAngle={recorrer ? Math.PI / 1.9 : Math.PI / 2.08} minDistance={recorrer ? 1.5 : 4} maxDistance={recorrer ? 160 : 460} enablePan enableDamping zoomSpeed={1.8} />
       </Canvas>
       <div className="pb-3d-ctrl" role="group" aria-label="Opciones de la vista 3D">
         <span className="pb-3d-t">Vista</span>
@@ -910,11 +824,9 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
           <label className="pb-check"><input type="checkbox" checked={letreros} onChange={(e) => setLetreros(e.target.checked)} /> Letreros</label>
         </>)}
       </div>
-      {ayuda && <p className="pb-ayuda3d">{aerea
-        ? (TACTIL ? 'Un dedo para mover · pellizca para acercar · gira con dos dedos · o usa + y −'
-          : 'Arrastra para mover · rueda para acercar · clic derecho para girar el plano')
-        : TACTIL ? 'Un dedo para girar · pellizca para acercar · dos dedos para mover · o usa + y −'
-          : 'Arrastra para girar · rueda o pellizco para acercar · clic derecho para mover'}</p>}
+      {ayuda && <p className="pb-ayuda3d">{TACTIL
+        ? 'Un dedo para girar · pellizca para acercar · dos dedos para mover · o usa + y −'
+        : 'Arrastra para girar · rueda o pellizco para acercar · clic derecho para mover'}</p>}
     </div>
   )
 })

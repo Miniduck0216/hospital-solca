@@ -62,17 +62,46 @@ function capas(d) {
     pasos: lineas(d.pasosAbiertos || []),
     viseras: polis(d.viseras),
     parqueos,
+    // dibujo del plano (DWG) para la vista Plano: muebles y sanitarios, sus trazos, las hojas de puerta y las ventanas
+    muebles: polis((d.muebles || []).map((m) => m.pg)),
+    trazos: lineas(d.trazos || []),
+    arcos: lineas(d.trazos_puertas || []),
+    ventanas: polis(d.ventanas || []),
   }
 }
 
+// vista Plano: el plano del piso visto de frente (sin inclinación), como un mapa de navegación sobre el dibujo del
+// DWG: muros oscuros, ventanas, puertas y muebles. Se cambia sin recrear el mapa: solo se muestran u ocultan capas
+const CAPAS_2D = ['ambientes-3d', 'muros', 'barandas', 'viseras-3d']
+const CAPAS_PLANO = ['plano-muebles', 'plano-muebles-borde', 'plano-trazos', 'plano-arcos', 'plano-ventanas', 'plano-muros']
+function aplicarModo(map, plano) {
+  const ver = (ids, si) => { for (const id of ids) if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', si ? 'visible' : 'none') }
+  ver(CAPAS_2D, !plano)
+  ver(CAPAS_PLANO, plano)
+  if (plano) {
+    map.touchPitch.disable()
+    // se endereza con suavidad y recién entonces se fija sin inclinación
+    if (map.getPitch() > 0.5) { map.easeTo({ pitch: 0, duration: 500 }); map.once('moveend', () => { if (map._plano) map.setMaxPitch(0) }) }
+    else map.setMaxPitch(0)
+  } else {
+    map.setMaxPitch(70)
+    map.touchPitch.enable()
+    if (map.getPitch() < 1) map.easeTo({ pitch: 40, duration: 600 })
+  }
+  map._plano = plano
+}
+// rumbo del mapa para que una dirección del plano (dx, dy) apunte hacia arriba de la pantalla
+const rumboHacia = (dx, dy) => rumbo() + (Math.atan2(dx, dy) * 180) / Math.PI
+const girarHacia = (b, meta, k) => b + ((((meta - b) % 360) + 540) % 360 - 180) * k   // por el lado más corto
+
 const vacio = FC([])
 
-export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, hover, onElegir, onHover, lugaresIcono, pick = false, onPick, recorrer = false, pausa = false, onFinRecorrer, onAvance, desde, trazo = null }, fwd) {
+export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, hover, onElegir, onHover, lugaresIcono, pick = false, onPick, recorrer = false, pausa = false, onFinRecorrer, onAvance, desde, trazo = null, plano = false }, fwd) {
   const ref = useRef(null)
   const mapa = useRef(null)
   const [listo, setListo] = useState(false)
   const cb = useRef({})
-  cb.current = { onElegir, onHover, onPick, pick, onFinRecorrer, onAvance, desde, pausa }
+  cb.current = { onElegir, onHover, onPick, pick, onFinRecorrer, onAvance, desde, pausa, plano }
   const marcas = useRef([])
   const marcasRuta = useRef([])
   const anim = useRef(0)
@@ -93,6 +122,8 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
       } else encuadrar(ruta?.pts)
     },
     irA: (x, y, z = 20) => mapa.current?.easeTo({ center: aLonLat(x, y), zoom: z, duration: 700 }),
+    // brújula: deja el plano derecho (como al abrir)
+    norte: () => { soltarCamara.current?.(); mapa.current?.easeTo({ bearing: rumbo(), duration: 500 }) },
   }))
 
   const metaZoom = useRef(null)
@@ -129,7 +160,7 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
     // al recrear el mapa (datos nuevos del administrador o de otro piso) se espera a que cargue su estilo
     setListo(false)
     const map = new maplibregl.Map({
-      container: ref.current, style: ESTILO, center: c, zoom: 17.6, minZoom: 15, maxZoom: 21.5, bearing: rumbo(), pitch: 40, maxPitch: 70,
+      container: ref.current, style: ESTILO, center: c, zoom: 17.6, minZoom: 15, maxZoom: 21.5, bearing: rumbo(), pitch: plano ? 0 : 40, maxPitch: plano ? 0 : 70,
       // cámara libre como en el 3D: clic derecho (o Ctrl + arrastrar) gira e inclina; con dos dedos, girar e inclinar
       pitchWithRotate: true, touchPitch: true, dragRotate: true, attributionControl: { compact: true }, fadeDuration: 0,
       ...(LIGERO ? { pixelRatio: 1, antialias: false } : {}),
@@ -204,6 +235,15 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
       } })
       // la ruta va en el piso, debajo de los bloques: las paredes de delante la tapan (perspectiva correcta)
       for (const id of ['ruta-halo', 'ruta-puntos']) map.moveLayer(id, 'ambientes-3d')
+      // vista Plano: el dibujo del DWG sobre los pisos de color y bajo la ruta (que se ve encima de todo el plano)
+      const fino = (a, b) => ['interpolate', ['linear'], ['zoom'], 17, a, 21, b]
+      map.addLayer({ id: 'plano-muebles', type: 'fill', source: 'muebles', minzoom: 17.5, paint: { 'fill-color': '#FFFFFF', 'fill-opacity': 0.75 } }, 'ruta-halo')
+      map.addLayer({ id: 'plano-muebles-borde', type: 'line', source: 'muebles', minzoom: 17.5, paint: { 'line-color': '#97A3B4', 'line-width': fino(0.3, 1) } }, 'ruta-halo')
+      map.addLayer({ id: 'plano-trazos', type: 'line', source: 'trazos', minzoom: 18, paint: { 'line-color': '#A3AEBD', 'line-width': fino(0.3, 0.9) } }, 'ruta-halo')
+      map.addLayer({ id: 'plano-arcos', type: 'line', source: 'arcos', minzoom: 17.5, paint: { 'line-color': '#7D8A9E', 'line-width': fino(0.4, 1.2) } }, 'ruta-halo')
+      map.addLayer({ id: 'plano-ventanas', type: 'fill', source: 'ventanas', paint: { 'fill-color': '#8EC5EE' } }, 'ruta-halo')
+      map.addLayer({ id: 'plano-muros', type: 'fill', source: 'muros', paint: { 'fill-color': '#2C3646' } }, 'ruta-halo')
+      aplicarModo(map, cb.current.plano)
       // la flecha del caminante va encima de todo: siempre se ve hacia dónde avanza
       for (const id of ['caminante-halo', 'caminante-dir']) map.moveLayer(id)
       // trazo del administrador mientras dibuja un paso (abrir, cerrar o línea de recorrido)
@@ -232,6 +272,8 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
       // pantalla): primero se buscan los bloques en 3D (MapLibre los ordena por cercanía a la cámara) y, si no hay
       // ninguno, los pisos planos (pasillos y salas de espera)
       const ambienteEn = (punto) => {
+        // en la vista Plano todo es plano: basta el piso del ambiente
+        if (cb.current.plano) return map.queryRenderedFeatures(punto, { layers: ['ambientes'] })[0] || null
         const b = map.queryRenderedFeatures(punto, { layers: ['ambientes-3d'] })
         if (b.length) return b[0]
         return map.queryRenderedFeatures(punto, { layers: ['ambientes'], filter: ['==', ['get', 'alto'], 0] })[0] || null
@@ -299,7 +341,7 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
   useEffect(() => {
     const map = mapa.current
     if (!map || !listo || !map.getSource('ambientes') || !foco) return
-    if (!ruta) map.easeTo({ center: aLonLat(foco.x, foco.y), zoom: Math.max(map.getZoom(), 19.4), pitch: 45, bearing: rumbo(), duration: 1000 })
+    if (!ruta) map.easeTo({ center: aLonLat(foco.x, foco.y), zoom: Math.max(map.getZoom(), 19.4), pitch: cb.current.plano ? 0 : 45, bearing: rumbo(), duration: 1000 })
     const el = document.createElement('div')
     el.className = 'marca-foco'
     el.innerHTML = '<i></i><i></i>'
@@ -310,6 +352,12 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
   }, [foco, listo])
 
   useEffect(() => { const c = mapa.current?.getCanvas(); if (c) c.style.cursor = pick ? 'crosshair' : '' }, [pick])
+
+  // ---------- 2D ↔ Plano sin recrear el mapa
+  useEffect(() => {
+    const map = mapa.current
+    if (map && listo && map.getSource('ambientes')) aplicarModo(map, plano)
+  }, [plano, listo])
 
   // ---------- trazo en curso del administrador
   useEffect(() => {
@@ -435,8 +483,11 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
     // al empezar, la cámara se acerca al personaje en 0,9 s (calculado cuadro a cuadro: no depende de que el equipo
     // dibuje rápido); al continuar (venía del 3D), solo se centra y respeta el giro y la inclinación elegidos
     const espera = s0 > 0 ? 0 : 900
-    const z0 = map.getZoom(), i0 = map.getPitch(), c0 = map.getCenter()
-    const zoomMeta = Math.max(z0, 20.2), inclMeta = Math.max(i0, 50)
+    const z0 = map.getZoom(), i0 = map.getPitch(), c0 = map.getCenter(), b0 = map.getBearing()
+    const zoomMeta = Math.max(z0, 20.2), inclMeta = cb.current.plano ? 0 : Math.max(i0, 50)
+    // vista Plano, como un navegador: el plano gira para que la marcha vaya hacia arriba y la flecha queda en el tercio
+    // de abajo de la pantalla (se ve más de lo que viene)
+    const adelante = () => (cb.current.plano ? { top: Math.round((ref.current?.clientHeight || 600) * 0.38), bottom: 0, left: 0, right: 0 } : { top: 0, bottom: 0, left: 0, right: 0 })
     let t0 = null
     let ultAv = 0
     let ultCuadro = 0
@@ -491,11 +542,14 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
         // vuelve al caminante con suavidad si la persona había movido el mapa; si no, lo sigue cuadro a cuadro
         const c = map.getCenter(), [lo, la] = aLonLat(q.x, q.y)
         const lejos = Math.hypot((lo - c.lng) * 111320, (la - c.lat) * 110574) > 1.5
-        map.jumpTo({ center: lejos ? [c.lng + (lo - c.lng) * 0.12, c.lat + (la - c.lat) * 0.12] : [lo, la] })
+        // (al volver al 2D en pleno recorrido, la flecha regresa al centro de la pantalla)
+        const giro = cb.current.plano ? { bearing: girarHacia(map.getBearing(), rumboHacia(q.dx, q.dy), 1 - Math.exp(-dt * 3)), padding: adelante() } : { padding: adelante() }
+        map.jumpTo({ center: lejos ? [c.lng + (lo - c.lng) * 0.12, c.lat + (la - c.lat) * 0.12] : [lo, la], ...giro })
       } else {
         const k = 1 - Math.pow(1 - Math.min(1, (now - (t0 - espera)) / espera), 3)
         const [lo, la] = aLonLat(q.x, q.y)
-        map.jumpTo({ center: [c0.lng + (lo - c0.lng) * k, c0.lat + (la - c0.lat) * k], zoom: z0 + (zoomMeta - z0) * k, pitch: i0 + (inclMeta - i0) * k })
+        const giro = cb.current.plano ? { bearing: girarHacia(b0, rumboHacia(q.dx, q.dy), k), padding: adelante() } : { padding: adelante() }
+        map.jumpTo({ center: [c0.lng + (lo - c0.lng) * k, c0.lat + (la - c0.lat) * k], zoom: z0 + (zoomMeta - z0) * k, pitch: i0 + (inclMeta - i0) * k, ...giro })
       }
       if (sAct >= L) { cb.current.onFinRecorrer?.(); return }
       animCam.current = requestAnimationFrame(paso)
@@ -503,6 +557,7 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
     animCam.current = requestAnimationFrame(paso)
     return () => {
       cancelAnimationFrame(animCam.current); fuente.setData(vacio); andado.current = null
+      map.setPadding({ top: 0, bottom: 0, left: 0, right: 0 })   // la flecha ya no va abajo: el centro vuelve al medio
       for (const [ev, fn] of eventos) map.off(ev, fn)
       lienzo.removeEventListener('pointerdown', abajo, true)
       lienzo.removeEventListener('wheel', rueda, true)
