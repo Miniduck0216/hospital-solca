@@ -744,6 +744,8 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
   const cy = (Math.min(...hu.map((p) => p[1])) + Math.max(...hu.map((p) => p[1]))) / 2
   const altura = armado ? 6 : base
   useImperativeHandle(fwd, () => ({
+    // el dock eligió un piso: se deja el edificio completo y se ve ese piso (aunque ya fuera el piso a la vista)
+    verPiso: () => setArmado(false),
     acercar: () => { pedidoZoom.current = { dist: (pedidoZoom.current?.dist ?? distActual()) / 2.2 } },
     alejar: () => { pedidoZoom.current = { dist: (pedidoZoom.current?.dist ?? distActual()) * 2.2 } },
     centrar: () => {
@@ -816,12 +818,10 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
       </Canvas>
       <div className="pb-3d-ctrl" role="group" aria-label="Opciones de la vista 3D">
         <span className="pb-3d-t">Vista</span>
+        {/* el piso se elige con el botón de piso del dock (App.jsx): aquí solo se alterna con el edificio completo */}
         <div className="pb-pisos3d" role="group" aria-label="Piso a la vista">
-          <button aria-pressed={armado} onClick={() => setArmado(true)} title="Todo el hospital, con sus techos">Edificio completo</button>
-          {[...lista].reverse().map((p) => (
-            <button key={p.id} aria-pressed={!armado && p.id === pisoId} title={p.nombre}
-              onClick={() => { setArmado(false); if (p.id !== pisoId) onPiso?.(p.id) }}>{p.corto || p.id}</button>
-          ))}
+          <button aria-pressed={armado} onClick={() => setArmado((v) => !v)}
+            title={armado ? `Volver al ${lista.find((p) => p.id === pisoId)?.nombre || 'piso'}` : 'Todo el hospital, con sus techos'}>Edificio completo</button>
         </div>
         {!armado && (
           <button className="pb-3d-mas" aria-expanded={opciones} onClick={() => setOpciones((v) => !v)}>{opciones ? 'Menos opciones' : 'Más opciones'}</button>
