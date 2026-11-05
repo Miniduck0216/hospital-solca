@@ -29,6 +29,40 @@ NOMBRES = [
 ]
 
 
+# conectores que el dibujo no trae como escalera o ascensor: cada parada es el ambiente que contiene el punto dado
+# - el piso alto del Banco de Sangre (P1, encima del de la planta baja) no tiene escalera dibujada; el DWG marca el paso
+#   con un recuadro en cruz rotulado «PLANTA BAJA» sobre el hall del Banco de Sangre
+MANUALES = [
+    dict(id='escalera-banco-sangre', tipo='escalera', nombre='Escalera del Banco de Sangre', personal=True,
+         paradas={'PB': (98.4, 97.0), 'P1': (101.5, 96.0)}),   # P1: el área que reparte, junto al recuadro
+]
+
+
+def manuales():
+    out = []
+    for m in MANUALES:
+        paradas = []
+        for piso in PISOS:
+            if piso not in m['paradas']:
+                continue
+            d = json.load(open(os.path.join(RAIZ, 'public', piso.lower(), 'datos.json')))
+            pt = Point(*m['paradas'][piso])
+            dentro = [a for a in d['ambientes'] if a['pg'] and Polygon(a['pg'][0]).buffer(0).contains(pt)]
+            if not dentro:
+                print('sin ambiente para', m['id'], piso)
+                break
+            a = min(dentro, key=lambda a: a['area'])
+            paradas.append(dict(piso=piso, ambiente=a['id']))
+        else:
+            # «manual»: sus paradas pueden ser cuartos comunes, no un ambiente de escalera o ascensor
+            c = dict(id=m['id'], tipo=m['tipo'], nombre=m['nombre'], accesible=m['tipo'] == 'ascensor', manual=True,
+                     paradas=paradas)
+            if m.get('personal'):
+                c['personal'] = True
+            out.append(c)
+    return out
+
+
 def main():
     edif = json.load(open(EDIF))
     grupos = []   # dict(tipo, x, y, paradas={piso: ambiente})
@@ -68,6 +102,7 @@ def main():
         if info.get('personal'):
             c['personal'] = True
         conectores.append(c)
+    conectores += manuales()
     for p in edif['pisos']:
         ruta = os.path.join(RAIZ, 'public', p['id'].lower(), 'datos.json')
         if os.path.exists(ruta):

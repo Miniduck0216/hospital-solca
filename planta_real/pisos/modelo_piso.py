@@ -45,8 +45,9 @@ CORRECCIONES = {
         dict(tipo='lineas', carpeta='p1_zonas', zona=box(62.8, 104.8, 70.6, 109.6), solo='3'),   # gradas de emergencia
         # ventanas de las habitaciones del ala oeste (dibujadas en «P0 - Ventanas»): cierran cada cuarto
         dict(tipo='capa', zona=box(-3, 70, 61.25, 100.45), de='P0 - Ventanas', a='VE'),
-        # bloque suelto al este de la torre: no está en el plano del piso 1 que revisó el hospital
-        dict(tipo='borrar', zona=box(92, 85, 112, 106)),
+        # el bloque suelto al este de la torre es el piso alto del Banco de Sangre (encima del de la planta baja:
+        # Cuarentena, Serología, Sub Bodega, Criopreservación, Centrífuga, Despachos); confirmado por el hospital,
+        # aunque no está en el PDF del piso 1. Antes se borraba con dict(tipo='borrar', zona=box(92, 85, 112, 106)).
         # cierre de la habitación 17 contra la terraza (el muro del PDF llega al ventanal; el dibujo deja una rendija)
         dict(tipo='muro', zona=box(6.0, 76.95, 6.25, 77.95)),
     ],

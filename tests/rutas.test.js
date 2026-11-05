@@ -156,9 +156,22 @@ test('los conectores paran en ambientes que existen y son ascensores o escaleras
     for (const s of c.paradas) {
       const a = pisos[s.piso].ambientes.find((x) => x.id === s.ambiente)
       assert.ok(a, `${c.id} en ${s.piso}: ${s.ambiente} no existe`)
-      assert.equal(a.cat, c.tipo === 'ascensor' ? 'ascensores' : 'escaleras', `${c.id} en ${s.piso}: ${a.nombre}`)
+      // los conectores puestos a mano (sin escalera dibujada) paran en un cuarto común
+      if (!c.manual) assert.equal(a.cat, c.tipo === 'ascensor' ? 'ascensores' : 'escaleras', `${c.id} en ${s.piso}: ${a.nombre}`)
     }
   }
+})
+
+test('piso alto del Banco de Sangre: el personal llega desde la planta baja por su escalera; los pacientes no', () => {
+  const cuarentena = pisos.P1.ambientes.find((a) => a.nombre === 'Cuarentena')
+  assert.ok(cuarentena, 'falta Cuarentena en el piso 1')
+  const destino = { piso: 'P1', id: cuarentena.id, punto: cuarentena.dest || cuarentena.lbl }
+  const base = { edificio, pisos, origen: { piso: 'PB', ...P1 }, destino, buscar: buscarRuta, medir: metrosHasta }
+  const r = rutaEdificio({ ...base, admin: true })
+  assert.ok(r && !r.sinRuta, 'sin ruta para el personal')
+  assert.equal(r.vertical.conector.id, 'escalera-banco-sangre')
+  const p = rutaEdificio(base)
+  assert.ok(!p || p.sinRuta || p.vertical?.conector.id !== 'escalera-banco-sangre', 'un paciente no usa la escalera del personal')
 })
 
 test('Puerta 1 → una habitación del piso 3: por ascensor y con la escalera como alternativa', () => {

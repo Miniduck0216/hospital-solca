@@ -66,6 +66,37 @@
    "si": "Jefatura",
    "personal": true
   },
+  "a151": {
+   "si": "",
+   "nombre": "Criopreservación",
+   "personal": true
+  },
+  "a157": {
+   "si": "",
+   "nombre": "Centrífuga",
+   "personal": true
+  },
+  "a153": {
+   "si": "Despachos",
+   "personal": true
+  },
+  "a154": {
+   "si": "Cuarentena",
+   "personal": true
+  },
+  "a155": {
+   "si": "Serologia",
+   "nombre": "Serología",
+   "personal": true
+  },
+  "a156": {
+   "si": "Sub Bodega",
+   "personal": true
+  },
+  "a152": {
+   "si": "Baños",
+   "personal": true
+  },
   "a55": {
    "si": "B",
    "nombre": "Escalera de emergencia",
@@ -90,7 +121,7 @@
    "personal": false,
    "dest": [
     51.9,
-    97.35
+    91.7
    ],
    "ventanilla": true
   },
@@ -270,8 +301,8 @@
    "si": "Baño",
    "personal": false,
    "dest": [
-    42.35,
-    87.4
+    43.39,
+    87.36
    ],
    "ventanilla": true
   },
@@ -307,7 +338,12 @@
   },
   "a118": {
    "si": "Baño",
-   "personal": false
+   "personal": false,
+   "dest": [
+    74.74,
+    102.37
+   ],
+   "ventanilla": true
   },
   "a119": {
    "si": "Baño",
@@ -344,8 +380,8 @@
    "si": "Baño",
    "personal": false,
    "dest": [
-    76.4,
-    67.73
+    76.31,
+    66.53
    ],
    "ventanilla": true
   },
