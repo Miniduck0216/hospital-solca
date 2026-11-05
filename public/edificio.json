@@ -242,6 +242,24 @@
      "ambiente": "a25"
     }
    ]
+  },
+  {
+   "id": "escalera-banco-sangre",
+   "tipo": "escalera",
+   "nombre": "Escalera del Banco de Sangre",
+   "accesible": false,
+   "manual": true,
+   "paradas": [
+    {
+     "piso": "PB",
+     "ambiente": "a162"
+    },
+    {
+     "piso": "P1",
+     "ambiente": "a151"
+    }
+   ],
+   "personal": true
   }
  ],
  "tiempos": {

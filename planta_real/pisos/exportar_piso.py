@@ -237,6 +237,11 @@ AREAS_LIBRES = {
            box(80.25, 40.35, 84.45, 104.75), box(84.4, 85.6, 109.3, 88.65),
            ('OFICINA', box(77.3, 1.85, 83.0, 5.25))],
 }
+# partes del piso separadas del resto a las que se llega por su propia escalera (marco de la planta baja): la rejilla
+# de navegación las conserva aunque unir_partes no las una a la parte principal
+PARTES_SUELTAS = {
+    'P1': [box(95, 87, 108, 102)],   # piso alto del Banco de Sangre (escalera desde su hall en la planta baja)
+}
 PASOS_LIBRES = {
     # patio entre el edificio y el ala de la clínica de heridas y la morgue: veredas exteriores hasta sus puertas
     'PB': [LineString([(140.2, 95.6), (150.0, 94.6), (158.6, 93.4)]),
@@ -1005,7 +1010,14 @@ def exportar(m, piso, salida):
         ver = ndimage.binary_dilation(hu_r, iterations=int(round(1.5 / RES))) & ~hu_r
         libre = unir_partes(libre | ver, RES, cols_r) & (libre | ~ver)
     else:
+        antes = libre
         libre = unir_partes(libre, RES, cols_r)
+        # partes del piso que no se unen al resto por dentro, pero a las que se llega por su propia escalera
+        # (conectores.MANUALES): se conservan aunque queden sueltas
+        if PARTES_SUELTAS.get(piso):
+            et, _ = ndimage.label(antes, structure=np.ones((3, 3)))
+            zona = ras([affinity.translate(g, -ox, -oy) for g in PARTES_SUELTAS[piso]])
+            libre |= np.isin(et, np.unique(et[zona & antes]))
     dist = ndimage.distance_transform_edt(libre) * RES
     costo = np.clip(np.round((0.9 - np.minimum(dist, 0.9)) / 0.9 * 6), 0, 6).astype(np.uint8)
     celdas = np.where(libre, costo + 1, 0).astype(np.uint8)
@@ -1069,12 +1081,66 @@ def exportar(m, piso, salida):
         viseras=[], entradas=ent, nav=nav, parqueos=[], poi=[],
     )
     trasladar(datos, ox, oy)
+    conservar_ids(datos, salida)
     os.makedirs(os.path.dirname(salida), exist_ok=True)
     with open(salida, 'w') as f:
         json.dump(datos, f, ensure_ascii=False, separators=(',', ':'))
     print('datos', salida, round(os.path.getsize(salida) / 1e6, 2), 'MB', len(amb), 'ambientes', len(ent), 'entradas',
           'rejilla', W, 'x', H)
     return datos
+
+
+def conservar_ids(d, salida):
+    """Los ids de los ambientes (a0, a1…) salen del orden por área: un cuarto nuevo corre los de todos los demás.
+    Los enlaces (?destino=P1:a12, OM3) y los ajustes usan esos ids, así que cada ambiente que ya estaba en el
+    datos.json anterior (mismo lugar: se solapan en más del 70 %) conserva su id; los nuevos toman los siguientes
+    números libres. Solo cambia el texto del id, no el orden de la lista (la rejilla de navegación usa el orden)."""
+    if not os.path.exists(salida):
+        return
+    try:
+        viejo = json.load(open(salida, encoding='utf-8'))['ambientes']
+    except Exception:
+        return
+
+    def pol(a):
+        try:
+            return Polygon(a['pg'][0], a['pg'][1:]).buffer(0) if a['pg'] else None
+        except Exception:
+            return None
+    lbl_viejo = {a['id']: a['lbl'] for a in viejo}
+    vp = [(a['id'], pol(a)) for a in viejo]
+    vp = [(i, p) for i, p in vp if p is not None and p.area > 0]
+    usados, asignado = set(), {}
+    pares = []
+    for k, a in enumerate(d['ambientes']):
+        p = pol(a)
+        if p is None or p.area == 0:
+            continue
+        for i, q in vp:
+            if p.intersects(q):
+                s = p.intersection(q).area / max(p.area, q.area)
+                if s > 0.7:
+                    pares.append((s, k, i))
+    for s, k, i in sorted(pares, reverse=True):
+        if k not in asignado and i not in usados:
+            asignado[k] = i
+            usados.add(i)
+    sig = max([int(i[1:]) for i, _ in vp if i[1:].isdigit()] + [len(d['ambientes'])]) + 1
+    for k, a in enumerate(d['ambientes']):
+        if k in asignado:
+            a['id'] = asignado[k]
+            # mismo cuarto sin cambios de forma: conserva también el punto del rótulo (polylabel varía un poco
+            # entre versiones de shapely y movía nombres e íconos sin motivo)
+            q = dict(vp)[a['id']]
+            if pol(a).symmetric_difference(q).area < 0.1 and lbl_viejo.get(a['id']):
+                a['lbl'] = lbl_viejo[a['id']]
+        else:
+            while f'a{sig}' in usados:
+                sig += 1
+            a['id'] = f'a{sig}'
+            usados.add(a['id'])
+            sig += 1
+    print('ids conservados', len(asignado), 'nuevos', len(d['ambientes']) - len(asignado))
 
 
 def trasladar(d, ox, oy):

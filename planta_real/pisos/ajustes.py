@@ -156,6 +156,15 @@ AJUSTES = {
            ('Baño', (74.21, 99.38), {'publico': True}),
 
            ('Jefatura', (79.0, 25.6), 'personal'),
+           # piso alto del Banco de Sangre (encima del de la planta baja; escalera del personal desde su hall):
+           # todo es del personal. El área grande reparte a los cuartos y lleva el rótulo «Criopreservación»
+           ('', (102.34, 90.25), {'nombre': 'Criopreservación', 'personal': True}),
+           ('', (98.4, 89.31), {'nombre': 'Centrífuga', 'personal': True}),
+           ('Despachos', (98.34, 92.28), 'personal'),
+           ('Cuarentena', (104.29, 99.53), 'personal'),
+           ('Serologia', (105.08, 96.23), {'nombre': 'Serología', 'personal': True}),
+           ('Sub Bodega', (105.05, 93.39), 'personal'),
+           ('Baños', (99.13, 99.53), 'personal'),
            # escalera de emergencia del extremo oeste (rotulada «b» en el plano)
            ('B', (0.7, 92.0), {'nombre': 'Escalera de emergencia', 'cat': 'escaleras'}),
            # la habitación 17 se abre a la terraza sin puerta dibujada: queda un solo ambiente
@@ -487,7 +496,11 @@ def main():
         # ascensores de servicio: no son destino de pacientes
         for i in personales.get(piso, []):
             a = next(a for a in d['ambientes'] if a['id'] == i)
-            aj[i] = {'si': a['nombre'], 'personal': True}
+            # solo la escalera o el ascensor mismo: una parada puesta a mano (conectores.MANUALES) puede ser un
+            # cuarto común, como el hall del Banco de Sangre de la planta baja, que sigue siendo un destino
+            if a['cat'] not in ('ascensores', 'escaleras'):
+                continue
+            aj.setdefault(i, {'si': a['nombre']})['personal'] = True
         for i, c in nombres_pdf(piso, d).items():
             aj.setdefault(i, c)
         banos_y_huecos(d, aj, piso in BANOS_PACIENTES, cfg.get('soloPersonal', []))
