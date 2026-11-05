@@ -128,7 +128,8 @@ body { background: #E9EDF1; }
   /* a la izquierda del dock (antes quedaba debajo y tapaba el botón SB) */
   .modo-3d .pb-3d-ctrl { top: 196px; bottom: auto; left: 8px; right: 84px; width: auto; padding: 10px; gap: 6px; }
   .modo-3d .pb-3d-t { display: none; }
-  .modo-3d .pb-piso, .modo-3d .pb-ley-btn, .modo-3d .pb-leyenda { display: none; }
+  /* el menú de pisos del dock (.pb-pisos) sí se ve en 3D: el panel Vista ya no repite los pisos */
+  .modo-3d .pb-piso, .modo-3d .pb-ley-btn, .modo-3d .pb-leyenda:not(.pb-pisos) { display: none; }
   .pb-ayuda3d { display: none; }
   .pb-proto { display: none; }
 }

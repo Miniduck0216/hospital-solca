@@ -406,7 +406,8 @@ export default function App() {
     if (pisos[id]) { setD(pisos[id]); setPisoId(id); setFicha(null); setHover(null) }
     else cargar(cambios, id).catch((e) => setError(e.message))
   }
-  const cambiarPiso = (p) => { if (p.disponible) verPiso(p.id) }
+  // en 3D, elegir un piso en el dock también sale del «Edificio completo» (el panel Vista ya no repite los pisos)
+  const cambiarPiso = (p) => { if (p.disponible) { verPiso(p.id); if (modo === '3d') vista3d.current?.verPiso?.() } }
   // lugares de todos los pisos cargados (el buscador encuentra servicios de cualquier piso)
   const todos = useMemo(() => {
     const orden = (d?.edificio?.pisos || []).map((p) => p.id)
