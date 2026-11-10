@@ -2,7 +2,7 @@
 // canto, vereda clara, calles del campus, árboles de copa redonda y algunas personas en las entradas. Los
 // parqueaderos ya no se dibujan (recargaban la vista): solo una señal «P» en cada uno. Árboles y personas son
 // decorativos; en el modo ligero (tótem) hay menos.
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import * as THREE from 'three'
 import { dePlano } from './datos.js'
 import { LIGERO } from './rendimiento.js'
@@ -173,6 +173,9 @@ export function Exterior({ d, mapa = null, losa: losaPiso = null }) {
     })
     return { base, vereda, senales, arboles, gente, canchas, calles, veredasC }
   }, [d, mapa, losaPiso])
+  // R3F no libera las geometrías que se pasan como prop: se liberan al cambiar o desmontar
+  useEffect(() => () => [...datos.base, ...datos.vereda, ...datos.calles, ...datos.veredasC,
+    ...datos.canchas.flatMap((c) => [c.piso, c.borde, c.lineas])].forEach((g) => g.dispose()), [datos])
 
   return (
     <group>

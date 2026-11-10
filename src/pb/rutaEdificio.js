@@ -72,8 +72,8 @@ export function elegirConector({ edificio, origen, destino, metrosOrigen, metros
 export function textoVertical(op, edificio, origen, destino) {
   const piso = edificio.pisos.find((p) => p.id === destino.piso)
   const sube = (piso?.nivel ?? 0) > (edificio.pisos.find((p) => p.id === origen.piso)?.nivel ?? 0)
-  const verbo = op.tipo === 'ascensor' ? 'Tome' : 'Use'
-  return `${verbo} ${op.conector.nombre || (op.tipo === 'ascensor' ? 'el ascensor' : 'la escalera')} y ${sube ? 'suba' : 'baje'} ${piso?.id === 'SB' ? 'al Subsuelo' : `a ${piso?.nombre || destino.piso}`}`
+  const verbo = op.tipo === 'ascensor' ? 'Toma' : 'Usa'
+  return `${verbo} ${op.conector.nombre || (op.tipo === 'ascensor' ? 'el ascensor' : 'la escalera')} y ${sube ? 'sube' : 'baja'} ${piso?.id === 'SB' ? 'al Subsuelo' : `a ${piso?.nombre || destino.piso}`}`
 }
 
 /**

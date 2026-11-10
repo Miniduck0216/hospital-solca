@@ -111,11 +111,12 @@ const vacio = FC([])
 // la página, que el mapa debía reubicar uno por uno en cada cuadro: con decenas en pantalla, el recorrido iba a saltos.
 // Cada ícono es un disco blanco con el borde y el dibujo del color de su categoría (las entradas, disco oscuro con el
 // dibujo en blanco), hecho una vez como imagen
-async function imagenesPines(map, lista) {
+async function imagenesPines(map, lista, vivo) {
   const hechas = []
   for (const l of lista) {
     const k = l.img
-    if (map.hasImage(k) || hechas.includes(k)) continue
+    // si el mapa ya se eliminó (cambio de piso o de vista), no se sigue
+    if (!vivo() || map.hasImage(k) || hechas.includes(k)) continue
     hechas.push(k)
     // el dibujo (24 × 24) se corre al centro con un grupo: el svg del ícono ya trae su ancho y alto
     const icono = renderToStaticMarkup(<Icono nombre={l.icono} size={24} color={l.entrada ? '#fff' : l.color} grosor={2.2} />)
@@ -123,6 +124,7 @@ async function imagenesPines(map, lista) {
     const img = new Image(52, 52)
     img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
     try { await img.decode() } catch { continue }
+    if (!vivo()) return
     if (!map.hasImage(k)) map.addImage(k, img, { pixelRatio: 2 })
   }
 }
@@ -155,7 +157,11 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
         m.easeTo({ center: aLonLat(posFlecha.current.x, posFlecha.current.y), zoom: Math.max(m.getZoom(), 19.5), duration: 400 })
       } else encuadrar(ruta?.pts)
     },
-    irA: (x, y, z = 20) => mapa.current?.easeTo({ center: aLonLat(x, y), zoom: z, duration: 400 }),
+    // en celular la hoja de abajo tapa parte del mapa: el punto cae en el centro de la zona libre
+    irA: (x, y, z = 20) => {
+      const alto = window.matchMedia('(max-width: 700px)').matches ? document.querySelector('.pb-ruta')?.offsetHeight || 0 : 0
+      mapa.current?.easeTo({ center: aLonLat(x, y), zoom: z, duration: 400, padding: { top: 0, bottom: alto, left: 0, right: 0 } })
+    },
     listo: () => listoRef.current,
     // brújula: deja el plano derecho (como al abrir)
     norte: () => { soltarCamara.current?.(); mapa.current?.easeTo({ bearing: rumbo(), duration: 300 }) },
@@ -375,14 +381,14 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
         return { ...l, color, img: `pin|${l.icono}|${color}|${l.entrada ? 1 : 0}` }
       })
       let vivo = true
-      imagenesPines(map, lista).then(() => {
+      imagenesPines(map, lista, () => vivo).then(() => {
         if (!vivo || !map.getSource('pines')) return
         map.getSource('pines').setData(FC(lista.map((l) => ({ type: 'Feature', properties: {
           id: l.id, img: l.img, entrada: l.entrada ? 1 : 0, privado: l.privado ? 1 : 0, etiqueta: l.entrada ? (l.etiqueta || l.nombre) : '',
           techo: !l.entrada && !['circulacion', 'espera'].includes(l.cat) ? 1 : 0,
         }, geometry: { type: 'Point', coordinates: aLonLat(l.x, l.y) } }))))
         alzarSobreTechos(map, [], true)
-      })
+      }).catch(() => { /* el mapa se eliminó mientras se preparaban los íconos */ })
       return () => { vivo = false }
     }
     for (const l of lugaresIcono) {

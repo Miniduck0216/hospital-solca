@@ -49,6 +49,7 @@ function SueloMapa({ centro, onListo }) {
     } catch { div.remove(); return }
     let hecho = false
     let intentos = 0
+    let espera = 0   // reintento del suelo (se cancela al salir del 3D)
     const copiar = () => {
       if (!vivo || hecho) return
       // ¿ya hay calles dibujadas? (si el lienzo es liso todavía no llegaron las teselas)
@@ -61,8 +62,7 @@ function SueloMapa({ centro, onListo }) {
       for (let i = 0; i < px.length; i += 4) { const v = px[i] + px[i + 1] + px[i + 2]; s1 += v; s2 += v * v }
       const n = px.length / 4
       const desv = Math.sqrt(Math.max(0, s2 / n - (s1 / n) ** 2))
-      console.info('[suelo 3D] intento', intentos, 'variación', desv.toFixed(1))
-      if (desv < 4 && intentos++ < 8) { setTimeout(() => { map.triggerRepaint(); map.once('idle', copiar) }, 1200); return }
+      if (desv < 4 && intentos++ < 8) { espera = setTimeout(() => { map.triggerRepaint(); map.once('idle', copiar) }, 1200); return }
       hecho = true
       const cv = document.createElement('canvas')
       cv.width = cv.height = PX
@@ -80,7 +80,7 @@ function SueloMapa({ centro, onListo }) {
     }
     map.once('idle', copiar)
     map.on('error', () => {})
-    return () => { vivo = false; try { map.remove() } catch { /* listo */ } div.remove() }
+    return () => { vivo = false; clearTimeout(espera); try { map.remove() } catch { /* listo */ } div.remove() }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   return (
@@ -167,6 +167,7 @@ function ParteEdificio({ url, activo, corte, letreros, plano }) {
   // muro seccionado de un plano de arquitectura: da el contorno de cada cuarto sobre los pisos claros
   const tapa = useMemo(() => new THREE.MeshBasicMaterial({ color: '#5B6472', side: THREE.BackSide }), [])
   useEffect(() => { gl.localClippingEnabled = true; tapa.clippingPlanes = [plano] }, [gl, plano, tapa])
+  useEffect(() => () => tapa.dispose(), [tapa])
   useEffect(() => {
     scene.traverse((o) => {
       if (!o.isMesh || o.userData.tapa) return
@@ -240,6 +241,8 @@ function Techo({ huella }) {
     }
     return { losas, bordes }
   }, [huella])
+  // R3F no libera las geometrías que se pasan como prop: se liberan al desmontar
+  useEffect(() => () => [...geos.losas, ...geos.bordes].forEach((g) => g.dispose()), [geos])
   // la losa va justo bajo el piso de arriba (que la tapa donde lo hay) y se ve como azotea donde no
   return (
     <group position-y={3.86}>
@@ -293,9 +296,9 @@ function Ruta({ ruta, andado }) {
   }, [hecho, ruta, L, en])
   return (
     <group>
-      <Line points={filete} color="#FFFFFF" lineWidth={LIGERO ? 8 : 10} transparent opacity={0.9} />
-      <Line points={linea} color={AZUL} lineWidth={LIGERO ? 5 : 6} />
-      {caminado && <Line key={hecho} points={caminado} color="#B9C3D3" lineWidth={LIGERO ? 5 : 6} />}
+      <Line points={filete} color="#FFFFFF" lineWidth={LIGERO ? 16 : 20} renderOrder={10} depthTest={false} />
+      <Line points={linea} color={AZUL} lineWidth={LIGERO ? 10 : 12} renderOrder={11} depthTest={false} />
+      {caminado && <Line key={hecho} points={caminado} color="#B9C3D3" lineWidth={LIGERO ? 10 : 12} renderOrder={11} depthTest={false} />}
       <Meta pos={ruta.pts[ruta.pts.length - 1]} />
     </group>
   )
@@ -605,6 +608,7 @@ function MurosExtra({ muros, plano }) {
   }), [muros])
   const mat = useMemo(() => new THREE.MeshStandardMaterial({ color: '#FAFAF8', roughness: 1 }), [])
   useEffect(() => { mat.clippingPlanes = [plano] }, [mat, plano])
+  useEffect(() => () => { geos.forEach((g) => g.dispose()); mat.dispose() }, [geos, mat])
   return <group>{geos.map((g, k) => <mesh key={k} geometry={g} material={mat} castShadow receiveShadow />)}</group>
 }
 
@@ -620,6 +624,7 @@ function PisosColor({ d, destino }) {
     // los cuartos van 5 mm sobre los pasillos: donde se tocan (en las puertas) no parpadean
     return { id: a.id, g, y: plano ? 0 : 0.005, color: plano ? PALETA[a.cat] || PALETA.circulacion : PALETA[a.cat] || PALETA.otro }
   }), [d])
+  useEffect(() => () => piezas.forEach((p) => p.g.dispose()), [piezas])
   return (
     <group position-y={0.04}>
       {piezas.map((p) => (
