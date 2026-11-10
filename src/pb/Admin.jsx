@@ -4,7 +4,7 @@
 import { useMemo, useState } from 'react'
 import { CATS, plano } from './datos.js'
 
-const HUELLA_CLAVE = '691e6d6caa20ff82e9d5c02e5d6629e9fba4dd0ef2d54fb0aecd753ac7dcd9ad'
+const HUELLA_CLAVE = 'e04fd055801526b806fea980412adb229ec73b48d499963f49c42fb21d40dba6'
 
 async function huella(texto) {
   const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(texto))
