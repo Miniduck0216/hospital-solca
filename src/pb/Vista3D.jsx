@@ -266,39 +266,117 @@ function medir(pts) {
   return { L, en }
 }
 
-// ruta 3D: una línea continua en el piso (azul, con filete blanco para que se lea sobre cualquier piso), quieta; en el
-// recorrido lo ya caminado queda gris. Sin puntos que avanzan ni destellos.
-function Ruta({ ruta, andado }) {
-  const { L, en } = useMemo(() => medir(ruta.pts), [ruta])
-  const linea = useMemo(() => ruta.pts.map((p) => E(p, 0.07)), [ruta])
-  const filete = useMemo(() => ruta.pts.map((p) => E(p, 0.062)), [ruta])   // un poco más abajo: no pelea con la azul
-  // metros ya caminados, de metro en metro: la línea gris se rehace una vez por metro, no en cada cuadro
-  const [hecho, setHecho] = useState(0)
-  const ult = useRef(0)
-  useFrame(() => {
-    const a = andado.current
-    const v = a === null ? 0 : Math.min(Math.floor(a), Math.ceil(L))
-    if (v !== ult.current) { ult.current = v; setHecho(v) }
-  })
-  const caminado = useMemo(() => {
-    if (hecho < 1) return null
-    const s = Math.min(hecho, L), out = [E(ruta.pts[0], 0.085)]
-    let acum = 0
-    for (let i = 1; i < ruta.pts.length; i++) {
-      const tramo = Math.hypot(ruta.pts[i][0] - ruta.pts[i - 1][0], ruta.pts[i][1] - ruta.pts[i - 1][1])
-      if (acum + tramo >= s) break
-      acum += tramo
-      out.push(E(ruta.pts[i], 0.085))
+// ruta 3D: el camino que recorre el personaje, simplificado (Douglas-Peucker, 0,25 m) con las esquinas apenas
+// redondeadas (0,5 m). Va pegado al piso y respeta la profundidad: muros y personaje la tapan como debe.
+// Lo caminado (gris) y lo que falta (azul) son dos líneas que no se solapan, partidas en la posición del personaje;
+// el filete blanco va debajo de ambas y asoma poco.
+// No se usan las «esquinas» del tramo: el personaje camina la curva de redondeo, y una línea recta por esas
+// esquinas se separaría de él hasta casi un metro.
+function simplificar(P, tol) {
+  if (P.length < 3) return P
+  const keep = new Uint8Array(P.length)
+  keep[0] = 1; keep[P.length - 1] = 1
+  const pila = [[0, P.length - 1]]
+  while (pila.length) {
+    const [a, b] = pila.pop()
+    const [ax, ay] = P[a], [bx, by] = P[b]
+    const dx = bx - ax, dy = by - ay, l = Math.hypot(dx, dy) || 1
+    let mx = 0, im = -1
+    for (let i = a + 1; i < b; i++) {
+      const d = Math.abs((P[i][0] - ax) * dy - (P[i][1] - ay) * dx) / l
+      if (d > mx) { mx = d; im = i }
     }
-    const q = en(s)
-    out.push(E([q.x, q.y], 0.085))
-    return out
-  }, [hecho, ruta, L, en])
+    if (mx > tol) { keep[im] = 1; pila.push([a, im], [im, b]) }
+  }
+  return P.filter((_, i) => keep[i])
+}
+
+// redondea cada vértice con un arco de radio r (sin pasar de la mitad de los tramos vecinos)
+function redondearEsquinas(P, r, seg) {
+  if (P.length < 3) return P
+  const out = [P[0]]
+  for (let i = 1; i < P.length - 1; i++) {
+    const V = P[i], A = P[i - 1], B = P[i + 1]
+    const la = Math.hypot(A[0] - V[0], A[1] - V[1]) || 1, lb = Math.hypot(B[0] - V[0], B[1] - V[1]) || 1
+    const u = [(A[0] - V[0]) / la, (A[1] - V[1]) / la], w = [(B[0] - V[0]) / lb, (B[1] - V[1]) / lb]
+    const phi = Math.acos(Math.max(-1, Math.min(1, u[0] * w[0] + u[1] * w[1])))   // ángulo interior del giro
+    if (phi > Math.PI * 0.94) { out.push(V); continue }   // casi recto: no hay esquina
+    const t = Math.tan(phi / 2)
+    const rr = Math.min(r, 0.5 * la * t, 0.5 * lb * t)
+    const d = rr / t
+    const T1 = [V[0] + u[0] * d, V[1] + u[1] * d], T2 = [V[0] + w[0] * d, V[1] + w[1] * d]
+    const bx = u[0] + w[0], by = u[1] + w[1], bl = Math.hypot(bx, by) || 1
+    const dc = rr / Math.sin(phi / 2)
+    const C = [V[0] + (bx / bl) * dc, V[1] + (by / bl) * dc]
+    const a1 = Math.atan2(T1[1] - C[1], T1[0] - C[0])
+    let da = Math.atan2(T2[1] - C[1], T2[0] - C[0]) - a1
+    while (da > Math.PI) da -= 2 * Math.PI
+    while (da < -Math.PI) da += 2 * Math.PI
+    out.push(T1)
+    for (let k = 1; k < seg; k++) {
+      const a = a1 + (da * k) / seg
+      out.push([C[0] + rr * Math.cos(a), C[1] + rr * Math.sin(a)])
+    }
+    out.push(T2)
+  }
+  out.push(P[P.length - 1])
+  return out
+}
+
+// punto de la línea más cercano a p: el tramo (seg-1, seg) y el punto; busca cerca del último tramo y, si
+// la persona está lejos de todo eso, en toda la línea
+function cercano(D, p, pista) {
+  let mejor = Infinity, seg = 1, pt = D[0]
+  const buscar = (ini, fin) => {
+    for (let i = ini; i <= fin; i++) {
+      const [ax, ay] = D[i - 1], [bx, by] = D[i]
+      const dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy || 1
+      const t = Math.max(0, Math.min(1, ((p[0] - ax) * dx + (p[1] - ay) * dy) / l2))
+      const qx = ax + dx * t, qy = ay + dy * t, d = (qx - p[0]) ** 2 + (qy - p[1]) ** 2
+      if (d < mejor) { mejor = d; seg = i; pt = [qx, qy] }
+    }
+  }
+  buscar(Math.max(1, pista - 3), Math.min(D.length - 1, pista + 60))
+  if (mejor > 9) { mejor = Infinity; buscar(1, D.length - 1) }
+  return { seg, pt }
+}
+
+function Ruta({ ruta, andado, persona }) {
+  const D = useMemo(() => redondearEsquinas(simplificar(ruta.pts, 0.25), 0.5, LIGERO ? 2 : 4), [ruta])
+  const cum = useMemo(() => {
+    const c = [0]
+    for (let i = 1; i < D.length; i++) c.push(c[i - 1] + Math.hypot(D[i][0] - D[i - 1][0], D[i][1] - D[i - 1][1]))
+    return c
+  }, [D])
+  const total = cum[cum.length - 1] || 0
+  const linea = useMemo(() => D.map((p) => E(p, 0.09)), [D])
+  const filete = useMemo(() => D.map((p) => E(p, 0.086)), [D])
+  // dónde va el personaje sobre la línea; se actualiza cada 0,1 m (no en cada cuadro)
+  const [corte, setCorte] = useState(null)   // { seg, pt, arc } o null
+  const ult = useRef(-1)
+  useFrame(() => {
+    const p = persona.current
+    if (andado.current === null || !p) {
+      if (ult.current !== -1) { ult.current = -1; setCorte(null) }
+      return
+    }
+    const { seg, pt } = cercano(D, p, corte ? corte.seg : 1)
+    const arc = cum[seg - 1] + Math.hypot(pt[0] - D[seg - 1][0], pt[1] - D[seg - 1][1])
+    if (ult.current !== -1 && Math.abs(arc - ult.current) < 0.1) return
+    ult.current = arc
+    setCorte({ seg, pt, arc })
+  })
+  const [gris, azul] = useMemo(() => {
+    if (!corte) return [null, linea]
+    const g = corte.arc >= 0.05 ? [...D.slice(0, corte.seg), corte.pt].map((q) => E(q, 0.09)) : null
+    const a = total - corte.arc >= 0.05 ? [corte.pt, ...D.slice(corte.seg)].map((q) => E(q, 0.09)) : null
+    return [g, a]
+  }, [corte, D, linea, total])
   return (
     <group>
-      <Line points={filete} color="#FFFFFF" lineWidth={LIGERO ? 16 : 20} renderOrder={10} depthTest={false} />
-      <Line points={linea} color={AZUL} lineWidth={LIGERO ? 10 : 12} renderOrder={11} depthTest={false} />
-      {caminado && <Line key={hecho} points={caminado} color="#B9C3D3" lineWidth={LIGERO ? 10 : 12} renderOrder={11} depthTest={false} />}
+      <Line points={filete} color="#FFFFFF" lineWidth={LIGERO ? 7 : 8.5} polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} />
+      {azul && <Line points={azul} color={AZUL} lineWidth={LIGERO ? 5 : 6} polygonOffset polygonOffsetFactor={-4} polygonOffsetUnits={-4} />}
+      {gris && <Line points={gris} color="#B9C3D3" lineWidth={LIGERO ? 5 : 6} polygonOffset polygonOffsetFactor={-4} polygonOffsetUnits={-4} />}
       <Meta pos={ruta.pts[ruta.pts.length - 1]} />
     </group>
   )
@@ -315,19 +393,57 @@ function Meta({ pos }) {
   )
 }
 
-// personaje: una ficha sobria (peón azul de 1,5 m, sin cara ni brazos, sin balanceo) sobre un disco de «usted está
-// aquí» con una punta que marca hacia dónde avanza (+z local)
+// personaje: una persona estilizada de formas redondeadas (cabeza esférica, torso, brazos y piernas en cápsula),
+// de un solo azul con la cabeza un tono más clara y sin cara. Al caminar balancea piernas y brazos y el cuerpo
+// sube y baja un poco; el ritmo sale de la distancia recorrida (paso.current.s), no del reloj, para que los pies
+// no patinen. Quieta cuando el recorrido está en pausa o detenido; sin balanceo con movimiento reducido.
+const PASO = 1.4   // metros de una vuelta completa del paso (dos pasos)
 const PUNTA = (() => {
   const f = new THREE.Shape([new THREE.Vector2(-0.2, 0.5), new THREE.Vector2(0.2, 0.5), new THREE.Vector2(0, 0.86)])
   const g = new THREE.ShapeGeometry(f)
   g.rotateX(Math.PI / 2)   // al piso: la punta (y del dibujo) queda hacia +z
   return g
 })()
-function Personaje() {
+function Personaje({ paso }) {
+  const cuerpo = useRef(), piernaI = useRef(), piernaD = useRef(), brazoI = useRef(), brazoD = useRef()
+  const amp = useRef(0)
+  const geo = useMemo(() => {
+    const cs = LIGERO ? 2 : 4, rs = LIGERO ? 8 : 14
+    return {
+      cabeza: new THREE.SphereGeometry(0.115, LIGERO ? 10 : 18, LIGERO ? 8 : 14),
+      torso: new THREE.CapsuleGeometry(0.17, 0.34, cs, rs),
+      brazo: new THREE.CapsuleGeometry(0.07, 0.42, cs, LIGERO ? 6 : 10),
+      pierna: new THREE.CapsuleGeometry(0.105, 0.62, cs, LIGERO ? 6 : 10),
+    }
+  }, [])
+  const mat = useMemo(() => ({
+    cuerpo: new THREE.MeshStandardMaterial({ color: AZUL, roughness: 0.8 }),
+    cabeza: new THREE.MeshStandardMaterial({ color: '#6F92F5', roughness: 0.8 }),
+  }), [])
+  useEffect(() => () => {
+    Object.values(geo).forEach((g) => g.dispose())
+    Object.values(mat).forEach((m) => m.dispose())
+  }, [geo, mat])
+  useFrame((_, dt) => {
+    const p = paso.current
+    const quiere = p.mov && !REDUCIR ? 1 : 0
+    amp.current += (quiere - amp.current) * (1 - Math.exp(-Math.min(dt, 0.1) * 10))
+    const a = amp.current
+    const ang = (p.s / PASO) * Math.PI * 2
+    const sw = Math.sin(ang) * 0.45 * a   // piernas en contrafase; brazos al revés, algo más cortos
+    piernaI.current.rotation.x = sw; piernaD.current.rotation.x = -sw
+    brazoI.current.rotation.x = -sw * 0.8; brazoD.current.rotation.x = sw * 0.8
+    // el cuerpo baja un poco a mitad de cada paso (dos veces por vuelta); los pies quedan hundidos en el piso
+    cuerpo.current.position.y = (-0.02 * a * (1 - Math.cos(2 * ang))) / 2
+  })
   return (
-    <group>
-      <mesh position-y={0.62} castShadow><cylinderGeometry args={[0.09, 0.2, 1.16, 20]} /><meshStandardMaterial color={AZUL} roughness={0.8} /></mesh>
-      <mesh position-y={1.32} castShadow><sphereGeometry args={[0.19, 24, 18]} /><meshStandardMaterial color={AZUL} roughness={0.8} /></mesh>
+    <group ref={cuerpo}>
+      <mesh geometry={geo.torso} material={mat.cuerpo} position-y={1.2} castShadow />
+      <mesh geometry={geo.cabeza} material={mat.cabeza} position-y={1.585} castShadow />
+      <group ref={brazoI} position={[-0.25, 1.4, 0]}><mesh geometry={geo.brazo} material={mat.cuerpo} position-y={-0.28} castShadow /></group>
+      <group ref={brazoD} position={[0.25, 1.4, 0]}><mesh geometry={geo.brazo} material={mat.cuerpo} position-y={-0.28} castShadow /></group>
+      <group ref={piernaI} position={[-0.11, 0.85, 0]}><mesh geometry={geo.pierna} material={mat.cuerpo} position-y={-0.415} castShadow /></group>
+      <group ref={piernaD} position={[0.11, 0.85, 0]}><mesh geometry={geo.pierna} material={mat.cuerpo} position-y={-0.415} castShadow /></group>
       <mesh rotation-x={-Math.PI / 2} position-y={0.1}><ringGeometry args={[0.38, 0.5, 40]} /><meshBasicMaterial color="#FFFFFF" toneMapped={false} /></mesh>
       <mesh rotation-x={-Math.PI / 2} position-y={0.1}><circleGeometry args={[0.38, 32]} /><meshBasicMaterial color={AZUL} transparent opacity={0.3} toneMapped={false} /></mesh>
       <mesh geometry={PUNTA} position-y={0.1}><meshBasicMaterial color={AZUL} side={THREE.DoubleSide} toneMapped={false} /></mesh>
@@ -496,6 +612,7 @@ function Caminante({ ruta, recorrer, pausa = false, controles, libre, andado, al
   const prev = useRef(null)
   const llegada = useRef(0)   // segundos desde que empezó el recorrido (la cámara se acomoda detrás en el primero)
   const ultAv = useRef(0)
+  const paso = useRef({ s: 0, mov: false })   // distancia y si camina ahora: para el paso de la figura
   // el recorrido sigue donde iba (al volver del 2D o si la ruta se recalcula mientras se camina)
   useEffect(() => {
     t.current = recorrer && desde ? Math.max(0, desde()) : 0
@@ -510,6 +627,7 @@ function Caminante({ ruta, recorrer, pausa = false, controles, libre, andado, al
     const s = Math.min(t.current, L)
     const q = en(s)
     if (recorrer) andado.current = s
+    paso.current.s = s; paso.current.mov = recorrer && !pausa && !fin.current && s < L
     ref.current.position.set(q.x, 0.02, -q.y)
     persona.current = [q.x, q.y]
     // el frente del personaje (+z local) mira hacia donde avanza
@@ -542,7 +660,7 @@ function Caminante({ ruta, recorrer, pausa = false, controles, libre, andado, al
     if (recorrer && (llegada.current - (ultAv.current || 0) > 0.25 || s >= L)) { ultAv.current = llegada.current; onAvance?.(s, L) }
     if (recorrer && s >= L && !fin.current) { fin.current = true; alTerminar?.() }
   })
-  return <group ref={ref}><Personaje /></group>
+  return <group ref={ref}><Personaje paso={paso} /></group>
 }
 
 // la cámara llega al lugar elegido en el buscador (en 1,2 s, igual a cualquier velocidad de cuadros) y deja un anillo
@@ -852,7 +970,7 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
             <MurosExtra muros={d.murosExtra || []} plano={plano} />
             <Puertas puertas={d.puertas} plano={plano} persona={persona} ruta={ruta} recorrer={recorrer} corte={corte} />
             <Letreros d={d} visibles={letreros} />
-            {ruta && <Ruta ruta={ruta} andado={andado} />}
+            {ruta && <Ruta ruta={ruta} andado={andado} persona={persona} />}
             {ruta && <Caminante ruta={ruta} recorrer={recorrer} pausa={pausa} controles={controles} libre={libre} andado={andado} alTerminar={onFinRecorrer} onAvance={onAvance} desde={desde} persona={persona} base={base} />}
           </group>
         )}
