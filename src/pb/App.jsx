@@ -11,7 +11,7 @@ import { Clave, PanelAdmin } from './Admin.jsx'
 import { Cargando } from './Cargando.jsx'
 import { BarraFoco, Dock } from './Hud.jsx'
 import { agruparGuia, buscarLugar, juntarIguales } from './guia.js'
-import { LIGERO, enReposo } from './rendimiento.js'
+import { LIGERO, REDUCIR, enReposo } from './rendimiento.js'
 import { CambioPiso } from './CambioPiso.jsx'
 import { Icono, Insignia } from '../ui/mapa2d/Iconos.jsx'
 
@@ -263,7 +263,7 @@ function BarraNav({ ruta, pisoId, pisos, llego, destino, onDetener, onListo, onV
   const actualK = `${k}-${prox?.k}`
   useEffect(() => {
     if (!abierta) return
-    lista.current?.querySelector('.actual')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    lista.current?.querySelector('.actual')?.scrollIntoView({ block: 'nearest', behavior: REDUCIR ? 'auto' : 'smooth' })
   }, [abierta, actualK])
   const pasos = ruta.tramos.flatMap((t, i) => [
     ...(ruta.tramos.length > 1 ? [{ piso: t.piso, nombre: t.nombrePiso }] : []),

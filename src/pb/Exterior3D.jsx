@@ -1,4 +1,4 @@
-// Exterior del 3D en estilo isométrico de maqueta (como las ilustraciones de referencia): base del edificio con
+// Exterior del 3D en estilo sobrio de plano de sitio (tonos apagados, casi neutros): base del edificio con
 // canto, vereda clara, calles del campus, árboles de copa redonda y algunas personas en las entradas. Los
 // parqueaderos ya no se dibujan (recargaban la vista): solo una señal «P» en cada uno. Árboles y personas son
 // decorativos; en el modo ligero (tótem) hay menos.
@@ -66,7 +66,7 @@ function aLoLargo(anillo, paso) {
   return out
 }
 
-const VERDES = ['#5DAE57', '#6CBF5E', '#4E9E4A', '#7BC86C']
+const VERDES = ['#9DB39A', '#A9BDA5', '#93AA90', '#B2C4AE']
 
 // ruido suave con semilla (suma de ondas): agrupa los árboles en bosquecillos en vez de repartirlos parejo
 function ruido(x, y) {
@@ -163,7 +163,7 @@ export function Exterior({ d, mapa = null, losa: losaPiso = null }) {
     // personas en algunas entradas, un poco afuera
     const gente = LIGERO ? [] : d.entradas.map((e, k) => {
       const dx = (e.fx ?? e.x) - e.x, dy = (e.fy ?? e.y) - e.y, L = Math.hypot(dx, dy) || 1
-      return { x: e.x + (dx / L) * 3.2 + (k % 2 ? 0.8 : -0.8), y: e.y + (dy / L) * 3.2, giro: Math.atan2(-dx, -dy), c: ['#E67E22', '#16A085', '#C0392B', '#2980B9', '#8E44AD', '#27AE60', '#D35400', '#2C3E50'][k % 8] }
+      return { x: e.x + (dx / L) * 3.2 + (k % 2 ? 0.8 : -0.8), y: e.y + (dy / L) * 3.2, giro: Math.atan2(-dx, -dy), c: '#8A94A3' }
     })
     // canchas deportivas: piso de color con su borde claro y las líneas de juego
     const canchas = (d.canchas || []).map((c) => {
@@ -176,14 +176,14 @@ export function Exterior({ d, mapa = null, losa: losaPiso = null }) {
 
   return (
     <group>
-      {datos.base.map((g, k) => <mesh key={'b' + k} geometry={g} position-y={-0.58} receiveShadow castShadow><meshLambertMaterial color="#E7D7BC" /></mesh>)}
-      {datos.vereda.map((g, k) => <mesh key={'v' + k} geometry={g} position-y={-0.5} receiveShadow><meshLambertMaterial color="#E9E6DF" /></mesh>)}
-      {datos.calles.map((g, k) => <mesh key={'c' + k} geometry={g} position-y={-0.21} receiveShadow><meshLambertMaterial color="#59616D" /></mesh>)}
-      {datos.veredasC.map((g, k) => <mesh key={'w' + k} geometry={g} position-y={-0.21} receiveShadow><meshLambertMaterial color="#E9E6DF" /></mesh>)}
+      {datos.base.map((g, k) => <mesh key={'b' + k} geometry={g} position-y={-0.58} receiveShadow castShadow><meshLambertMaterial color="#E6E8EB" /></mesh>)}
+      {datos.vereda.map((g, k) => <mesh key={'v' + k} geometry={g} position-y={-0.5} receiveShadow><meshLambertMaterial color="#ECEDEF" /></mesh>)}
+      {datos.calles.map((g, k) => <mesh key={'c' + k} geometry={g} position-y={-0.21} receiveShadow><meshLambertMaterial color="#AEB4BC" /></mesh>)}
+      {datos.veredasC.map((g, k) => <mesh key={'w' + k} geometry={g} position-y={-0.21} receiveShadow><meshLambertMaterial color="#ECEDEF" /></mesh>)}
       {datos.canchas.map((c, k) => (
         <group key={'c' + k} position-y={-0.2}>
-          <mesh geometry={c.borde} receiveShadow><meshLambertMaterial color="#DCD8CF" /></mesh>
-          <mesh geometry={c.piso} receiveShadow><meshLambertMaterial color={c.tipo === 'tenis' ? '#5B7FB8' : '#6E9BD1'} /></mesh>
+          <mesh geometry={c.borde} receiveShadow><meshLambertMaterial color="#DDE0E4" /></mesh>
+          <mesh geometry={c.piso} receiveShadow><meshLambertMaterial color={c.tipo === 'tenis' ? '#B9C7D6' : '#C3CFDB'} /></mesh>
           <mesh geometry={c.lineas}><meshLambertMaterial color="#F4F4F0" /></mesh>
         </group>
       ))}
@@ -215,7 +215,7 @@ function Instancias({ items, geo, color, colores, poner }) {
 function Arboles({ arboles }) {
   return (
     <group>
-      <Instancias items={arboles} geo={<cylinderGeometry args={[0.13, 0.18, 1.6, 6]} />} color="#8B5E3C"
+      <Instancias items={arboles} geo={<cylinderGeometry args={[0.13, 0.18, 1.6, 6]} />} color="#8C857C"
         poner={(o, a) => { o.position.set(a.x, 0.6 * a.s, -a.y); o.rotation.set(0, 0, 0); o.scale.setScalar(a.s) }} />
       <Instancias items={arboles} geo={<icosahedronGeometry args={[1.3, 1]} />} colores={(a) => a.c}
         poner={(o, a) => { o.position.set(a.x, 2.3 * a.s, -a.y); o.rotation.set(0, a.x, 0); o.scale.setScalar(a.s) }} />
@@ -227,23 +227,23 @@ function Arboles({ arboles }) {
 function Persona({ x, y, giro, c }) {
   return (
     <group position={[x, -0.2, -y]} rotation-y={giro}>
-      <mesh position={[-0.1, 0.45, 0]} castShadow><boxGeometry args={[0.15, 0.9, 0.2]} /><meshLambertMaterial color="#2C3E50" /></mesh>
-      <mesh position={[0.1, 0.45, 0]} castShadow><boxGeometry args={[0.15, 0.9, 0.2]} /><meshLambertMaterial color="#2C3E50" /></mesh>
+      <mesh position={[-0.1, 0.45, 0]} castShadow><boxGeometry args={[0.15, 0.9, 0.2]} /><meshLambertMaterial color="#6B7280" /></mesh>
+      <mesh position={[0.1, 0.45, 0]} castShadow><boxGeometry args={[0.15, 0.9, 0.2]} /><meshLambertMaterial color="#6B7280" /></mesh>
       <mesh position={[0, 1.2, 0]} castShadow><boxGeometry args={[0.44, 0.62, 0.26]} /><meshLambertMaterial color={c} /></mesh>
-      <mesh position={[0, 1.66, 0]} castShadow><sphereGeometry args={[0.15, 12, 10]} /><meshLambertMaterial color="#E2B48E" /></mesh>
-      <mesh position={[0, 1.74, -0.02]} castShadow><sphereGeometry args={[0.155, 12, 10, 0, Math.PI * 2, 0, Math.PI / 2]} /><meshLambertMaterial color="#3A2A20" /></mesh>
+      <mesh position={[0, 1.66, 0]} castShadow><sphereGeometry args={[0.15, 12, 10]} /><meshLambertMaterial color="#C9CED6" /></mesh>
+      <mesh position={[0, 1.74, -0.02]} castShadow><sphereGeometry args={[0.155, 12, 10, 0, Math.PI * 2, 0, Math.PI / 2]} /><meshLambertMaterial color="#6B7280" /></mesh>
     </group>
   )
 }
 
-// señal de parqueadero: poste gris con una placa azul y la «P» blanca (de frente a la cámara)
+// señal de parqueadero: poste gris con una placa gris azulada y la «P» blanca (de frente a la cámara)
 let texturaP = null
 function placaP() {
   if (texturaP) return texturaP
   const cv = document.createElement('canvas')
   cv.width = cv.height = 128
   const c = cv.getContext('2d')
-  c.fillStyle = '#2F6FDE'
+  c.fillStyle = '#5B6880'
   c.beginPath(); c.roundRect ? c.roundRect(6, 6, 116, 116, 22) : c.rect(6, 6, 116, 116); c.fill()
   c.lineWidth = 8; c.strokeStyle = '#FFFFFF'; c.stroke()
   c.fillStyle = '#FFFFFF'; c.font = '900 92px "Nunito Sans", "Segoe UI", system-ui, sans-serif'

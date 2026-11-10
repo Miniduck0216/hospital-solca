@@ -4,8 +4,10 @@
 // «Ya llegué» (en la vida real el ascensor puede tardar), así el mapa no se adelanta.
 import { useEffect, useMemo, useState } from 'react'
 import { Icono } from '../ui/mapa2d/Iconos.jsx'
+import { REDUCIR } from './rendimiento.js'
 
-const DURACION = { ascensor: 4200, escalera: 4600 }
+// la animación es breve (hojas 0,3 s y viaje de 1,5 s): la tarjeta informa, no entretiene
+const DURACION = { ascensor: 2300, escalera: 2500 }
 
 export function CambioPiso({ tipo = 'ascensor', de, a, nombre = '', pisos = [], onFin }) {
   // pisos del edificio de arriba hacia abajo; la cabina recorre desde «de» hasta «a»
@@ -17,10 +19,9 @@ export function CambioPiso({ tipo = 'ascensor', de, a, nombre = '', pisos = [], 
   // fases: puertas que se cierran → viaje → puertas que se abren
   const [fase, setFase] = useState('cierra')
   useEffect(() => {
-    const total = DURACION[tipo] || 4200
-    const reducir = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-    const t1 = setTimeout(() => setFase('viaja'), reducir ? 0 : 700)
-    const t2 = setTimeout(() => setFase('abre'), reducir ? 600 : total - 800)
+    const total = DURACION[tipo] || 2300
+    const t1 = setTimeout(() => setFase('viaja'), REDUCIR ? 0 : 350)
+    const t2 = setTimeout(() => setFase('abre'), REDUCIR ? 300 : total - 450)
     return () => { clearTimeout(t1); clearTimeout(t2) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -30,7 +31,7 @@ export function CambioPiso({ tipo = 'ascensor', de, a, nombre = '', pisos = [], 
   return (
     <div className="cp-fondo" role="dialog" aria-live="assertive" aria-label={`${verbo} a ${destino?.nombre || a}`}>
       <div className={`cp-tarjeta cp-${tipo} cp-${fase}`}>
-        <div className="cp-edificio" style={{ '--n': n, '--fila': fila, '--viaje': `${(DURACION[tipo] || 4200) - 1500}ms` }}>
+        <div className="cp-edificio" style={{ '--n': n, '--fila': fila, '--viaje': `${(DURACION[tipo] || 2300) - 800}ms` }}>
           {lista.map((p, i) => (
             <div key={p.id} className={`cp-piso${i === iDe ? ' sale' : ''}${i === iA ? ' llega' : ''}`}>
               <b>{p.corto}</b>
