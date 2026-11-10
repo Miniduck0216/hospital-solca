@@ -745,6 +745,7 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
   const [corte, setCorte] = useState(1.2)   // muros bajos por defecto: se ven los pisos, como en una planta de arquitectura
   const [letreros, setLetreros] = useState(true)
   const [opciones, setOpciones] = useState(false)   // altura de muros y letreros: plegados para no recargar la pantalla
+  const [panel, setPanel] = useState(false)   // celular: el panel Vista va cerrado y se abre con su botón (ver pb.css)
   // la ayuda de gestos se ve unos segundos al abrir el 3D y se va
   const [ayuda, setAyuda] = useState(true)
   useEffect(() => { const t = setTimeout(() => setAyuda(false), 7000); return () => clearTimeout(t) }, [])
@@ -761,6 +762,8 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
   useEffect(() => { if (pisoAntes.current !== pisoId) { pisoAntes.current = pisoId; setArmado(false) } }, [pisoId])
   useEffect(() => { if (ruta || foco) setArmado(false) }, [ruta, foco])
   useEffect(() => { if (recorrer) setArmado(false) }, [recorrer])
+  // al caminar, el panel Vista se cierra para no tapar el mapa
+  useEffect(() => { if (recorrer) setPanel(false) }, [recorrer])
   const [techos, setTechos] = useState({})
   const [mapa, setMapa] = useState(null)
   useEffect(() => {
@@ -860,11 +863,13 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
         <PlanoCercano controles={controles} />
         <OrbitControls ref={controles} touches={{ ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN }} target={[cx, altura, -cy]} maxPolarAngle={recorrer ? Math.PI / 1.9 : Math.PI / 2.08} minDistance={recorrer ? 1.5 : 4} maxDistance={recorrer ? 160 : 460} enablePan enableDamping zoomSpeed={1.8} />
       </Canvas>
-      <div className="pb-3d-ctrl" role="group" aria-label="Opciones de la vista 3D">
+      {/* en celular, botón redondo que abre o cierra el panel (oculto en escritorio y en el tótem, ver pb.css) */}
+      <button type="button" className="pb-3d-abrir" aria-expanded={panel} aria-controls="pb-3d-ctrl" aria-label="Opciones de la vista" onClick={() => setPanel((v) => !v)}>Vista</button>
+      <div id="pb-3d-ctrl" className={`pb-3d-ctrl${panel ? ' abierto' : ''}`} role="group" aria-label="Opciones de la vista 3D">
         <span className="pb-3d-t">Vista</span>
         {/* el piso se elige con el botón de piso del dock (App.jsx): aquí solo se alterna con el edificio completo */}
         <div className="pb-pisos3d" role="group" aria-label="Piso a la vista">
-          <button aria-pressed={armado} onClick={() => setArmado((v) => !v)}
+          <button aria-pressed={armado} onClick={() => { setArmado((v) => !v); setPanel(false) }}
             title={armado ? `Volver al ${lista.find((p) => p.id === pisoId)?.nombre || 'piso'}` : 'Todo el hospital, con sus techos'}>Edificio completo</button>
         </div>
         {!armado && (
@@ -874,10 +879,10 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
           <span className="pb-3d-t">Altura de muros</span>
           <div className="pb-seg">
             {[[1.2, 'Bajos'], [2.6, 'Medios'], [3.9, 'Completos']].map(([v, t]) => (
-              <button key={v} aria-pressed={corte === v} onClick={() => setCorte(v)}>{t}</button>
+              <button key={v} aria-pressed={corte === v} onClick={() => { setCorte(v); setPanel(false) }}>{t}</button>
             ))}
           </div>
-          <label className="pb-check"><input type="checkbox" checked={letreros} onChange={(e) => setLetreros(e.target.checked)} /> Letreros</label>
+          <label className="pb-check"><input type="checkbox" checked={letreros} onChange={(e) => { setLetreros(e.target.checked); setPanel(false) }} /> Letreros</label>
         </>)}
       </div>
       {ayuda && <p className="pb-ayuda3d">{TACTIL

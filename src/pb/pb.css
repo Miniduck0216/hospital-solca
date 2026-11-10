@@ -92,6 +92,9 @@ body { background: #E9EDF1; }
 /* 3D */
 .pb-3d { position: absolute; inset: 0; background: #EEF0F3; }
 .pb-3d-ctrl { position: absolute; right: 14px; bottom: 14px; z-index: 5; background: #fff; border-radius: 18px; box-shadow: var(--m-sombra); padding: 12px; display: flex; flex-direction: column; gap: 8px; align-items: stretch; width: 250px; }
+/* botón del panel Vista: solo se ve en celular (ver @media más abajo) */
+.pb-3d-abrir { display: none; position: absolute; left: 12px; bottom: var(--base-3d, 14px); z-index: 5; width: 44px; height: 44px; border: 0; border-radius: 50%; background: #fff; color: var(--m-tinta); box-shadow: var(--m-sombra); place-items: center; font: 800 .75rem var(--m-fuente); cursor: pointer; }
+.pb-3d-abrir[aria-expanded="true"] { background: var(--m-tinta); color: #fff; }
 .pb-3d-t { font-size: .72rem; font-weight: 800; color: var(--m-gris); text-transform: uppercase; letter-spacing: .06em; }
 .pb-3d-ctrl .pb-seg { box-shadow: none; background: #F1F4F7; }
 .pb-3d-ctrl .pb-seg button { flex: 1; padding: 7px 6px; }
@@ -126,11 +129,14 @@ body { background: #E9EDF1; }
   .hoja.sheet .hoja-cuerpo { padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
   .pb-pasos { max-height: none; }
   .pb-ficha { bottom: 16px; }
-  /* a la izquierda del dock (antes quedaba debajo y tapaba el botón SB) */
-  .modo-3d .pb-3d-ctrl { top: 196px; bottom: auto; left: 8px; right: 84px; width: auto; padding: 10px; gap: 6px; }
   .modo-3d .pb-3d-t { display: none; }
-  /* con la barra de navegación o de paso a paso, el panel Vista baja junto con el selector de vista */
-  .pb-app.modo-3d:has(.pb-col .pb-nav) .pb-3d-ctrl { top: 246px; }
+  /* el panel Vista va cerrado: se abre con su botón redondo abajo a la izquierda (no en el tótem) */
+  .pb-app:not(.insertado-totem) .pb-3d-abrir { display: grid; }
+  .pb-app:not(.insertado-totem) .pb-3d-ctrl { display: none; }
+  .pb-app:not(.insertado-totem) .pb-3d-ctrl.abierto { display: flex; left: 12px; right: auto; top: auto; bottom: calc(var(--base-3d, 14px) + 52px); width: min(250px, calc(100% - 24px)); padding: 10px; gap: 6px; }
+  /* sobre la hoja de la ruta, si la hay (minimizada o abierta) */
+  .pb-app:has(.hoja.sheet) { --base-3d: 72px; }
+  .pb-app:has(.hoja.sheet:not(.mini)) { --base-3d: 50vh; }
   /* el menú de pisos del dock (.pb-pisos) sí se ve en 3D: el panel Vista ya no repite los pisos */
   .modo-3d .pb-piso, .modo-3d .pb-ley-btn, .modo-3d .pb-leyenda:not(.pb-pisos) { display: none; }
   .pb-ayuda3d { display: none; }
@@ -324,7 +330,7 @@ body { background: #E9EDF1; }
 .pb-aviso { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 9; max-width: calc(100% - 32px); padding: 10px 14px; font-size: .9rem; font-weight: 700; text-align: center; }
 /* en celular, la indicación del paso puede ocupar hasta 3 líneas y ◀ ▶ ✕ van más juntos */
 @media (max-width: 700px) {
-  .pb-paso-a-paso .pb-nav-txt b { -webkit-line-clamp: 3; }
+  .pb-nav-txt b { -webkit-line-clamp: 3; }
   .pb-paso-a-paso .pb-nav-btn { min-width: 34px; }
 }
 

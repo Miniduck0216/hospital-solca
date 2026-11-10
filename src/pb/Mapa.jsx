@@ -12,11 +12,15 @@ import { LIGERO, REDUCIR } from './rendimiento.js'
 const ESTILO = 'https://tiles.openfreemap.org/styles/positron'
 const FONDO = { version: 8, sources: {}, layers: [{ id: 'fondo', type: 'background', paint: { 'background-color': '#ECEFF3' } }] }
 const FC = (features) => ({ type: 'FeatureCollection', features })
-// paleta de interiores, sobria: cada categoría con el relleno de CATS (tonos casi neutros con un matiz); pasillos y
-// salas de espera quedan planos. Los bloques son bajos (0,9 m): dan relieve sin tapar la ruta ni los pasillos
+// colores del 2D: bloques de color sólido, más marcados que CATS.relleno (que usa el 3D). La vista Plano sigue con
+// CATS. Pasillos y salas de espera quedan planos. Los bloques son bajos (0,9 m): dan relieve sin tapar la ruta
+const RELLENO_2D = { consulta: '#9DB8E0', administracion: '#E0C79E', apoyo: '#B7C1CE', otro: '#C3CAD4', farmacia: '#BDAEE0', banos: '#97CBD6', escaleras: '#9FA8B6', ascensores: '#9FA8B6', circulacion: '#F1EFEA', espera: '#BFD8BE' }
 const relleno = (k) => (CATS[k] || CATS.otro).relleno
 const BLOQUE = Object.fromEntries(['consulta', 'administracion', 'apoyo', 'otro', 'farmacia', 'banos', 'escaleras', 'ascensores'].map((k) => [k, relleno(k)]))
 const PLANO = { circulacion: relleno('circulacion'), espera: relleno('espera') }
+// rótulos: en 2D, tinta oscura con halo blanco; en Plano, los de siempre (ver aplicarModo)
+const ROTULO_2D = { color: '#1E2A4A', halo: '#FFFFFF', ancho: 1.5 }
+const ROTULO_PLANO = { color: ['case', ['==', ['get', 'pasillo'], 1], '#7487A3', '#2B3443'], halo: 'rgba(255,255,255,0.92)', ancho: 1.2 }
 const ALTO = 0.9
 // el único color fuerte del mapa: destino, ruta y flecha del recorrido
 const AZUL = '#2F5BEA'
@@ -48,7 +52,7 @@ const lineas = (lista) => FC(lista.map((l) => ({ type: 'Feature', properties: {}
 function capas(d) {
   const amb = FC(d.ambientes.filter((a) => a.pg.length).map((a) => ({
     type: 'Feature', id: Number(a.id.slice(1)),
-    properties: { id: a.id, color: esPlano(a) ? (PLANO[a.cat] || PLANO.circulacion) : (BLOQUE[a.cat] || BLOQUE.otro), alto: esPlano(a) ? 0 : ALTO, pasillo: a.cat === 'circulacion' ? 1 : 0 },
+    properties: { id: a.id, color: esPlano(a) ? (PLANO[a.cat] || PLANO.circulacion) : (BLOQUE[a.cat] || BLOQUE.otro), color2d: RELLENO_2D[a.cat] || RELLENO_2D[esPlano(a) ? 'circulacion' : 'otro'], alto: esPlano(a) ? 0 : ALTO, pasillo: a.cat === 'circulacion' ? 1 : 0 },
     geometry: { type: 'Polygon', coordinates: anillos(a.pg) },
   })))
   const rotulos = FC(d.ambientes.filter((a) => a.nombre && (a.area >= 1.2 || a.nuevo)).map((a) => ({
@@ -89,6 +93,14 @@ function aplicarModo(map, plano) {
   const ver = (ids, si) => { for (const id of ids) if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', si ? 'visible' : 'none') }
   ver(CAPAS_2D, !plano)
   ver(CAPAS_PLANO, plano)
+  // mismos pisos, dos paletas: el plano conserva los colores de CATS y los rótulos de siempre
+  if (map.getLayer('ambientes')) map.setPaintProperty('ambientes', 'fill-color', ['case', ['boolean', ['feature-state', 'destino'], false], AZUL, ['get', plano ? 'color' : 'color2d']])
+  for (const id of ['rotulos', 'rotulos-techo']) if (map.getLayer(id)) {
+    const r = plano ? ROTULO_PLANO : ROTULO_2D
+    map.setPaintProperty(id, 'text-color', r.color)
+    map.setPaintProperty(id, 'text-halo-color', r.halo)
+    map.setPaintProperty(id, 'text-halo-width', r.ancho)
+  }
   if (plano) {
     map.touchPitch.disable()
     // se endereza con suavidad y recién entonces se fija sin inclinación
@@ -249,7 +261,7 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
       map.addLayer({ id: 'huella', type: 'fill', source: 'huella', paint: { 'fill-color': '#F6F8FB' } })
       // piso de cada ambiente (plano): pasillos y salas de espera se ven aquí; es también la capa que recibe el clic
       map.addLayer({ id: 'ambientes', type: 'fill', source: 'ambientes', paint: {
-        'fill-color': ['case', ['boolean', ['feature-state', 'destino'], false], AZUL, ['get', 'color']],
+        'fill-color': ['case', ['boolean', ['feature-state', 'destino'], false], AZUL, ['get', 'color2d']],
         'fill-opacity': ['case', ['boolean', ['feature-state', 'hover'], false], 0.8, 1],
       } })
       map.addLayer({ id: 'pasos', type: 'line', source: 'pasos', layout: { 'line-cap': 'round' }, paint: { 'line-color': '#2E9D5B', 'line-width': ['interpolate', ['linear'], ['zoom'], 17, 2, 20, 6], 'line-dasharray': [1, 1.5] } })
@@ -262,15 +274,16 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
       map.addLayer({ id: 'caminante-dir', type: 'fill', source: 'caminante', filter: ['==', ['get', 'tipo'], 'dir'], paint: { 'fill-color': AZUL, 'fill-opacity': 0.9 } })
       // cuartos como bloques bajos: el destino se pinta de azul, el que está bajo el cursor un poco más intenso
       map.addLayer({ id: 'ambientes-3d', type: 'fill-extrusion', source: 'ambientes', filter: ['>', ['get', 'alto'], 0], paint: {
-        'fill-extrusion-color': ['case', ['boolean', ['feature-state', 'destino'], false], AZUL, ['boolean', ['feature-state', 'hover'], false], '#C9D6EA', ['get', 'color']],
-        'fill-extrusion-height': ['get', 'alto'], 'fill-extrusion-base': 0, 'fill-extrusion-opacity': 0.96, 'fill-extrusion-vertical-gradient': false,
+        'fill-extrusion-color': ['case', ['boolean', ['feature-state', 'destino'], false], AZUL, ['boolean', ['feature-state', 'hover'], false], '#86A6DA', ['get', 'color2d']],
+        'fill-extrusion-height': ['get', 'alto'], 'fill-extrusion-base': 0, 'fill-extrusion-opacity': 1, 'fill-extrusion-vertical-gradient': false,
       } })
       // muros blancos un poco más altos que los bloques, con un contorno gris fino: el borde de cada cuarto
-      map.addLayer({ id: 'muros', type: 'fill-extrusion', source: 'muros', paint: { 'fill-extrusion-color': '#FFFFFF', 'fill-extrusion-height': ALTO + 0.12, 'fill-extrusion-base': 0, 'fill-extrusion-opacity': 0.96, 'fill-extrusion-vertical-gradient': false } })
-      map.addLayer({ id: 'muros-borde', type: 'line', source: 'muros', minzoom: 17, paint: { 'line-color': '#8A94A3', 'line-width': ['interpolate', ['linear'], ['zoom'], 17, 0.3, 21, 1], 'line-opacity': 0.8 } })
+      map.addLayer({ id: 'muros', type: 'fill-extrusion', source: 'muros', paint: { 'fill-extrusion-color': '#EEF1F5', 'fill-extrusion-height': ALTO + 0.12, 'fill-extrusion-base': 0, 'fill-extrusion-opacity': 1, 'fill-extrusion-vertical-gradient': false } })
+      // contorno de muros y de cada cuarto: gris oscuro para que se lea el borde de cada bloque
+      map.addLayer({ id: 'muros-borde', type: 'line', source: 'muros', minzoom: 17, paint: { 'line-color': '#6B7686', 'line-width': ['interpolate', ['linear'], ['zoom'], 17, 0.8, 21, 1.2], 'line-opacity': 1 } })
       // puertas: una raya oscura en el vano, solo de cerca
       map.addLayer({ id: 'puertas', type: 'line', source: 'puertas', minzoom: 18.5, paint: { 'line-color': '#4B5563', 'line-width': ['interpolate', ['linear'], ['zoom'], 18.5, 1, 21, 2.5] } })
-      map.addLayer({ id: 'barandas', type: 'fill-extrusion', source: 'barandas', paint: { 'fill-extrusion-color': '#B8C2D0', 'fill-extrusion-height': 1.0, 'fill-extrusion-base': 0, 'fill-extrusion-opacity': 0.96 } })
+      map.addLayer({ id: 'barandas', type: 'fill-extrusion', source: 'barandas', paint: { 'fill-extrusion-color': '#B8C2D0', 'fill-extrusion-height': 1.0, 'fill-extrusion-base': 0, 'fill-extrusion-opacity': 1 } })
       map.addLayer({ id: 'viseras-3d', type: 'fill-extrusion', source: 'viseras', paint: { 'fill-extrusion-color': '#E9ECF1', 'fill-extrusion-height': 4.2, 'fill-extrusion-base': 3.7, 'fill-extrusion-opacity': 0.6 } })
       // ruta: una línea azul continua con filete blanco, quieta; lo ya caminado en el recorrido queda gris encima
       const anchoRuta = (k) => ['interpolate', ['linear'], ['zoom'], 17, 4 * k, 20, 7 * k]
@@ -304,7 +317,7 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
           'text-max-width': 7, 'text-line-height': 1.1, 'symbol-sort-key': ['get', 'orden'], 'text-padding': 2,
           'text-rotation-alignment': 'viewport', 'text-letter-spacing': 0.01,
           'text-anchor': ['case', ['==', ['get', 'pin'], 1], 'top', 'center'], 'text-offset': ['case', ['==', ['get', 'pin'], 1], ['literal', [0, 1.1]], ['literal', [0, 0]]],
-        }, paint: { 'text-color': ['case', ['==', ['get', 'pasillo'], 1], '#7487A3', '#2B3443'], 'text-halo-color': 'rgba(255,255,255,0.92)', 'text-halo-width': 1.2,
+        }, paint: { 'text-color': ROTULO_2D.color, 'text-halo-color': ROTULO_2D.halo, 'text-halo-width': ROTULO_2D.ancho,
           'text-translate-anchor': 'viewport' } })
         map.addLayer(rot('rotulos', 0))
         map.addLayer(rot('rotulos-techo', 1))
