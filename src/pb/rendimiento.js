@@ -7,6 +7,10 @@ const nav = typeof navigator !== 'undefined' ? navigator : {}
 const equipoModesto = (nav.deviceMemory || 8) <= 4 && (nav.hardwareConcurrency || 8) <= 4
 export const LIGERO = forzado === '1' ? true : forzado === '0' ? false : P.get('modo') === 'totem' || equipoModesto
 
+// Movimiento reducido: la persona lo pidió en su sistema (prefers-reduced-motion). El CSS ya lo respeta con sus
+// reglas; esta constante es para lo que se anima por código (cámara, puertas y marcas del 3D, desplazamientos).
+export const REDUCIR = typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+
 // ejecuta fn cuando el navegador está libre (para no trabar la pantalla mientras se preparan los otros pisos)
 export const enReposo = (fn) => (typeof requestIdleCallback === 'function'
   ? requestIdleCallback(fn, { timeout: 1500 })

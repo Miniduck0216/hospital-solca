@@ -1,5 +1,5 @@
-// Letreros del 3D: un tótem de señalización por cada ambiente con nombre del plano (placa del color de su categoría
-// con el ícono y el nombre en blanco, sobre un poste), más los títulos de zona del plano (Zona 1, Zona 2) y las
+// Letreros del 3D: un rótulo por cada ambiente con nombre del plano (placa blanca con el nombre en azul oscuro y una
+// franja del color de su categoría, sobre un poste fino), más los títulos de zona del plano (Zona 1, Zona 2) y las
 // áreas de espera rotuladas dentro de los pasillos. Las placas siempre miran a la cámara y mantienen un tamaño legible;
 // las de cuartos pequeños se ocultan al alejarse para que no se amontonen.
 import { useEffect, useMemo, useRef } from 'react'
@@ -12,28 +12,37 @@ import { LIGERO } from './rendimiento.js'
 // (public/pb/config.json → letreros)
 const NAVY = '#1E2A4A'
 
-// placa dibujada en un lienzo: esquinas redondeadas, franja de color, nombre en blanco
+// placa dibujada en un lienzo: blanca, de esquinas apenas redondeadas y borde gris fino, con una franja del color de
+// la categoría a la izquierda y el nombre en azul oscuro; los títulos de zona van en azul oscuro con texto blanco
 function placa(texto, color, zona) {
   const esc = 2
   const fs = (zona ? 40 : 26) * esc
   const cv = document.createElement('canvas')
   const ctx = cv.getContext('2d')
-  const fuente = `800 ${fs}px "Nunito Sans", "Segoe UI", system-ui, sans-serif`
+  const fuente = `700 ${fs}px "Nunito Sans", "Segoe UI", system-ui, sans-serif`
   ctx.font = fuente
   const tw = Math.ceil(ctx.measureText(texto).width)
-  const padX = 18 * esc, padY = (zona ? 14 : 10) * esc, pico = 10 * esc
-  cv.width = tw + padX * 2
-  cv.height = fs + padY * 2 + pico
-  const w = cv.width, h = cv.height - pico, r = 12 * esc
-  ctx.fillStyle = color
-  ctx.beginPath()
-  ctx.moveTo(r, 0); ctx.lineTo(w - r, 0); ctx.quadraticCurveTo(w, 0, w, r); ctx.lineTo(w, h - r); ctx.quadraticCurveTo(w, h, w - r, h)
-  ctx.lineTo(w / 2 + pico, h); ctx.lineTo(w / 2, h + pico); ctx.lineTo(w / 2 - pico, h)
-  ctx.lineTo(r, h); ctx.quadraticCurveTo(0, h, 0, h - r); ctx.lineTo(0, r); ctx.quadraticCurveTo(0, 0, r, 0)
-  ctx.closePath(); ctx.fill()
-  ctx.lineWidth = 3 * esc; ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.stroke()
-  ctx.font = fuente; ctx.fillStyle = '#FFFFFF'; ctx.textBaseline = 'middle'; ctx.textAlign = 'center'
-  ctx.fillText(texto, w / 2, h / 2 + esc)
+  const franja = zona ? 0 : 6 * esc
+  const padX = 14 * esc, padY = (zona ? 12 : 9) * esc, m = esc   // m: margen para que el borde no se corte
+  cv.width = tw + padX * 2 + franja + m * 2
+  cv.height = fs + padY * 2 + m * 2
+  const w = cv.width - m * 2, h = cv.height - m * 2, rad = 6 * esc
+  const forma = () => {
+    ctx.beginPath()
+    ctx.moveTo(m + rad, m); ctx.lineTo(m + w - rad, m); ctx.quadraticCurveTo(m + w, m, m + w, m + rad)
+    ctx.lineTo(m + w, m + h - rad); ctx.quadraticCurveTo(m + w, m + h, m + w - rad, m + h)
+    ctx.lineTo(m + rad, m + h); ctx.quadraticCurveTo(m, m + h, m, m + h - rad); ctx.lineTo(m, m + rad); ctx.quadraticCurveTo(m, m, m + rad, m)
+    ctx.closePath()
+  }
+  forma(); ctx.fillStyle = zona ? NAVY : '#FFFFFF'; ctx.fill()
+  if (!zona) {
+    ctx.save(); forma(); ctx.clip()
+    ctx.fillStyle = color; ctx.fillRect(m, m, franja, h)
+    ctx.restore()
+    forma(); ctx.lineWidth = esc; ctx.strokeStyle = '#C9D0D9'; ctx.stroke()
+  }
+  ctx.font = fuente; ctx.fillStyle = zona ? '#FFFFFF' : NAVY; ctx.textBaseline = 'middle'; ctx.textAlign = 'center'
+  ctx.fillText(texto, m + franja + (w - franja) / 2, m + h / 2 + esc)
   const t = new THREE.CanvasTexture(cv)
   t.colorSpace = THREE.SRGBColorSpace
   t.anisotropy = 4
@@ -112,14 +121,14 @@ export function Letreros({ d, visibles = true }) {
     <group ref={grupo}>
       {items.map((it, k) => (
         <group key={k} position={[it.x, 0, -it.y]} visible={false}>
-          {/* poste del tótem */}
+          {/* poste fino del rótulo */}
           <mesh position-y={alto(it) / 2}>
-            <cylinderGeometry args={[0.05, 0.05, alto(it), 6]} />
-            <meshLambertMaterial color="#5B6577" />
+            <cylinderGeometry args={[0.025, 0.025, alto(it), 6]} />
+            <meshLambertMaterial color="#9AA3AF" />
           </mesh>
           <mesh position-y={0.04} rotation-x={-Math.PI / 2}>
             <circleGeometry args={[0.28, 16]} />
-            <meshBasicMaterial color={it.color} transparent opacity={0.5} />
+            <meshBasicMaterial color="#9AA3AF" transparent opacity={0.35} />
           </mesh>
           {/* placa: siempre de frente y de tamaño legible en pantalla */}
           <sprite position-y={alto(it)} center={[0.5, 0]} scale={[esc(it), esc(it), 1]} renderOrder={10}>

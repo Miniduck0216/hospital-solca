@@ -4,15 +4,17 @@ import { cargarDatos, cambiosDelPiso, usarGeo, CATS, ICONO_LUGAR, plano, dentro 
 import { cargarDatosEnHilo } from './cargaEnHilo.js'
 import { buscarRuta, indicaciones, metrosHasta, proximoPaso } from './ruta.js'
 import { rutaEdificio } from './rutaEdificio.js'
+import { listaPasos } from './pasoAPaso.js'
 import { Mapa } from './Mapa.jsx'
 import { Hoja } from './Hoja.jsx'
 import { Clave, PanelAdmin } from './Admin.jsx'
 import { Cargando } from './Cargando.jsx'
 import { BarraFoco, Dock } from './Hud.jsx'
 import { agruparGuia, buscarLugar, juntarIguales } from './guia.js'
-import { LIGERO, enReposo } from './rendimiento.js'
+import { LIGERO, REDUCIR, enReposo } from './rendimiento.js'
 import { CambioPiso } from './CambioPiso.jsx'
 import { Icono, Insignia } from '../ui/mapa2d/Iconos.jsx'
+import { ErrorBoundary } from './ErrorBoundary.jsx'
 
 const Vista3D = lazy(() => import('./Vista3D.jsx').then((m) => ({ default: m.Vista3D })))
 
@@ -262,7 +264,7 @@ function BarraNav({ ruta, pisoId, pisos, llego, destino, onDetener, onListo, onV
   const actualK = `${k}-${prox?.k}`
   useEffect(() => {
     if (!abierta) return
-    lista.current?.querySelector('.actual')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    lista.current?.querySelector('.actual')?.scrollIntoView({ block: 'nearest', behavior: REDUCIR ? 'auto' : 'smooth' })
   }, [abierta, actualK])
   const pasos = ruta.tramos.flatMap((t, i) => [
     ...(ruta.tramos.length > 1 ? [{ piso: t.piso, nombre: t.nombrePiso }] : []),
@@ -270,11 +272,11 @@ function BarraNav({ ruta, pisoId, pisos, llego, destino, onDetener, onListo, onV
     ...(i === 0 && ruta.vertical ? [{ tipo: ruta.vertical.tipo === 'escalera' ? 'escalera' : 'ascensor', texto: ruta.vertical.texto, i, j: 'v' }] : []),
   ])
   return (
-    <div className={`tarjeta pb-nav${abierta ? ' abierta' : ''}${llego ? ' llego' : ''}`} role="region" aria-label="Indicaciones del recorrido" aria-live="polite">
+    <div className={`tarjeta pb-nav${abierta ? ' abierta' : ''}${llego ? ' llego' : ''}`} role="region" aria-label="Indicaciones del recorrido">
       <div className="pb-nav-fila">
         <span className="pb-nav-ic"><Icono nombre={icono} size={22} color="#fff" grosor={2.4} /></span>
         <div className="pb-nav-txt">
-          <b>{titulo}</b>
+          <b aria-live="polite">{titulo}</b>
           <small>{pausa && !llego ? 'En pausa · ▶ para seguir' : llego ? `${Math.round(ruta.metros)} m recorridos` : [prox && !llego && prox.faltan >= 1 && `en ${Math.round(prox.faltan)} m`, `faltan ${quedan} m`, ruta.tramos.length > 1 && (pisos[pisoId]?.piso?.corto || pisoId)].filter(Boolean).join(' · ')}</small>
         </div>
         {!llego && onPausa && (
@@ -298,6 +300,28 @@ function BarraNav({ ruta, pisoId, pisos, llego, destino, onDetener, onListo, onV
             </li>)}
         </ol>
       )}
+    </div>
+  )
+}
+
+// «paso a paso»: una indicación a la vez, con anterior y siguiente; la vista va a cada paso sin iniciar la caminata
+function BarraPasos({ pasos, n, pisos, onIr, onCerrar }) {
+  const p = pasos[n]
+  if (!p) return null
+  const variosPisos = new Set(pasos.map((x) => x.piso)).size > 1
+  return (
+    <div className="tarjeta pb-nav pb-paso-a-paso" role="region" aria-label="Paso a paso" aria-live="polite">
+      <div className="pb-nav-fila">
+        <span className="pb-nav-ic"><Icono nombre={ICONO_PASO[p.tipo] || 'caminar'} size={22} color="#fff" grosor={2.4} /></span>
+        <div className="pb-nav-txt">
+          <b>{p.texto}</b>
+          <small>{[`${n + 1} de ${pasos.length}`, variosPisos && (pisos[p.piso]?.piso?.corto || p.piso)].filter(Boolean).join(' · ')}</small>
+        </div>
+        <button className="pb-nav-btn" onClick={() => onIr(n - 1)} disabled={n === 0} aria-label="Paso anterior" title="Anterior">◀</button>
+        <button className="pb-nav-btn" onClick={() => onIr(n + 1)} disabled={n === pasos.length - 1} aria-label="Paso siguiente" title="Siguiente">▶</button>
+        <button className="pb-nav-btn parar" onClick={onCerrar} aria-label="Cerrar el paso a paso"><Icono nombre="cerrar" size={18} grosor={2.4} /></button>
+      </div>
+      <span className="pb-nav-barra" style={{ '--p': `${Math.round(((n + 1) / pasos.length) * 100)}%` }} aria-hidden="true" />
     </div>
   )
 }
@@ -328,21 +352,32 @@ export default function App() {
   const [transicion, setTransicion] = useState(null)   // cambio de piso animado durante el recorrido (ascensor o escaleras)
   const [llego, setLlego] = useState(false)   // terminó el recorrido: la barra compacta dice «Llegaste»
   const [verPasos, setVerPasos] = useState(false)   // lista de pasos del panel de ruta (plegada para no tapar el mapa)
+  const [aviso, setAviso] = useState(null)   // aviso corto que se quita solo (piso que no cargó, 3D no disponible)
+  const [fallidos, setFallidos] = useState([])   // pisos de fondo que no cargaron (cuentan como terminados)
+  const [pisoMarcha, setPisoMarcha] = useState(null)   // piso donde camina el personaje: el recorrido solo se dibuja ahí
   const mapa = useRef(null)
   const vista3d = useRef(null)
+  const turno = useRef(0)   // número del último piso pedido a la vista: uno anterior que termina tarde no la mueve
   // zoom con botones en 2D y 3D: el tótem es táctil y no tiene rueda de ratón
   const vista = () => (modo === '3d' ? vista3d.current : mapa.current)
+  useEffect(() => {
+    if (!aviso) return
+    const t = setTimeout(() => setAviso(null), 4000)
+    return () => clearTimeout(t)
+  }, [aviso])
 
   // carga (o recarga, tras un cambio del administrador) un piso; `ver` lo deja como el piso a la vista
   // los pisos que no se ven se preparan en otro hilo: así el mapa no se traba mientras tanto (el tótem es lento)
-  const cargarPiso = (c, piso, ver = true) =>
-    (ver ? cargarDatos : cargarDatosEnHilo)(c, { pisoId: piso || undefined, cambiosUrl: CONFIG_URL, sinPublicados: MODO_ADMIN })
+  const cargarPiso = (c, piso, ver = true) => {
+    const n = ver ? ++turno.current : 0
+    return (ver ? cargarDatos : cargarDatosEnHilo)(c, { pisoId: piso || undefined, cambiosUrl: CONFIG_URL, sinPublicados: MODO_ADMIN })
       .then((datos) => {
         usarGeo(datos.geo)
         setPisos((ps) => ({ ...ps, [datos.piso.id]: datos }))
-        if (ver) { setD(datos); setPisoId(datos.piso.id) }
+        if (ver && n === turno.current) { setD(datos); setPisoId(datos.piso.id) }
         return datos
       })
+  }
   const cargar = (c, piso = pisoId) => cargarPiso(c, piso, true)
   useEffect(() => {
     const pedido = PISO_INICIAL
@@ -351,7 +386,7 @@ export default function App() {
         // los demás pisos se cargan después, sin apuro: hacen falta para buscar en todo el edificio y trazar entre pisos
         if (!datos || MODO_ADMIN) return
         const otros = (datos.edificio?.pisos || []).filter((p) => p.disponible && p.id !== datos.piso.id)
-        return otros.reduce((pr, p) => pr.then(() => new Promise((ok) => enReposo(ok))).then(() => cargarPiso(cambios, p.id, false).catch(() => null)), Promise.resolve())
+        return otros.reduce((pr, p) => pr.then(() => new Promise((ok) => enReposo(ok))).then(() => cargarPiso(cambios, p.id, false).catch(() => setFallidos((f) => [...f, p.id]))), Promise.resolve())
       })
       .catch((e) => setError(e.message))
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -363,7 +398,7 @@ export default function App() {
       if (e.origin !== PADRE || e.source !== window.parent || !e.data || e.data.tipo !== 'mapa-borrador') return
       const c = aFormato2(e.data.cambios)
       setCambios(c)
-      cargar(c).catch((err) => setError(err.message))
+      cargar(c).catch(() => setAviso('No se pudo actualizar el plano. Se ve la versión anterior.'))
     }
     window.addEventListener('message', alRecibir)
     window.parent.postMessage({ tipo: 'mapa-listo' }, PADRE)
@@ -403,8 +438,9 @@ export default function App() {
   const verPiso = (id) => {
     setPisosAbierto(false)
     if (!id || id === pisoId) return
-    if (pisos[id]) { setD(pisos[id]); setPisoId(id); setFicha(null); setHover(null) }
-    else cargar(cambios, id).catch((e) => setError(e.message))
+    setFicha(null); setHover(null)
+    if (pisos[id]) { turno.current++; setD(pisos[id]); setPisoId(id) }
+    else cargar(cambios, id).catch(() => setAviso('No se pudo cargar ese piso. Elígelo de nuevo para intentarlo.'))
   }
   // en 3D, elegir un piso en el dock también sale del «Edificio completo» (el panel Vista ya no repite los pisos)
   const cambiarPiso = (p) => { if (p.disponible) { verPiso(p.id); if (modo === '3d') vista3d.current?.verPiso?.() } }
@@ -415,6 +451,8 @@ export default function App() {
   }, [pisos, d])
   // destinos de la guía y la búsqueda: sin los baños privados (esos solo se ven en el mapa)
   const lugares = useMemo(() => todos.filter((l) => !l.enCuarto), [todos])
+  // pisos cargados o que no pudieron cargarse (esos ya no se esperan)
+  const terminados = new Set([...Object.keys(pisos), ...fallidos]).size
   // ¿se llega caminando por pasillos abiertos? (si no, la app lo dice en vez de trazar por consultorios)
   const alcanzable = (l) => {
     const dl = pisos[l.piso]
@@ -429,7 +467,7 @@ export default function App() {
     if (!lugares.length) return
     const e = delEnlace.current
     const disponibles = (d?.edificio?.pisos || []).filter((p) => p.disponible).length
-    const todos = Object.keys(pisos).length >= disponibles
+    const todos = terminados >= disponibles
     if (e.origen && porId[e.origen]) { setOrigen(porId[e.origen]); e.origen = null }
     else if (!e.origen || todos) {
       // sin origen en el enlace (o uno que no existe): la Puerta 1, cuando ya cargó la planta baja
@@ -444,7 +482,7 @@ export default function App() {
       if (l) setDestino(l)
       e.consulta = null
     }
-  }, [lugares, porId, pisos, d])
+  }, [lugares, porId, pisos, d, terminados])
 
   useEffect(() => { setRecorrer(false); setTransicion(null); setLlego(false); avance.set(null) }, [origen, destino])
 
@@ -469,16 +507,16 @@ export default function App() {
     if (!PADRE_TOTEM || !d) return
     if (!avisado.current.listo) { avisado.current.listo = true; window.parent.postMessage({ tipo: 'mapa-listo' }, PADRE_TOTEM) }
     const disponibles = (d.edificio?.pisos || []).filter((p) => p.disponible).length
-    if (!avisado.current.pisos && Object.keys(pisos).length >= disponibles) {
+    if (!avisado.current.pisos && terminados >= disponibles) {
       avisado.current.pisos = true
       window.parent.postMessage({ tipo: 'mapa-pisos-listos' }, PADRE_TOTEM)
     }
-  }, [d, pisos])
+  }, [d, pisos, terminados])
   // el pedido se aplica cuando ya están los lugares (si el destino es de un piso que todavía carga, espera)
   useEffect(() => {
     if (!pedido || !lugares.length) return
     const disponibles = (d?.edificio?.pisos || []).filter((p) => p.disponible).length
-    const todosListos = Object.keys(pisos).length >= disponibles
+    const todosListos = terminados >= disponibles
     const dest = pedido.destino ? porId[pedido.destino] : pedido.consulta && todosListos ? buscarLugar(lugares, pedido.consulta) : null
     if (!dest && !todosListos) return
     const ori = pedido.origen ? porId[pedido.origen] : null
@@ -489,7 +527,7 @@ export default function App() {
     if (ori) setOrigen(ori)
     if (dest) { setDestino(dest); if (pedido.recorrer) autoRecorrer.current = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pedido, lugares, porId, pisos])
+  }, [pedido, lugares, porId, pisos, terminados])
   // ruta completa (puede tener tramos en dos pisos): { tramos: [{ piso, pts, metros, pasos }], metros, vertical, alternativa }
   const ruta = useMemo(() => {
     if (!origen || !destino || origen.id === destino.id) return null
@@ -531,6 +569,59 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [claveRuta])
 
+  // ---------- paso a paso: se recorren a mano las indicaciones (anterior / siguiente) sin que el personaje camine
+  const [paso, setPaso] = useState(null)   // índice del paso a la vista; null: la barra está cerrada
+  const [pedidoPaso, setPedidoPaso] = useState(null)   // { piso, punto }: se aplica cuando ese piso ya está a la vista
+  const pasosRuta = useMemo(() => listaPasos(rutaOk), [rutaOk])
+  const irAPaso = (n) => {
+    const p = pasosRuta[n]
+    if (!p) return
+    setPaso(n)
+    if (p.piso !== pisoId) verPiso(p.piso)
+    setPedidoPaso({ piso: p.piso, punto: p.punto, t: Date.now() })
+  }
+  const cerrarPasos = () => { setPaso(null); setPedidoPaso(null) }
+  // la vista va al punto del paso; si el piso cambió, espera a que el mapa (o el 3D) del piso nuevo esté listo y haya
+  // encuadrado su tramo, para que ese encuadre no tape el movimiento al paso
+  useEffect(() => {
+    if (!pedidoPaso || pedidoPaso.piso !== pisoId || !pedidoPaso.punto) return
+    let vivo = true, espera = 0, intentos = 0
+    const aplicar = () => {
+      if (!vivo) return
+      const v = modo === '3d' ? vista3d.current : mapa.current
+      if (!v || v.listo?.() === false) { if (++intentos < 100) espera = setTimeout(aplicar, 100); return }
+      const [x, y] = pedidoPaso.punto
+      if (modo === '3d') v.irA?.(x, y)
+      else v.irA?.(x, y, 20)
+      setPedidoPaso(null)
+    }
+    aplicar()
+    return () => { vivo = false; clearTimeout(espera) }
+  }, [pedidoPaso, pisoId, modo])
+  // la barra se cierra sola al cambiar origen o destino, al empezar a caminar o si ya no hay ruta
+  useEffect(() => { cerrarPasos() }, [origen, destino])
+  useEffect(() => { if (recorrer || !rutaOk) cerrarPasos() }, [recorrer, rutaOk])
+  // si la ruta cambió (otra vía, ruta accesible) y tiene menos pasos, se queda en el último
+  useEffect(() => { if (paso != null && paso >= pasosRuta.length) setPaso(pasosRuta.length ? pasosRuta.length - 1 : null) }, [paso, pasosRuta])
+  // flechas ← y → del teclado mientras la barra está abierta (no mientras se escribe en un campo)
+  const teclaPaso = useRef(null)
+  teclaPaso.current = (e) => {
+    if (paso == null || e.altKey || e.ctrlKey || e.metaKey) return
+    if (e.target instanceof HTMLElement && e.target.closest('input, textarea, select, [contenteditable="true"]')) return
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
+    // la flecha es del paso a paso: el mapa no la usa para moverse o girar
+    e.preventDefault(); e.stopPropagation()
+    if (e.key === 'ArrowLeft' && paso > 0) irAPaso(paso - 1)
+    else if (e.key === 'ArrowRight' && paso < pasosRuta.length - 1) irAPaso(paso + 1)
+  }
+  const barraPasosAbierta = paso != null
+  useEffect(() => {
+    if (!barraPasosAbierta) return
+    const f = (e) => teclaPaso.current?.(e)
+    window.addEventListener('keydown', f, true)
+    return () => window.removeEventListener('keydown', f, true)
+  }, [barraPasosAbierta])
+
   // si desde el origen no hay camino, ¿desde otra entrada del edificio sí? (la app lo ofrece en vez de solo decir que no)
   const alternativa = useMemo(() => {
     if (!origen || !destino || origen.id === destino.id || rutaOk || origen.piso !== destino.piso) return null
@@ -553,6 +644,7 @@ export default function App() {
   const empezar = () => {
     if (!rutaOk) return
     setLlego(false); setTransicion(null); avance.set(null); setPausa(false)
+    setPisoMarcha(rutaOk.tramos[0].piso)
     if (rutaOk.tramos[0].piso !== pisoId) verPiso(rutaOk.tramos[0].piso)
     setRecorrer(true)
   }
@@ -571,12 +663,14 @@ export default function App() {
   const finTransicion = () => {
     const t = transicion
     setTransicion(null)
-    if (t) { avance.set(null); setPausa(false); verPiso(t.a) }
+    if (t) { avance.set(null); setPausa(false); setPisoMarcha(t.a); verPiso(t.a) }
   }
   // estado inicial para el siguiente paciente (OM3 lo pide al volver al inicio del tótem)
   reiniciarRef.current = () => {
-    setRecorrer(false); setTransicion(null); setLlego(false); avance.set(null); setPausa(false)
+    setRecorrer(false); setTransicion(null); setLlego(false); avance.set(null); setPausa(false); setPisoMarcha(null)
     setBuscando(null); setFicha(null); setFoco(null); setVerPasos(false); setPedido(null)
+    autoRecorrer.current = false
+    setAccesible(ACCESIBLE_INICIAL); setVia(VIA_INICIAL); setPisosAbierto(false); setQr(false); setHover(null)
     setDestino(null)
     setOrigen(porId['entrada-puerta-1'] || lugares.find((l) => l.entrada) || null)
     setModo(VISTA_INICIAL)
@@ -586,7 +680,9 @@ export default function App() {
   // ?recorrer=1 (enlace de OM3 con la consulta de la cita): empieza a caminar solo, una vez, cuando la ruta está lista
   const autoRecorrer = useRef(RECORRER_AUTO)
   useEffect(() => {
-    if (!autoRecorrer.current || !rutaOk) return
+    if (!autoRecorrer.current) return
+    // sin camino hasta el destino: el pedido se descarta (si la ruta todavía no está, se sigue esperando)
+    if (!rutaOk) { if (ruta?.sinRuta) autoRecorrer.current = false; return }
     autoRecorrer.current = false
     const t = setTimeout(empezar, 1200)
     return () => clearTimeout(t)
@@ -624,16 +720,21 @@ export default function App() {
   if (!d) return <Cargando texto="Cargando el plano del hospital…" />
 
   const minutos = rutaOk ? Math.max(1, Math.round((rutaOk.segundos || rutaOk.metros / 1.2) / 60)) : 0
+  // el personaje camina solo en el piso donde empezó el tramo (si se mira otro piso, el recorrido queda quieto)
+  const marchaAqui = recorrer && !transicion && pisoId === pisoMarcha
   // lo que se dibuja en este piso: el tramo, y el origen y el destino con su id local (si están en este piso)
   const local = (l) => (l && l.piso === pisoId ? { ...l, id: l.local } : null)
   const destinoVista = local(destino)
   const focoVista = foco && foco.piso === pisoId ? foco : null
+  // índice (en la lista del paso a paso) del primer paso de cada tramo: así la lista marca el paso actual
+  const inicioPasos = []
+  if (rutaOk) rutaOk.tramos.reduce((n, t, k) => { inicioPasos.push(n); return n + t.pasos.length - (k > 0 ? 1 : 0) + (k === 0 && rutaOk.vertical ? 1 : 0) }, 0)
 
   return (
     <div className={`pb-app modo-${modo === 'plano' ? '2d modo-plano' : modo}${INSERTADO ? ` insertado-${INSERTADO}` : ''}${LIGERO ? ' ligero' : ''}`}>
       {modo !== '3d'
-        ? <Mapa ref={mapa} plano={modo === 'plano'} d={d} ruta={tramo} origen={local(origen)} destino={destinoVista} foco={focoVista} hover={hover} onElegir={elegirDesdeMapa} onHover={setHover} lugaresIcono={lugaresIcono} pick={!!pick} onPick={onPick} trazo={pick?.tipo === 'trazo' ? { tipo: pick.paso, puntos: pick.puntos } : null} recorrer={recorrer && !transicion} pausa={pausa} onFinRecorrer={finTramo} onAvance={onAvance} desde={desdeAvance} />
-        : <Suspense fallback={<Cargando texto="Preparando el 3D…" />}><Vista3D ref={vista3d} d={d} pisos={pisos} onPiso={verPiso} ruta={tramo} destino={destinoVista} foco={focoVista} recorrer={recorrer && !transicion} pausa={pausa} onFinRecorrer={finTramo} onAvance={onAvance} desde={desdeAvance} /></Suspense>}
+        ? <Mapa ref={mapa} plano={modo === 'plano'} d={d} ruta={tramo} origen={local(origen)} destino={destinoVista} foco={focoVista} hover={hover} onElegir={elegirDesdeMapa} onHover={setHover} lugaresIcono={lugaresIcono} pick={!!pick} onPick={onPick} trazo={pick?.tipo === 'trazo' ? { tipo: pick.paso, puntos: pick.puntos } : null} recorrer={marchaAqui} pausa={pausa} onFinRecorrer={finTramo} onAvance={onAvance} desde={desdeAvance} />
+        : <ErrorBoundary onError={() => { setModo('2d'); setAviso('El 3D no está disponible por ahora. Sigues en 2D.') }}><Suspense fallback={<Cargando texto="Preparando el 3D…" />}><Vista3D ref={vista3d} d={d} pisos={pisos} onPiso={verPiso} ruta={tramo} destino={destinoVista} foco={focoVista} recorrer={marchaAqui} pausa={pausa} onFinRecorrer={finTramo} onAvance={onAvance} desde={desdeAvance} /></Suspense></ErrorBoundary>}
 
       {/* columna izquierda: marca, búsqueda y ruta */}
       {admin && (
@@ -663,6 +764,10 @@ export default function App() {
               onListo={() => setLlego(false)} />
           )}
 
+          {destino && rutaOk && paso != null && !(recorrer || llego || transicion) && (
+            <BarraPasos pasos={pasosRuta} n={paso} pisos={pisos} onIr={irAPaso} onCerrar={cerrarPasos} />
+          )}
+
           {destino && !(rutaOk && (recorrer || llego || transicion)) && (
             <Hoja clase="pb-ruta" resumen={rutaOk ? `${Math.round(rutaOk.metros)} m · ${minutos} min` : destino.nombre}>
               <div className="campos">
@@ -690,10 +795,17 @@ export default function App() {
                     <input type="checkbox" checked={accesible} onChange={(e) => setAccesible(e.target.checked)} />
                     <Icono nombre="accesible" size={16} /> Ruta accesible (sin escalones)
                   </label>
-                  <button className="pb-ver-pasos" onClick={() => setVerPasos((v) => !v)} aria-expanded={verPasos}>
-                    <Icono nombre={verPasos ? 'bajar' : 'subir'} size={15} grosor={2.4} />
-                    {verPasos ? 'Ocultar los pasos' : `Ver los ${rutaOk.tramos.reduce((n, t, k) => n + t.pasos.length - (k > 0 ? 1 : 0), rutaOk.vertical ? 1 : 0)} pasos`}
-                  </button>
+                  <div className="pb-ver-fila">
+                    <button className="pb-ver-pasos" onClick={() => setVerPasos((v) => !v)} aria-expanded={verPasos}>
+                      <Icono nombre={verPasos ? 'bajar' : 'subir'} size={15} grosor={2.4} />
+                      {verPasos ? 'Ocultar los pasos' : `Ver los ${rutaOk.tramos.reduce((n, t, k) => n + t.pasos.length - (k > 0 ? 1 : 0), rutaOk.vertical ? 1 : 0)} pasos`}
+                    </button>
+                    {/* recorre las indicaciones a mano: la vista va a cada paso sin caminar */}
+                    <button className="pb-ver-pasos" onClick={() => (paso != null ? cerrarPasos() : irAPaso(0))} aria-pressed={paso != null}>
+                      <Icono nombre="caminar" size={15} grosor={2.4} />
+                      Paso a paso
+                    </button>
+                  </div>
                   {verPasos && <ol className="pb-pasos">
                     {rutaOk.tramos.map((t, k) => [
                       rutaOk.tramos.length > 1 && (
@@ -704,12 +816,12 @@ export default function App() {
                         </li>
                       ),
                       ...t.pasos.filter((p, i) => !(k > 0 && i === 0)).map((p, i) => (
-                        <li key={`${k}-${i}`} className={`paso-${p.tipo}`}>
+                        <li key={`${k}-${i}`} className={`paso-${p.tipo}${paso != null && paso === inicioPasos[k] + i ? ' actual' : ''}`}>
                           <span className="pb-paso-i"><Icono nombre={ICONO_PASO[p.tipo]} size={15} /></span>{p.texto}
                         </li>
                       )),
                       k === 0 && rutaOk.vertical && (
-                        <li key="vertical" className="paso-vertical">
+                        <li key="vertical" className={`paso-vertical${paso != null && paso === inicioPasos[0] + t.pasos.length ? ' actual' : ''}`}>
                           <span className="pb-paso-i"><Icono nombre={rutaOk.vertical.tipo === 'ascensor' ? 'ascensor' : 'escalera'} size={15} /></span>{rutaOk.vertical.texto}
                         </li>
                       ),
@@ -799,6 +911,7 @@ export default function App() {
       </div>
 
       {transicion && <CambioPiso {...transicion} pisos={d.edificio?.pisos || []} onFin={finTransicion} />}
+      {aviso && <div className="tarjeta pb-aviso" role="status">{aviso}</div>}
       {pedirClave && <Clave onOk={() => { setAdmin(true); setPedirClave(false) }} onCerrar={() => setPedirClave(false)} />}
       {qr && origen && <QR lugar={{ ...origen, pisoNombre: pisos[origen.piso]?.piso?.nombre }} onCerrar={() => setQr(false)} />}
       {!INSERTADO && <a className="pb-proto" href={`${import.meta.env.BASE_URL}prototipo/`}>Prototipo anterior (5 pisos)</a>}

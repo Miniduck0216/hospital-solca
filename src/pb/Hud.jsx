@@ -3,6 +3,7 @@
 // - Dock: el "Glass Dock": barra de vidrio con íconos que crecen al pasar y una etiqueta que se desliza al ícono.
 import { useEffect, useRef, useState } from 'react'
 import { Icono } from '../ui/mapa2d/Iconos.jsx'
+import { REDUCIR } from './rendimiento.js'
 
 export function BarraFoco({ items, activo = null, onElegir }) {
   const nav = useRef(null)
@@ -22,7 +23,7 @@ export function BarraFoco({ items, activo = null, onElegir }) {
     }
     // la categoría activa se desliza a la vista si quedó cortada
     const b = activo ? f.querySelector(`[data-id="${activo}"]`) : null
-    if (b) f.scrollTo({ left: Math.max(0, b.offsetLeft - (f.clientWidth - b.offsetWidth) / 2), behavior: 'smooth' })
+    if (b) f.scrollTo({ left: Math.max(0, b.offsetLeft - (f.clientWidth - b.offsetWidth) / 2), behavior: REDUCIR ? 'auto' : 'smooth' })
     ubicar()
     f.addEventListener('scroll', ubicar, { passive: true })
     return () => f.removeEventListener('scroll', ubicar)

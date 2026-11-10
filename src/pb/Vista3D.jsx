@@ -9,7 +9,7 @@ import { BASE, aLonLat, rumbo, dePlano, CATS } from './datos.js'
 import { Cargando } from './Cargando.jsx'
 import { Exterior } from './Exterior3D.jsx'
 import { Letreros } from './Letreros3D.jsx'
-import { LIGERO } from './rendimiento.js'
+import { LIGERO, REDUCIR } from './rendimiento.js'
 
 const E = ([x, y], h = 0) => new THREE.Vector3(x, h, -y)    // plano (x, y) -> escena
 
@@ -28,19 +28,20 @@ function SueloMapa({ centro, onListo }) {
     try {
       map = new maplibregl.Map({ container: div, style: 'https://tiles.openfreemap.org/styles/positron', center: c, zoom, bearing: rumbo(),
         interactive: false, attributionControl: false, pixelRatio: 1, preserveDrawingBuffer: true, fadeDuration: 0 })
-      // estilo de maqueta isométrica: césped de fondo, calles de asfalto oscuro, aceras claras, sin rótulos
+      // estilo sobrio de plano de sitio: césped apagado de fondo, calles gris claro, aceras casi blancas, sin rótulos
+      // (el fondo conserva algo de verde: Exterior3D reconoce el pasto por ese tono al repartir árboles)
       map.on('style.load', () => {
         for (const l of map.getStyle().layers) {
           try {
             if (l.type === 'symbol') map.setLayoutProperty(l.id, 'visibility', 'none')
-            else if (l.type === 'background') map.setPaintProperty(l.id, 'background-color', '#A9D18E')
-            else if (l.type === 'fill' && /water/.test(l.id)) map.setPaintProperty(l.id, 'fill-color', '#7EC8E3')
-            else if (l.type === 'fill' && /building/.test(l.id)) map.setPaintProperty(l.id, 'fill-color', '#E8E1D3')
-            else if (l.type === 'fill' && /park|grass|wood|garden|pitch|forest|scrub|meadow|cemetery/.test(l.id)) map.setPaintProperty(l.id, 'fill-color', '#93C47D')
-            else if (l.type === 'fill') map.setPaintProperty(l.id, 'fill-color', '#B4D79C')
-            else if (l.type === 'line' && /path|pedestrian|footway|steps|track/.test(l.id)) map.setPaintProperty(l.id, 'line-color', '#E9E3D6')
-            else if (l.type === 'line' && /casing/.test(l.id)) map.setPaintProperty(l.id, 'line-color', '#E4DED2')
-            else if (l.type === 'line' && /road|highway|street|bridge|tunnel|motorway|trunk|primary|secondary|tertiary|minor|service/.test(l.id)) map.setPaintProperty(l.id, 'line-color', '#5A626E')
+            else if (l.type === 'background') map.setPaintProperty(l.id, 'background-color', '#D3E0CC')
+            else if (l.type === 'fill' && /water/.test(l.id)) map.setPaintProperty(l.id, 'fill-color', '#C9DCE6')
+            else if (l.type === 'fill' && /building/.test(l.id)) map.setPaintProperty(l.id, 'fill-color', '#E6E8EB')
+            else if (l.type === 'fill' && /park|grass|wood|garden|pitch|forest|scrub|meadow|cemetery/.test(l.id)) map.setPaintProperty(l.id, 'fill-color', '#C3D4BC')
+            else if (l.type === 'fill') map.setPaintProperty(l.id, 'fill-color', '#D3E0CC')
+            else if (l.type === 'line' && /path|pedestrian|footway|steps|track/.test(l.id)) map.setPaintProperty(l.id, 'line-color', '#ECEDEF')
+            else if (l.type === 'line' && /casing/.test(l.id)) map.setPaintProperty(l.id, 'line-color', '#E1E4E8')
+            else if (l.type === 'line' && /road|highway|street|bridge|tunnel|motorway|trunk|primary|secondary|tertiary|minor|service/.test(l.id)) map.setPaintProperty(l.id, 'line-color', '#AEB4BC')
             else if (l.type === 'line' && /boundary|admin/.test(l.id)) map.setLayoutProperty(l.id, 'visibility', 'none')
           } catch { /* capa sin esa propiedad */ }
         }
@@ -48,6 +49,7 @@ function SueloMapa({ centro, onListo }) {
     } catch { div.remove(); return }
     let hecho = false
     let intentos = 0
+    let espera = 0   // reintento del suelo (se cancela al salir del 3D)
     const copiar = () => {
       if (!vivo || hecho) return
       // ¿ya hay calles dibujadas? (si el lienzo es liso todavía no llegaron las teselas)
@@ -60,8 +62,7 @@ function SueloMapa({ centro, onListo }) {
       for (let i = 0; i < px.length; i += 4) { const v = px[i] + px[i + 1] + px[i + 2]; s1 += v; s2 += v * v }
       const n = px.length / 4
       const desv = Math.sqrt(Math.max(0, s2 / n - (s1 / n) ** 2))
-      console.info('[suelo 3D] intento', intentos, 'variación', desv.toFixed(1))
-      if (desv < 4 && intentos++ < 8) { setTimeout(() => { map.triggerRepaint(); map.once('idle', copiar) }, 1200); return }
+      if (desv < 4 && intentos++ < 8) { espera = setTimeout(() => { map.triggerRepaint(); map.once('idle', copiar) }, 1200); return }
       hecho = true
       const cv = document.createElement('canvas')
       cv.width = cv.height = PX
@@ -79,23 +80,29 @@ function SueloMapa({ centro, onListo }) {
     }
     map.once('idle', copiar)
     map.on('error', () => {})
-    return () => { vivo = false; try { map.remove() } catch { /* listo */ } div.remove() }
+    return () => { vivo = false; clearTimeout(espera); try { map.remove() } catch { /* listo */ } div.remove() }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   return (
     <mesh rotation-x={-Math.PI / 2} position={[centro[0], -0.62, -centro[1]]} receiveShadow renderOrder={-1}>
       <planeGeometry args={[LADO, LADO]} />
       {tex ? <meshBasicMaterial key="mapa" map={tex} toneMapped={false} polygonOffset polygonOffsetFactor={4} polygonOffsetUnits={4} />
-        : <meshBasicMaterial key="liso" color="#A9D18E" toneMapped={false} polygonOffset polygonOffsetFactor={4} polygonOffsetUnits={4} />}
+        : <meshBasicMaterial key="liso" color="#D3E0CC" toneMapped={false} polygonOffset polygonOffsetFactor={4} polygonOffsetUnits={4} />}
     </mesh>
   )
 }
 
 // el GLB trae los pisos agrupados por color (pisos|r,g,b|h): cada grupo toma la paleta de interiores de la categoría
-// más parecida (la misma del mapa 2D): cuartos celestes, farmacia lila, baños turquesa, pasillos claros
-// paleta de maqueta isométrica: colores planos y saturados por tipo de ambiente, pasillos en tono arena
-const PALETA = { consulta: '#78AEEA', administracion: '#EE9A6B', apoyo: '#A7B2BE', otro: '#B9C2CC', farmacia: '#B08AE0', banos: '#4FC3C9', escaleras: '#C2C8D0', ascensores: '#C2C8D0', circulacion: '#E9D8BC', espera: '#F2C255' }
-const ACENTOS = Object.entries(CATS).map(([k, c]) => ({ rgb: new THREE.Color(c.relleno), color: new THREE.Color(PALETA[k] || PALETA.otro) }))
+// más parecida (la misma del mapa 2D)
+// paleta sobria: tonos casi neutros por tipo de ambiente (apenas un matiz para distinguirlos), pasillos casi blancos;
+// el único color fuerte de la vista es el azul del destino y de la ruta
+const PALETA = Object.fromEntries(Object.entries(CATS).map(([k, c]) => [k, c.relleno]))
+const AZUL = '#2F5BEA'
+// los colores con que se exportaron los GLB (los rellenos de CATS de entonces): con ellos se reconoce la categoría de
+// cada grupo de pisos del modelo. No cambian aunque cambie la paleta de CATS (cambiarían al regenerar los GLB).
+const RELLENO_GLB = { consulta: '#E3EBFC', espera: '#E2F3E7', banos: '#DDF0F7', farmacia: '#EFE7FB', administracion: '#FFF0D6', circulacion: '#FFFFFF',
+  apoyo: '#EDF0F3', escaleras: '#E4E7EC', ascensores: '#E4E7EC', otro: '#F2F4F7' }
+const ACENTOS = Object.entries(RELLENO_GLB).map(([k, c]) => ({ rgb: new THREE.Color(c), color: new THREE.Color(PALETA[k] || PALETA.otro) }))
 function colorDePiso(nombre) {
   const [r, g, b] = (nombre.split('|')[1] || '0,0,0').split(',').map(Number)
   let mejor = null, dist = Infinity
@@ -108,6 +115,16 @@ function colorDePiso(nombre) {
 
 // hojas de puerta y manijas del modelo: en el piso que se mira se ocultan porque la web dibuja sus propias puertas que
 // se abren (ver Puertas); en los demás pisos quedan las del modelo, cerradas
+// MARCO: los marcos de las puertas del modelo (gris oscuro); se pintan aparte para que el vano se lea contra el muro
+const MARCO = 'muros|0.102,0.109,0.130'
+// nombre de una malla del modelo tal como se exportó (grupo|r,g,b|h). Al cargar el GLB, three.js quita los puntos de
+// los nombres («muros|0.360,0.160,0.053» queda «muros|0360,0160,0053») y guarda el original en userData.name: sin
+// esto no se reconocían las hojas de puerta del modelo (quedaban a la vista, encimadas con las de la página) ni el
+// color de cada grupo de pisos
+const nombreDe = (o) => {
+  const n = o.userData?.name || o.parent?.userData?.name || o.name || o.parent?.name || ''
+  return n.includes('.') ? n : n.replace(/(^|[|,])(\d)(\d{2,3})(?=[|,]|$)/g, '$1$2.$3')
+}
 const OCULTOS = ['muros|0.360,0.160,0.053', 'muros|0.562,0.026,0.014', 'muebles|0.672,0.672,0.706']
 
 // altura de un piso a otro (muros de 3,84 m + losa) y cuánto suben los pisos de arriba al mirar uno de abajo
@@ -146,21 +163,23 @@ function ParteEdificio({ url, activo, corte, letreros, plano }) {
   const { scene } = useGLTF(`${BASE}${url}?v=${__VERSION__}`)
   const { gl } = useThree()
   // tapa de los muros cortados: al recortar la altura, el interior hueco del muro se veía como un bloque gris
-  // descuadrado; las caras traseras se pintan del color de la tapa y el corte se ve macizo
-  const tapa = useMemo(() => new THREE.MeshBasicMaterial({ color: '#E6DED0', side: THREE.BackSide }), [])
+  // descuadrado; las caras traseras se pintan del color de la tapa y el corte se ve macizo. La tapa es oscura, como el
+  // muro seccionado de un plano de arquitectura: da el contorno de cada cuarto sobre los pisos claros
+  const tapa = useMemo(() => new THREE.MeshBasicMaterial({ color: '#5B6472', side: THREE.BackSide }), [])
   useEffect(() => { gl.localClippingEnabled = true; tapa.clippingPlanes = [plano] }, [gl, plano, tapa])
+  useEffect(() => () => tapa.dispose(), [tapa])
   useEffect(() => {
     scene.traverse((o) => {
       if (!o.isMesh || o.userData.tapa) return
       o.castShadow = true
       o.receiveShadow = true
-      const nombre = o.name || o.parent?.name || ''
+      const nombre = nombreDe(o)
       const g = nombre.split('|')[0]
       if (OCULTOS.some((k) => nombre.startsWith(k))) { o.visible = !activo; return }
       const m = o.material
       if (g === 'pisos' && !o.userData.coloreado) {
         const c = colorDePiso(nombre)
-        if (c) { o.material = m.clone(); o.material.color.copy(c); o.material.roughness = 0.85 }
+        if (c) { o.material = m.clone(); o.material.color.copy(c); o.material.roughness = 0.95 }
         o.userData.coloreado = true
       }
       // los pisos de color del piso que se mira los dibuja PisosColor (con el destino resaltado); en los demás
@@ -168,11 +187,14 @@ function ParteEdificio({ url, activo, corte, letreros, plano }) {
       if (g === 'pisos') o.visible = !activo || nombre.startsWith('pisos|0.384')
       if (g === 'letreros') o.visible = letreros
       if (g === 'viseras') o.visible = corte >= 3.8
-      // paleta de interiores: muros casi blancos, mobiliario gris en celeste suave
+      // paleta de interiores: muros casi blancos, mobiliario gris claro, marcos de puerta gris medio
       if ((g === 'muros' || g === 'muebles') && !o.userData.tono && o.material?.color) {
         const hsl = o.material.color.getHSL({})
-        if (nombre.startsWith('muros|0.902')) { o.material = o.material.clone(); o.material.color.set('#FBF7EF'); o.material.roughness = 1 }
-        else if (hsl.s < 0.12) { o.material = o.material.clone(); o.material.color.set(g === 'muros' ? '#F3EFE6' : '#C6D8F0'); o.material.roughness = 0.9 }
+        if (nombre.startsWith(MARCO)) { o.material = o.material.clone(); o.material.color.set('#6B7280'); o.material.roughness = 0.9 }
+        else if (nombre.startsWith('muros|0.902')) { o.material = o.material.clone(); o.material.color.set('#FAFAF8'); o.material.roughness = 1 }
+        else if (hsl.s < 0.12) { o.material = o.material.clone(); o.material.color.set(g === 'muros' ? '#F1F2F3' : '#D9DDE2'); o.material.roughness = 1 }
+        // mobiliario de color (madera, tapizados): se apaga hacia el gris para que no compita con la ruta
+        else if (g === 'muebles' && !o.material.transparent) { o.material = o.material.clone(); o.material.color.setHSL(hsl.h, hsl.s * 0.35, 0.45 + hsl.l * 0.5); o.material.roughness = 1 }
         o.userData.tono = true
       }
       if (o.material && g !== 'pisos') { o.material.clippingPlanes = [plano]; o.material.clipShadows = true; o.material.needsUpdate = true }
@@ -194,8 +216,8 @@ function ParteEdificio({ url, activo, corte, letreros, plano }) {
 }
 
 // techo de un piso: losa sobre su huella (con los patios y tragaluces abiertos) y un antepecho en el borde
-const TECHO = new THREE.MeshStandardMaterial({ color: '#D8D2C6', roughness: 0.95 })
-const ANTEPECHO = new THREE.MeshStandardMaterial({ color: '#F1ECE2', roughness: 1 })
+const TECHO = new THREE.MeshStandardMaterial({ color: '#D9DCE0', roughness: 0.95 })
+const ANTEPECHO = new THREE.MeshStandardMaterial({ color: '#EEF0F2', roughness: 1 })
 function Techo({ huella }) {
   const geos = useMemo(() => {
     const V = ([x, y]) => new THREE.Vector2(x, y)
@@ -219,6 +241,8 @@ function Techo({ huella }) {
     }
     return { losas, bordes }
   }, [huella])
+  // R3F no libera las geometrías que se pasan como prop: se liberan al desmontar
+  useEffect(() => () => [...geos.losas, ...geos.bordes].forEach((g) => g.dispose()), [geos])
   // la losa va justo bajo el piso de arriba (que la tapa donde lo hay) y se ve como azotea donde no
   return (
     <group position-y={3.86}>
@@ -242,116 +266,81 @@ function medir(pts) {
   return { L, en }
 }
 
-// ruta 3D: franja suave en el piso y una fila de puntos que avanza (como en el 2D); lo ya caminado queda gris
-const PASO_PUNTOS = 1.0
+// ruta 3D: una línea continua en el piso (azul, con filete blanco para que se lea sobre cualquier piso), quieta; en el
+// recorrido lo ya caminado queda gris. Sin puntos que avanzan ni destellos.
 function Ruta({ ruta, andado }) {
   const { L, en } = useMemo(() => medir(ruta.pts), [ruta])
-  const n = Math.max(2, Math.floor(L / PASO_PUNTOS) + 2)
-  const malla = useRef()
-  const franja = useMemo(() => ruta.pts.map((p) => E(p, 0.07)), [ruta])
-  const tmp = useMemo(() => new THREE.Object3D(), [])
-  const colores = useMemo(() => ({ ir: new THREE.Color('#1E2A4A'), hecho: new THREE.Color('#B9C3D3'), luz: new THREE.Color('#4C6FFF') }), [])
-  useFrame(({ clock }) => {
-    const m = malla.current
-    if (!m) return
-    const t = clock.elapsedTime
-    const fase = (t * 0.8) % PASO_PUNTOS
-    const cabeza = (t * 7) % (L + 12)
-    for (let k = 0; k < n; k++) {
-      const s = fase + k * PASO_PUNTOS
-      if (s > L) { tmp.scale.setScalar(0); tmp.updateMatrix(); m.setMatrixAt(k, tmp.matrix); continue }
-      const q = en(s)
-      tmp.position.set(q.x, 0.16, -q.y)
-      tmp.scale.setScalar(1)
-      tmp.updateMatrix()
-      m.setMatrixAt(k, tmp.matrix)
-      const a = andado.current
-      m.setColorAt(k, a !== null ? (s < a ? colores.hecho : colores.ir) : s <= cabeza && s > cabeza - 5 ? colores.luz : colores.ir)
-    }
-    m.instanceMatrix.needsUpdate = true
-    if (m.instanceColor) m.instanceColor.needsUpdate = true
+  const linea = useMemo(() => ruta.pts.map((p) => E(p, 0.07)), [ruta])
+  const filete = useMemo(() => ruta.pts.map((p) => E(p, 0.062)), [ruta])   // un poco más abajo: no pelea con la azul
+  // metros ya caminados, de metro en metro: la línea gris se rehace una vez por metro, no en cada cuadro
+  const [hecho, setHecho] = useState(0)
+  const ult = useRef(0)
+  useFrame(() => {
+    const a = andado.current
+    const v = a === null ? 0 : Math.min(Math.floor(a), Math.ceil(L))
+    if (v !== ult.current) { ult.current = v; setHecho(v) }
   })
+  const caminado = useMemo(() => {
+    if (hecho < 1) return null
+    const s = Math.min(hecho, L), out = [E(ruta.pts[0], 0.085)]
+    let acum = 0
+    for (let i = 1; i < ruta.pts.length; i++) {
+      const tramo = Math.hypot(ruta.pts[i][0] - ruta.pts[i - 1][0], ruta.pts[i][1] - ruta.pts[i - 1][1])
+      if (acum + tramo >= s) break
+      acum += tramo
+      out.push(E(ruta.pts[i], 0.085))
+    }
+    const q = en(s)
+    out.push(E([q.x, q.y], 0.085))
+    return out
+  }, [hecho, ruta, L, en])
   return (
     <group>
-      <Line points={franja} color="#1E2A4A" lineWidth={14} transparent opacity={0.12} />
-      <instancedMesh key={n} ref={malla} args={[null, null, n]} frustumCulled={false}>
-        <sphereGeometry args={[0.15, 14, 10]} />
-        <meshBasicMaterial toneMapped={false} />
-      </instancedMesh>
+      <Line points={filete} color="#FFFFFF" lineWidth={LIGERO ? 16 : 20} renderOrder={10} depthTest={false} />
+      <Line points={linea} color={AZUL} lineWidth={LIGERO ? 10 : 12} renderOrder={11} depthTest={false} />
+      {caminado && <Line key={hecho} points={caminado} color="#B9C3D3" lineWidth={LIGERO ? 10 : 12} renderOrder={11} depthTest={false} />}
       <Meta pos={ruta.pts[ruta.pts.length - 1]} />
     </group>
   )
 }
 
-// destino: un aro lila que pulsa en el piso y una columna de luz suave (no un pin)
+// destino: un disco azul fijo en el piso con borde blanco (sin pulso ni columna de luz); el cuarto de destino ya
+// va pintado de azul (ver PisosColor)
 function Meta({ pos }) {
-  const aro = useRef()
-  useFrame(({ clock }) => {
-    if (!aro.current) return
-    const k = 1 + 0.25 * ((clock.elapsedTime * 0.9) % 1)
-    aro.current.scale.set(k, k, 1)
-    aro.current.material.opacity = 0.9 - 0.7 * ((clock.elapsedTime * 0.9) % 1)
-  })
   return (
     <group position={E(pos, 0)}>
-      <mesh rotation-x={-Math.PI / 2} position-y={0.1}><circleGeometry args={[0.9, 40]} /><meshBasicMaterial color="#7C83E6" transparent opacity={0.45} toneMapped={false} /></mesh>
-      <mesh ref={aro} rotation-x={-Math.PI / 2} position-y={0.11}><ringGeometry args={[1.0, 1.25, 48]} /><meshBasicMaterial color="#7C83E6" transparent toneMapped={false} /></mesh>
-      <mesh position-y={1.6}><cylinderGeometry args={[0.55, 0.85, 3.2, 32, 1, true]} /><meshBasicMaterial color="#7C83E6" transparent opacity={0.16} side={THREE.DoubleSide} depthWrite={false} toneMapped={false} /></mesh>
+      <mesh rotation-x={-Math.PI / 2} position-y={0.1}><circleGeometry args={[0.66, 40]} /><meshBasicMaterial color="#FFFFFF" toneMapped={false} /></mesh>
+      <mesh rotation-x={-Math.PI / 2} position-y={0.11}><circleGeometry args={[0.5, 40]} /><meshBasicMaterial color={AZUL} toneMapped={false} /></mesh>
     </group>
   )
 }
 
-// personaje: cuerpo articulado (cabeza, cabello, torso, brazos y piernas con zapatos) de 1,7 m
-// que balancea brazos y piernas al caminar y respira cuando está quieto
-const PIEL = '#E2B48E'
-function Personaje({ caminando }) {
-  const brazoI = useRef(), brazoD = useRef(), piernaI = useRef(), piernaD = useRef(), torso = useRef()
-  useFrame(({ clock }) => {
-    const t = clock.elapsedTime
-    const a = caminando.current ? Math.sin(t * 7.5) * 0.55 : 0
-    if (piernaI.current) { piernaI.current.rotation.x = a; piernaD.current.rotation.x = -a }
-    if (brazoI.current) { brazoI.current.rotation.x = -a * 0.8; brazoD.current.rotation.x = a * 0.8 }
-    if (torso.current) torso.current.position.y = caminando.current ? 0.02 * Math.abs(Math.cos(t * 7.5)) : 0.008 * Math.sin(t * 2)
-  })
-  const mat = (c, r = 0.7) => <meshStandardMaterial color={c} roughness={r} />
-  const pierna = (ref, x) => (
-    <group ref={ref} position={[x, 0.86, 0]}>
-      <mesh position-y={-0.4} castShadow><capsuleGeometry args={[0.075, 0.62, 6, 12]} />{mat('#24324F')}</mesh>
-      <mesh position={[0, -0.82, 0.05]} castShadow><boxGeometry args={[0.13, 0.08, 0.27]} />{mat('#F4F6FA', 0.5)}</mesh>
-    </group>
-  )
-  const brazo = (ref, x) => (
-    <group ref={ref} position={[x, 1.42, 0]}>
-      <mesh position-y={-0.22} castShadow><capsuleGeometry args={[0.055, 0.3, 6, 10]} />{mat('#4C6FFF')}</mesh>
-      <mesh position-y={-0.5} castShadow><capsuleGeometry args={[0.045, 0.2, 6, 10]} />{mat(PIEL)}</mesh>
-    </group>
-  )
+// personaje: una ficha sobria (peón azul de 1,5 m, sin cara ni brazos, sin balanceo) sobre un disco de «usted está
+// aquí» con una punta que marca hacia dónde avanza (+z local)
+const PUNTA = (() => {
+  const f = new THREE.Shape([new THREE.Vector2(-0.2, 0.5), new THREE.Vector2(0.2, 0.5), new THREE.Vector2(0, 0.86)])
+  const g = new THREE.ShapeGeometry(f)
+  g.rotateX(Math.PI / 2)   // al piso: la punta (y del dibujo) queda hacia +z
+  return g
+})()
+function Personaje() {
   return (
     <group>
-      {pierna(piernaI, -0.1)}
-      {pierna(piernaD, 0.1)}
-      <group ref={torso}>
-        <mesh position-y={1.17} castShadow><capsuleGeometry args={[0.17, 0.38, 8, 16]} />{mat('#4C6FFF')}</mesh>
-        <mesh position-y={0.9} castShadow><cylinderGeometry args={[0.16, 0.17, 0.12, 16]} />{mat('#24324F')}</mesh>
-        {brazo(brazoI, -0.235)}
-        {brazo(brazoD, 0.235)}
-        <mesh position-y={1.5} castShadow><cylinderGeometry args={[0.05, 0.055, 0.08, 12]} />{mat(PIEL)}</mesh>
-        <mesh position-y={1.64} castShadow><sphereGeometry args={[0.12, 24, 18]} />{mat(PIEL, 0.6)}</mesh>
-        <mesh position={[0, 1.69, -0.015]} scale={[1.05, 0.8, 1.08]} castShadow><sphereGeometry args={[0.12, 24, 18, 0, Math.PI * 2, 0, Math.PI / 1.7]} />{mat('#3A2A20', 0.8)}</mesh>
-        <mesh position={[-0.042, 1.66, 0.108]}><sphereGeometry args={[0.014, 8, 8]} />{mat('#1E2A4A', 0.4)}</mesh>
-        <mesh position={[0.042, 1.66, 0.108]}><sphereGeometry args={[0.014, 8, 8]} />{mat('#1E2A4A', 0.4)}</mesh>
-      </group>
-      {/* sombra de contacto y aro de "usted está aquí" */}
-      <mesh rotation-x={-Math.PI / 2} position-y={0.05}><ringGeometry args={[0.42, 0.52, 40]} /><meshBasicMaterial color="#4C6FFF" transparent opacity={0.8} toneMapped={false} /></mesh>
-      <mesh rotation-x={-Math.PI / 2} position-y={0.04}><circleGeometry args={[0.42, 32]} /><meshBasicMaterial color="#1E2A4A" transparent opacity={0.18} /></mesh>
+      <mesh position-y={0.62} castShadow><cylinderGeometry args={[0.09, 0.2, 1.16, 20]} /><meshStandardMaterial color={AZUL} roughness={0.8} /></mesh>
+      <mesh position-y={1.32} castShadow><sphereGeometry args={[0.19, 24, 18]} /><meshStandardMaterial color={AZUL} roughness={0.8} /></mesh>
+      <mesh rotation-x={-Math.PI / 2} position-y={0.1}><ringGeometry args={[0.38, 0.5, 40]} /><meshBasicMaterial color="#FFFFFF" toneMapped={false} /></mesh>
+      <mesh rotation-x={-Math.PI / 2} position-y={0.1}><circleGeometry args={[0.38, 32]} /><meshBasicMaterial color={AZUL} transparent opacity={0.3} toneMapped={false} /></mesh>
+      <mesh geometry={PUNTA} position-y={0.1}><meshBasicMaterial color={AZUL} side={THREE.DoubleSide} toneMapped={false} /></mesh>
     </group>
   )
 }
 
-// puertas animadas: cada hoja gira sobre su bisagra. Las que cruza la ruta se abren una tras otra (hacia donde se
-// camina) cuando aparece la ruta; en el recorrido se abren al acercarse el personaje (a menos de 2,4 m, hacia el lado
-// contrario a él) y se cierran cuando se aleja
-const MADERA = '#9C6B3E'
+// puertas: cada hoja gira sobre su bisagra. Las que cruza la ruta están abiertas (hacia donde se camina) desde que
+// aparece la ruta, sin animación; en el recorrido se abren al acercarse el personaje (a menos de 2,4 m, hacia el lado
+// contrario a él) y se cierran cuando se aleja.
+// Con los muros bajos (corte por debajo del dintel) la hoja maciza quedaba recortada como una tabla suelta: ahí se
+// dibuja el símbolo de plano en el piso (la hoja abierta y su arco de 90°), quieto y en una sola malla.
+const ALTO_HOJA = 2.04
 function cruce(a, b, p, q) {
   // intersección de los segmentos a-b (puerta) y p-q (tramo de ruta): devuelve t en p-q o null
   const r = [b[0] - a[0], b[1] - a[1]], s = [q[0] - p[0], q[1] - p[1]]
@@ -361,7 +350,7 @@ function cruce(a, b, p, q) {
   const u = (ap[0] * s[1] - ap[1] * s[0]) / den, t = (ap[0] * r[1] - ap[1] * r[0]) / den
   return u >= -0.05 && u <= 1.05 && t >= 0 && t <= 1 ? t : null
 }
-function Puertas({ puertas, plano, persona, ruta, recorrer }) {
+function Puertas({ puertas, plano, persona, ruta, recorrer, corte }) {
   const hojas = useMemo(() => {
     const out = []
     for (const p of puertas) {
@@ -376,8 +365,13 @@ function Puertas({ puertas, plano, persona, ruta, recorrer }) {
         const D = [b[0] - a[0], b[1] - a[1]], DL = Math.hypot(...D) || 1
         const n = [-D[1] / DL, D[0] / DL]
         const nl = [-uy, ux]   // normal propia de esta hoja
-        const off = (p.c || 0) * (n[0] * nl[0] + n[1] * nl[1])
-        out.push({ h, a, b, L: p.doble ? L - 0.005 : L - 0.1, ini: p.doble ? 0.005 : 0.05, th: Math.atan2(uy, ux), off, nl, ducto: p.ducto, mid })
+        const lado = n[0] * nl[0] + n[1] * nl[1]
+        const off = (p.c || 0) * lado
+        // la bisagra va en la cara del muro donde está la hoja (a "c" del eje): así la hoja gira pegada a la jamba
+        const eje = [h[0] + nl[0] * off, h[1] + nl[1] * off]
+        // sin ruta, el símbolo abre hacia la cara donde está montada la hoja (las dos hojas de una doble, al mismo lado)
+        const abre0 = (p.c || 0) < -0.01 ? -lado : lado
+        out.push({ h, eje, a, b, u: [ux, uy], L: p.doble ? L - 0.005 : L - 0.1, ini: p.doble ? 0.005 : 0.05, th: Math.atan2(uy, ux), nl, abre0: abre0 >= 0 ? 1 : -1, ducto: p.ducto, mid })
       }
     }
     return out
@@ -401,21 +395,55 @@ function Puertas({ puertas, plano, persona, ruta, recorrer }) {
     }
     return m
   }, [ruta, hojas])
-  const desde = useRef(0)
-  useEffect(() => { desde.current = performance.now() }, [ruta])
+  // con muros bajos: símbolo en el piso; con muros medios o completos: la hoja de 2,04 m
+  const simbolo = corte < ALTO_HOJA + 0.06
   const grupos = useRef([])
   const ang = useRef(new Float32Array(hojas.length))
   useEffect(() => { ang.current = new Float32Array(hojas.length) }, [hojas])
-  const mats = useMemo(() => ({
-    madera: new THREE.MeshStandardMaterial({ color: MADERA, roughness: 0.7 }),
-    roja: new THREE.MeshStandardMaterial({ color: '#C0392B', roughness: 0.7 }),
-    manija: new THREE.MeshStandardMaterial({ color: '#D7DBE0', roughness: 0.3, metalness: 0.6 }),
-  }), [])
-  useEffect(() => { for (const m of Object.values(mats)) m.clippingPlanes = [plano] }, [mats, plano])
+  const mats = useMemo(() => {
+    const canto = new THREE.MeshStandardMaterial({ color: '#8A8F98', roughness: 0.8 })
+    const cara = (c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.85 })
+    const clara = cara('#E4E1DB'), ducto = cara('#B9A9A6')
+    // caja: +x, -x, +y, -y son los cantos; +z y -z, las caras de la hoja
+    return { canto, clara, ducto, hoja: [canto, canto, canto, canto, clara, clara], hojaDucto: [canto, canto, canto, canto, ducto, ducto],
+      manija: new THREE.MeshStandardMaterial({ color: '#8A8F98', roughness: 0.4, metalness: 0.4 }),
+      linea: new THREE.MeshBasicMaterial({ color: '#4B5563', side: THREE.DoubleSide, toneMapped: false, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 }) }
+  }, [])
+  useEffect(() => { for (const m of [mats.canto, mats.clara, mats.ducto, mats.manija]) m.clippingPlanes = [plano] }, [mats, plano])
+  // símbolo de plano de todas las puertas en una sola malla: la hoja abierta (4 cm) y el arco que recorre al abrir
+  const geoSimbolo = useMemo(() => {
+    if (!simbolo) return null
+    const v = []
+    const cinta = (pts, medio) => {
+      for (let i = 1; i < pts.length; i++) {
+        const [x0, y0] = pts[i - 1], [x1, y1] = pts[i]
+        const l = Math.hypot(x1 - x0, y1 - y0) || 1
+        const nx = (-(y1 - y0) / l) * medio, ny = ((x1 - x0) / l) * medio
+        v.push(x0 + nx, 0, -(y0 + ny), x0 - nx, 0, -(y0 - ny), x1 + nx, 0, -(y1 + ny), x1 + nx, 0, -(y1 + ny), x0 - nx, 0, -(y0 - ny), x1 - nx, 0, -(y1 - ny))
+      }
+    }
+    hojas.forEach((hj, k) => {
+      const r = enRuta.get(k)
+      const s = r ? Math.sign(r.abre) : hj.abre0
+      const w = [hj.nl[0] * s, hj.nl[1] * s]   // hacia donde queda la hoja abierta
+      const R = hj.ini + hj.L
+      cinta([hj.eje, [hj.eje[0] + w[0] * R, hj.eje[1] + w[1] * R]], 0.03)
+      if (hj.ducto) return
+      const arco = []
+      for (let i = 0; i <= 8; i++) {
+        const t = (i / 8) * (Math.PI / 2), c = Math.cos(t), q = Math.sin(t)
+        arco.push([hj.eje[0] + (hj.u[0] * c + w[0] * q) * R, hj.eje[1] + (hj.u[1] * c + w[1] * q) * R])
+      }
+      cinta(arco, 0.012)
+    })
+    const g = new THREE.BufferGeometry()
+    g.setAttribute('position', new THREE.Float32BufferAttribute(v, 3))
+    return g
+  }, [simbolo, hojas, enRuta])
+  useEffect(() => () => geoSimbolo?.dispose(), [geoSimbolo])
   useFrame((_, dt) => {
+    if (simbolo) return
     const q = persona.current
-    // la ruta "avanza" a 9 m/s desde que aparece: cada puerta que cruza se abre cuando le llega
-    const frente = ((performance.now() - desde.current) / 1000) * 9
     hojas.forEach((hj, k) => {
       const g = grupos.current[k]
       if (!g) return
@@ -431,24 +459,27 @@ function Puertas({ puertas, plano, persona, ruta, recorrer }) {
             if (ang.current[k] !== 0 && Math.sign(ang.current[k]) !== Math.sign(meta)) meta = ang.current[k] > 0 ? Math.PI / 2 : -Math.PI / 2
           }
         }
-      } else if (r && frente >= r.s) meta = r.abre * 0.92
-      ang.current[k] += (meta - ang.current[k]) * (1 - Math.exp(-Math.min(dt, 0.1) * 5))
+        // en el recorrido la hoja gira de verdad (rápido); con movimiento reducido cambia de golpe
+        ang.current[k] = REDUCIR ? meta : ang.current[k] + (meta - ang.current[k]) * (1 - Math.exp(-Math.min(dt, 0.1) * 8))
+      } else ang.current[k] = r ? r.abre : 0   // fuera del recorrido: las de la ruta, abiertas; sin ola ni giro
       g.rotation.y = hj.th + ang.current[k]
     })
   })
+  if (simbolo) return <mesh geometry={geoSimbolo} material={mats.linea} position-y={0.062} renderOrder={2} frustumCulled={false} />
   return (
     <group>
       {hojas.map((hj, k) => (
-        <group key={k} ref={(el) => { grupos.current[k] = el }} position={E(hj.h, 0)} rotation-y={hj.th}>
+        <group key={k} ref={(el) => { grupos.current[k] = el }} position={E(hj.eje, 0)} rotation-y={hj.th}>
           {/* local +x = a lo largo de la hoja; la normal del plano (nl) es -z local */}
-          <mesh position={[hj.ini + hj.L / 2, 0.01 + 1.02, -hj.off]} material={hj.ducto ? mats.roja : mats.madera} castShadow>
-            <boxGeometry args={[hj.L, 2.04, 0.04]} />
+          <mesh position={[hj.ini + hj.L / 2, 0.01 + ALTO_HOJA / 2, 0]} material={hj.ducto ? mats.hojaDucto : mats.hoja} castShadow>
+            <boxGeometry args={[hj.L, ALTO_HOJA, 0.04]} />
           </mesh>
-          {!hj.ducto && (
-            <mesh position={[hj.ini + hj.L - 0.12, 1.0, -hj.off]} material={mats.manija}>
-              <boxGeometry args={[0.14, 0.04, 0.14]} />
+          {/* manija: una barra corta a cada cara de la hoja */}
+          {!hj.ducto && [0.035, -0.035].map((z) => (
+            <mesh key={z} position={[hj.ini + hj.L - 0.12, 1.0, z]} material={mats.manija}>
+              <boxGeometry args={[0.12, 0.02, 0.03]} />
             </mesh>
-          )}
+          ))}
         </group>
       ))}
     </group>
@@ -460,7 +491,6 @@ function Puertas({ puertas, plano, persona, ruta, recorrer }) {
 function Caminante({ ruta, recorrer, pausa = false, controles, libre, andado, alTerminar, onAvance, desde, persona, base = 0 }) {
   const ref = useRef()
   const t = useRef(0)
-  const caminando = useRef(false)
   const fin = useRef(false)
   const { L, en } = useMemo(() => medir(ruta.pts), [ruta])
   const prev = useRef(null)
@@ -479,7 +509,6 @@ function Caminante({ ruta, recorrer, pausa = false, controles, libre, andado, al
     if (recorrer && !fin.current && !pausa) t.current += Math.min(dt, 0.25) * 1.3
     const s = Math.min(t.current, L)
     const q = en(s)
-    caminando.current = recorrer && !fin.current && !pausa && s < L
     if (recorrer) andado.current = s
     ref.current.position.set(q.x, 0.02, -q.y)
     persona.current = [q.x, q.y]
@@ -513,38 +542,43 @@ function Caminante({ ruta, recorrer, pausa = false, controles, libre, andado, al
     if (recorrer && (llegada.current - (ultAv.current || 0) > 0.25 || s >= L)) { ultAv.current = llegada.current; onAvance?.(s, L) }
     if (recorrer && s >= L && !fin.current) { fin.current = true; alTerminar?.() }
   })
-  return <group ref={ref}><Personaje caminando={caminando} /></group>
+  return <group ref={ref}><Personaje /></group>
 }
 
-// la cámara llega al lugar elegido en el buscador y deja un anillo que pulsa unos segundos
+// la cámara llega al lugar elegido en el buscador (en 1,2 s, igual a cualquier velocidad de cuadros) y deja un anillo
+// fijo que se desvanece; con movimiento reducido la cámara va de una vez
 function MarcaFoco({ foco, controles, base = 0 }) {
   const grupo = useRef()
+  const aro = useRef(), disco = useRef()
   const t0 = useRef(-1)
   const meta = useMemo(() => new THREE.Vector3(foco.x, base + 0.4, -foco.y), [foco, base])
   useEffect(() => { t0.current = performance.now() }, [foco])
-  useFrame(() => {
+  useFrame((_, dt) => {
     if (!grupo.current || t0.current < 0) return
     const s = (performance.now() - t0.current) / 1000
-    grupo.current.visible = s < 3.6
+    grupo.current.visible = s < 2.5
     if (!grupo.current.visible) return
-    const k = 1 + 0.18 * Math.sin(s * 5)
-    grupo.current.scale.set(k, 1, k)
+    // 1,5 s a la vista y un segundo para desvanecerse
+    const o = Math.min(1, Math.max(0, 2.5 - s))
+    if (aro.current) aro.current.opacity = 0.85 * o
+    if (disco.current) disco.current.opacity = 0.2 * o
     const c = controles.current
-    if (c && s < 2.2) {
-      c.target.lerp(meta, 0.07)
-      c.object.position.lerp(meta.clone().add(new THREE.Vector3(0, 30, 24)), 0.035)
+    if (c && s < 1.2) {
+      const k = REDUCIR ? 1 : 1 - Math.exp(-Math.min(dt, 0.1) * 5)
+      c.target.lerp(meta, k)
+      c.object.position.lerp(meta.clone().add(new THREE.Vector3(0, 30, 24)), REDUCIR ? 1 : k * 0.5)
       c.update()
     }
   })
   return (
     <group ref={grupo} position={[meta.x, meta.y - 0.32, meta.z]}>
-      <mesh rotation-x={-Math.PI / 2}><ringGeometry args={[1.6, 2.1, 48]} /><meshBasicMaterial color="#2F5BEA" transparent opacity={0.85} /></mesh>
-      <mesh rotation-x={-Math.PI / 2}><circleGeometry args={[1.1, 40]} /><meshBasicMaterial color="#2F5BEA" transparent opacity={0.22} /></mesh>
+      <mesh rotation-x={-Math.PI / 2}><ringGeometry args={[1.75, 2.0, 48]} /><meshBasicMaterial ref={aro} color={AZUL} transparent opacity={0.85} /></mesh>
+      <mesh rotation-x={-Math.PI / 2}><circleGeometry args={[1.1, 40]} /><meshBasicMaterial ref={disco} color={AZUL} transparent opacity={0.2} /></mesh>
     </group>
   )
 }
 
-// pisos de cada ambiente con la paleta de interiores (la misma del 2D) sobre la losa del modelo; el destino en lila
+// pisos de cada ambiente con la paleta de interiores (la misma del 2D) sobre la losa del modelo; el destino en azul
 // el contorno de cada ambiente queda unos centímetros antes del muro; se ensancha 12 cm (inglete) para que el piso de
 // color llegue hasta debajo del muro y no quede una franja clara descuadrada
 function ensanchar(anillo, e) {
@@ -572,8 +606,9 @@ function MurosExtra({ muros, plano }) {
     g.rotateX(-Math.PI / 2)
     return g
   }), [muros])
-  const mat = useMemo(() => new THREE.MeshStandardMaterial({ color: '#FBF7EF', roughness: 1 }), [])
+  const mat = useMemo(() => new THREE.MeshStandardMaterial({ color: '#FAFAF8', roughness: 1 }), [])
   useEffect(() => { mat.clippingPlanes = [plano] }, [mat, plano])
+  useEffect(() => () => { geos.forEach((g) => g.dispose()); mat.dispose() }, [geos, mat])
   return <group>{geos.map((g, k) => <mesh key={k} geometry={g} material={mat} castShadow receiveShadow />)}</group>
 }
 
@@ -589,11 +624,12 @@ function PisosColor({ d, destino }) {
     // los cuartos van 5 mm sobre los pasillos: donde se tocan (en las puertas) no parpadean
     return { id: a.id, g, y: plano ? 0 : 0.005, color: plano ? PALETA[a.cat] || PALETA.circulacion : PALETA[a.cat] || PALETA.otro }
   }), [d])
+  useEffect(() => () => piezas.forEach((p) => p.g.dispose()), [piezas])
   return (
     <group position-y={0.04}>
       {piezas.map((p) => (
         <mesh key={p.id} geometry={p.g} position-y={p.y} receiveShadow>
-          <meshStandardMaterial color={destino && destino.id === p.id ? '#7C83E6' : p.color} roughness={0.9} polygonOffset polygonOffsetFactor={-2} />
+          <meshStandardMaterial color={destino && destino.id === p.id ? AZUL : p.color} roughness={0.95} polygonOffset polygonOffsetFactor={-2} />
         </mesh>
       ))}
     </group>
@@ -706,7 +742,7 @@ function Depurar() {
 
 const ORDEN = (a, b) => a.nivel - b.nivel
 export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destino, foco, recorrer = false, pausa = false, onFinRecorrer, onAvance, desde, onPiso }, fwd) {
-  const [corte, setCorte] = useState(1.2)   // muros bajos por defecto: se ven los pisos, como en una maqueta isométrica
+  const [corte, setCorte] = useState(1.2)   // muros bajos por defecto: se ven los pisos, como en una planta de arquitectura
   const [letreros, setLetreros] = useState(true)
   const [opciones, setOpciones] = useState(false)   // altura de muros y letreros: plegados para no recargar la pantalla
   // la ayuda de gestos se ve unos segundos al abrir el 3D y se va
@@ -764,6 +800,12 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
       c.object.position.set(cx + 95, altura + 110, -cy + 95)
       pedidoZoom.current = { dist: Math.hypot(95, 110, 95), target: new THREE.Vector3(cx, altura, -cy) }
     },
+    // «paso a paso»: la cámara va a un punto del plano del piso a la vista (sin cambiar el giro), ni muy cerca ni muy lejos
+    listo: () => !!controles.current,
+    irA: (x, y) => {
+      if (!controles.current) return
+      pedidoZoom.current = { dist: Math.min(18, Math.max(8, distActual())), target: new THREE.Vector3(x, base + 1.3, -y) }
+    },
   }))
   const andado = useRef(null)
   const persona = useRef(null)
@@ -786,10 +828,12 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
         gl={{ antialias: !LIGERO, powerPreference: LIGERO ? 'low-power' : 'high-performance' }}>
         {LIGERO && <Cuadros fps={30} />}
         <Depurar />
-        <color attach="background" args={['#F2EAD8']} />
-        <fog attach="fog" args={['#F2EAD8', 320, 760]} />
-        <hemisphereLight args={['#FFFFFF', '#D8CDB8', 1.25]} />
-        <directionalLight position={[cx + 70, 140, -cy + 30]} intensity={2.1} castShadow={!LIGERO} shadow-mapSize={[2048, 2048]}
+        {/* luz pareja y fría, sol suave: con la paleta clara, más luz quemaría los pisos a blanco (el lienzo no lleva
+            curva de tonos) */}
+        <color attach="background" args={['#EEF0F3']} />
+        <fog attach="fog" args={['#EEF0F3', 380, 900]} />
+        <hemisphereLight args={['#FFFFFF', '#E3E6EA', 2.0]} />
+        <directionalLight position={[cx + 70, 140, -cy + 30]} intensity={1.2} castShadow={!LIGERO} shadow-mapSize={[2048, 2048]}
           shadow-camera-left={-110} shadow-camera-right={110} shadow-camera-top={110} shadow-camera-bottom={-110} shadow-camera-near={10} shadow-camera-far={450}
           shadow-bias={-0.0004} shadow-normalBias={0.06} target-position={[cx, 0, -cy]} />
         {lista.map((p) => (
@@ -803,7 +847,7 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
           <group position-y={base}>
             <PisosColor d={d} destino={destino} />
             <MurosExtra muros={d.murosExtra || []} plano={plano} />
-            <Puertas puertas={d.puertas} plano={plano} persona={persona} ruta={ruta} recorrer={recorrer} />
+            <Puertas puertas={d.puertas} plano={plano} persona={persona} ruta={ruta} recorrer={recorrer} corte={corte} />
             <Letreros d={d} visibles={letreros} />
             {ruta && <Ruta ruta={ruta} andado={andado} />}
             {ruta && <Caminante ruta={ruta} recorrer={recorrer} pausa={pausa} controles={controles} libre={libre} andado={andado} alTerminar={onFinRecorrer} onAvance={onAvance} desde={desde} persona={persona} base={base} />}

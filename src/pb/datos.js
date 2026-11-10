@@ -534,18 +534,19 @@ export function dePlano(lon, lat) {
 // rumbo del mapa para que el plano quede derecho (su eje y hacia arriba)
 export const rumbo = () => -G.ang
 
-// --- categorías (colores suaves para los ambientes y color de acento para íconos y rutas)
+// --- categorías (colores suaves para los ambientes y color de acento para íconos y rutas). Paleta sobria: rellenos
+// casi neutros (los mismos tonos del piso en el 3D y de los bloques del 2D) y acentos de poca saturación
 export const CATS = {
-  consulta: { nombre: 'Consultorios', relleno: '#E3EBFC', acento: '#3768DE', icono: 'consulta' },
-  espera: { nombre: 'Salas de espera', relleno: '#E2F3E7', acento: '#2E9D5B', icono: 'silla' },
-  banos: { nombre: 'Baños', relleno: '#DDF0F7', acento: '#1B95BD', icono: 'bano' },
-  farmacia: { nombre: 'Farmacia', relleno: '#EFE7FB', acento: '#8455D3', icono: 'farmacia' },
-  administracion: { nombre: 'Atención y trámites', relleno: '#FFF0D6', acento: '#DB7F12', icono: 'administracion' },
-  circulacion: { nombre: 'Halls y pasillos', relleno: '#FFFFFF', acento: '#6A7684', icono: 'piso' },
-  apoyo: { nombre: 'Servicios de apoyo', relleno: '#EDF0F3', acento: '#7D8896', icono: 'servicios' },
-  escaleras: { nombre: 'Escaleras', relleno: '#E4E7EC', acento: '#4B5563', icono: 'escalera' },
-  ascensores: { nombre: 'Ascensores', relleno: '#E4E7EC', acento: '#4B5563', icono: 'ascensor' },
-  otro: { nombre: 'Otros', relleno: '#F2F4F7', acento: '#8A94A3', icono: 'servicios' },
+  consulta: { nombre: 'Consultorios', relleno: '#DCE5F0', acento: '#3F5F9E', icono: 'consulta' },
+  espera: { nombre: 'Salas de espera', relleno: '#E3EBE2', acento: '#4F7F63', icono: 'silla' },
+  banos: { nombre: 'Baños', relleno: '#D9E6EA', acento: '#3F7F93', icono: 'bano' },
+  farmacia: { nombre: 'Farmacia', relleno: '#E3DFEC', acento: '#6E5A9A', icono: 'farmacia' },
+  administracion: { nombre: 'Atención y trámites', relleno: '#ECE4D8', acento: '#A8732E', icono: 'administracion' },
+  circulacion: { nombre: 'Halls y pasillos', relleno: '#F5F4F1', acento: '#6A7684', icono: 'piso' },
+  apoyo: { nombre: 'Servicios de apoyo', relleno: '#E4E7EB', acento: '#7D8896', icono: 'servicios' },
+  escaleras: { nombre: 'Escaleras', relleno: '#D5D9DF', acento: '#4B5563', icono: 'escalera' },
+  ascensores: { nombre: 'Ascensores', relleno: '#D5D9DF', acento: '#4B5563', icono: 'ascensor' },
+  otro: { nombre: 'Otros', relleno: '#E9EBEE', acento: '#8A94A3', icono: 'servicios' },
 }
 export const ICONO_LUGAR = {
   bano: 'bano', ascensor: 'ascensor', escalera: 'escalera', farmacia: 'farmacia', caja: 'caja', informacion: 'info',

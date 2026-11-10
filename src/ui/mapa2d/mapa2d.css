@@ -24,22 +24,21 @@
 .marca-texto { display: none; max-width: 128px; text-align: center; font-size: 11px; line-height: 1.15; font-weight: 800; color: #26303C; background: rgba(255, 255, 255, .92); border-radius: 6px; padding: 1px 5px; white-space: normal; box-shadow: 0 1px 3px rgba(20, 30, 45, .12); }
 .zoom-cerca .marca-texto, .marca-lugar.activo .marca-texto { display: block; }
 .marca-lugar.atenuado { opacity: .5; }
-.marca-lugar.activo .insignia { transform: scale(1.18); }
+.marca-lugar.activo .insignia { outline: 2px solid var(--m-azul); outline-offset: 1px; }
 
 /* origen con pulso y destino con pin */
 .marca-origen { position: relative; width: 18px; height: 18px; }
 .marca-origen b { position: absolute; left: 50%; top: 50%; width: 18px; height: 18px; margin: -9px; border-radius: 50%; background: var(--m-azul); border: 3px solid #fff; box-shadow: 0 2px 6px rgba(20, 30, 45, .3); }
-.marca-origen i { position: absolute; left: 50%; top: 50%; width: 36px; height: 36px; margin: -18px; border-radius: 50%; background: var(--m-azul); opacity: .3; animation: pulso 1.8s ease-out infinite; }
-@keyframes pulso { from { transform: scale(.5); opacity: .45; } to { transform: scale(1.5); opacity: 0; } }
-.marca-destino svg { display: block; filter: drop-shadow(0 3px 4px rgba(20, 30, 45, .3)); animation: caer .5s cubic-bezier(.3,1.6,.6,1) both; animation-delay: 1s; }
-@keyframes caer { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+.marca-origen i { position: absolute; left: 50%; top: 50%; width: 36px; height: 36px; margin: -18px; border-radius: 50%; background: var(--m-azul); opacity: .22; }
+.marca-destino svg { display: block; filter: drop-shadow(0 1px 2px rgba(20, 30, 45, .25)); animation: aparecer .15s ease-out both; }
+@keyframes aparecer { from { opacity: 0; } }
 
 /* cambios de piso (escalera o ascensor) */
 .marca-cambio { display: inline-flex; align-items: center; gap: 6px; background: #fff; color: var(--m-gris); border: 1px solid var(--m-linea); border-radius: 999px; padding: 5px 11px 5px 8px; font: 700 12px var(--m-fuente); white-space: nowrap; box-shadow: 0 2px 8px rgba(20, 30, 45, .14); cursor: default; }
 .marca-cambio.activo { background: var(--m-tinta); border-color: var(--m-tinta); color: #fff; cursor: pointer; }
 
 /* ruta: la línea se dibuja con el color de acento, sin animación para no distraer */
-@media (prefers-reduced-motion: reduce) { .marca-origen i { animation: none; opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .marca-destino svg, .marca-foco i { animation: none; } }
 
 /* barra superior: menú, búsqueda, logo y categorías */
 .columna-izq { position: absolute; top: 14px; left: 14px; width: min(400px, calc(100% - 28px)); display: flex; flex-direction: column; gap: 10px; z-index: 5; pointer-events: none; }
@@ -60,7 +59,7 @@
 .chip-cat .punto { width: 9px; height: 9px; border-radius: 50%; }
 
 /* menú desplegable */
-.menu { background: #fff; border-radius: 16px; box-shadow: var(--m-sombra); padding: 6px; display: flex; flex-direction: column; animation: entrar .18s ease-out; }
+.menu { background: #fff; border-radius: 16px; box-shadow: var(--m-sombra); padding: 6px; display: flex; flex-direction: column; animation: entrar .15s ease-out; }
 .menu-op { display: flex; align-items: center; gap: 10px; border: 0; background: transparent; border-radius: 10px; padding: 10px; font-weight: 700; font-size: .9rem; color: var(--m-tinta); cursor: pointer; text-align: left; }
 .menu-op:hover:not(:disabled) { background: #F4F6F9; }
 .menu-op:disabled { color: #A7B1BD; cursor: default; }
@@ -134,8 +133,8 @@
 .insignia { display: inline-grid; place-items: center; border-radius: 50%; flex: none; }
 
 /* buscador (hoja lateral) */
-.buscador { position: absolute; z-index: 8; top: 0; left: 0; bottom: 0; width: min(400px, 100%); background: #fff; box-shadow: var(--m-sombra); display: flex; flex-direction: column; animation: entrar .22s ease-out; }
-@keyframes entrar { from { transform: translateX(-16px); opacity: 0; } }
+.buscador { position: absolute; z-index: 8; top: 0; left: 0; bottom: 0; width: min(400px, 100%); background: #fff; box-shadow: var(--m-sombra); display: flex; flex-direction: column; animation: entrar .15s ease-out; }
+@keyframes entrar { from { opacity: 0; } }
 .busc-cab { display: flex; gap: 8px; align-items: center; padding: 14px; border-bottom: 1px solid var(--m-linea); }
 .busc-campo { flex: 1; display: flex; align-items: center; gap: 8px; background: #F4F6F9; border-radius: 999px; padding: 0 6px 0 14px; color: var(--m-gris); border: 2px solid transparent; }
 .busc-campo:focus-within { border-color: var(--m-azul); background: #fff; }
