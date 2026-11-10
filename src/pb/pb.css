@@ -290,6 +290,9 @@ body { background: #E9EDF1; }
 /* panel de ruta compacto: los pasos se despliegan a pedido */
 .pb-ver-pasos { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; border: 0; background: #F1F4F7; color: var(--m-tinta); border-radius: 999px; padding: 7px 12px; font: 800 .82rem var(--m-fuente); cursor: pointer; }
 .pb-ver-pasos:hover { background: #E4E9EF; }
+/* «Ver los N pasos» y «Paso a paso», uno junto al otro (bajan de línea si no caben) */
+.pb-ver-fila { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.pb-ver-pasos[aria-pressed="true"] { background: var(--m-tinta); color: #fff; }
 
 /* barra de navegación del recorrido (compacta, se despliega para ver los pasos) */
 .pb-nav { position: relative; padding: 10px 10px 12px 12px; display: flex; flex-direction: column; gap: 8px; animation: entrar .2s ease-out; overflow: hidden; }
@@ -308,6 +311,15 @@ body { background: #E9EDF1; }
 .pb-nav-pasos { max-height: 38vh; }
 .pb-pasos li.actual { background: #EEF1FF; font-weight: 800; }
 .pb-pasos li.hecho { color: #9AA6B6; }
+/* paso a paso: la misma tarjeta de la navegación, con anterior, siguiente y cerrar; más junta para caber a 390 px */
+.pb-paso-a-paso .pb-nav-fila { gap: 8px; }
+.pb-paso-a-paso .pb-nav-txt b { overflow-wrap: anywhere; }
+.pb-paso-a-paso .pb-nav-btn:disabled { opacity: .4; cursor: default; }
+.pb-paso-a-paso .pb-nav-barra { transition: width .2s ease-out; }
+@media (max-width: 420px) {
+  .pb-paso-a-paso .pb-nav-ic { width: 38px; height: 38px; border-radius: 12px; }
+  .pb-paso-a-paso .pb-nav-fila { gap: 6px; }
+}
 
 /* opciones del 3D plegadas */
 .pb-3d-mas { border: 0; background: transparent; color: var(--m-gris); font: 800 .8rem var(--m-fuente); padding: 4px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }

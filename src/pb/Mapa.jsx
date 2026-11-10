@@ -124,6 +124,9 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
   const ref = useRef(null)
   const mapa = useRef(null)
   const [listo, setListo] = useState(false)
+  // ¿ya cargó el estilo y se encuadró la ruta? (lo consulta el «paso a paso» antes de mover la vista a un paso)
+  const listoRef = useRef(false)
+  useEffect(() => { listoRef.current = listo }, [listo])
   const cb = useRef({})
   cb.current = { onElegir, onHover, onPick, pick, onFinRecorrer, onAvance, desde, pausa, plano }
   const marcas = useRef([])
@@ -146,6 +149,7 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
       } else encuadrar(ruta?.pts)
     },
     irA: (x, y, z = 20) => mapa.current?.easeTo({ center: aLonLat(x, y), zoom: z, duration: 700 }),
+    listo: () => listoRef.current,
     // brújula: deja el plano derecho (como al abrir)
     norte: () => { soltarCamara.current?.(); mapa.current?.easeTo({ bearing: rumbo(), duration: 500 }) },
   }))
@@ -184,6 +188,7 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
     const c = aLonLat(54, 60)
     // al recrear el mapa (datos nuevos del administrador o de otro piso) se espera a que cargue su estilo
     setListo(false)
+    listoRef.current = false
     const map = new maplibregl.Map({
       container: ref.current, style: ESTILO, center: c, zoom: 17.6, minZoom: 15, maxZoom: 21.5, bearing: rumbo(), pitch: plano ? 0 : 40, maxPitch: plano ? 0 : 70,
       // cámara libre como en el 3D: clic derecho (o Ctrl + arrastrar) gira e inclina; con dos dedos, girar e inclinar

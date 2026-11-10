@@ -4,6 +4,7 @@ import { cargarDatos, cambiosDelPiso, usarGeo, CATS, ICONO_LUGAR, plano, dentro 
 import { cargarDatosEnHilo } from './cargaEnHilo.js'
 import { buscarRuta, indicaciones, metrosHasta, proximoPaso } from './ruta.js'
 import { rutaEdificio } from './rutaEdificio.js'
+import { listaPasos } from './pasoAPaso.js'
 import { Mapa } from './Mapa.jsx'
 import { Hoja } from './Hoja.jsx'
 import { Clave, PanelAdmin } from './Admin.jsx'
@@ -302,6 +303,28 @@ function BarraNav({ ruta, pisoId, pisos, llego, destino, onDetener, onListo, onV
   )
 }
 
+// «paso a paso»: una indicación a la vez, con anterior y siguiente; la vista va a cada paso sin iniciar la caminata
+function BarraPasos({ pasos, n, pisos, onIr, onCerrar }) {
+  const p = pasos[n]
+  if (!p) return null
+  const variosPisos = new Set(pasos.map((x) => x.piso)).size > 1
+  return (
+    <div className="tarjeta pb-nav pb-paso-a-paso" role="region" aria-label="Paso a paso" aria-live="polite">
+      <div className="pb-nav-fila">
+        <span className="pb-nav-ic"><Icono nombre={ICONO_PASO[p.tipo] || 'caminar'} size={22} color="#fff" grosor={2.4} /></span>
+        <div className="pb-nav-txt">
+          <b>{p.texto}</b>
+          <small>{[`${n + 1} de ${pasos.length}`, variosPisos && (pisos[p.piso]?.piso?.corto || p.piso)].filter(Boolean).join(' · ')}</small>
+        </div>
+        <button className="pb-nav-btn" onClick={() => onIr(n - 1)} disabled={n === 0} aria-label="Paso anterior" title="Anterior">◀</button>
+        <button className="pb-nav-btn" onClick={() => onIr(n + 1)} disabled={n === pasos.length - 1} aria-label="Paso siguiente" title="Siguiente">▶</button>
+        <button className="pb-nav-btn parar" onClick={onCerrar} aria-label="Cerrar el paso a paso"><Icono nombre="cerrar" size={18} grosor={2.4} /></button>
+      </div>
+      <span className="pb-nav-barra" style={{ '--p': `${Math.round(((n + 1) / pasos.length) * 100)}%` }} aria-hidden="true" />
+    </div>
+  )
+}
+
 export default function App() {
   const [d, setD] = useState(null)
   const [error, setError] = useState(null)
@@ -531,6 +554,59 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [claveRuta])
 
+  // ---------- paso a paso: se recorren a mano las indicaciones (anterior / siguiente) sin que el personaje camine
+  const [paso, setPaso] = useState(null)   // índice del paso a la vista; null: la barra está cerrada
+  const [pedidoPaso, setPedidoPaso] = useState(null)   // { piso, punto }: se aplica cuando ese piso ya está a la vista
+  const pasosRuta = useMemo(() => listaPasos(rutaOk), [rutaOk])
+  const irAPaso = (n) => {
+    const p = pasosRuta[n]
+    if (!p) return
+    setPaso(n)
+    if (p.piso !== pisoId) verPiso(p.piso)
+    setPedidoPaso({ piso: p.piso, punto: p.punto, t: Date.now() })
+  }
+  const cerrarPasos = () => { setPaso(null); setPedidoPaso(null) }
+  // la vista va al punto del paso; si el piso cambió, espera a que el mapa (o el 3D) del piso nuevo esté listo y haya
+  // encuadrado su tramo, para que ese encuadre no tape el movimiento al paso
+  useEffect(() => {
+    if (!pedidoPaso || pedidoPaso.piso !== pisoId || !pedidoPaso.punto) return
+    let vivo = true, espera = 0, intentos = 0
+    const aplicar = () => {
+      if (!vivo) return
+      const v = modo === '3d' ? vista3d.current : mapa.current
+      if (!v || v.listo?.() === false) { if (++intentos < 100) espera = setTimeout(aplicar, 100); return }
+      const [x, y] = pedidoPaso.punto
+      if (modo === '3d') v.irA?.(x, y)
+      else v.irA?.(x, y, 20)
+      setPedidoPaso(null)
+    }
+    aplicar()
+    return () => { vivo = false; clearTimeout(espera) }
+  }, [pedidoPaso, pisoId, modo])
+  // la barra se cierra sola al cambiar origen o destino, al empezar a caminar o si ya no hay ruta
+  useEffect(() => { cerrarPasos() }, [origen, destino])
+  useEffect(() => { if (recorrer || !rutaOk) cerrarPasos() }, [recorrer, rutaOk])
+  // si la ruta cambió (otra vía, ruta accesible) y tiene menos pasos, se queda en el último
+  useEffect(() => { if (paso != null && paso >= pasosRuta.length) setPaso(pasosRuta.length ? pasosRuta.length - 1 : null) }, [paso, pasosRuta])
+  // flechas ← y → del teclado mientras la barra está abierta (no mientras se escribe en un campo)
+  const teclaPaso = useRef(null)
+  teclaPaso.current = (e) => {
+    if (paso == null || e.altKey || e.ctrlKey || e.metaKey) return
+    if (e.target instanceof HTMLElement && e.target.closest('input, textarea, select, [contenteditable="true"]')) return
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
+    // la flecha es del paso a paso: el mapa no la usa para moverse o girar
+    e.preventDefault(); e.stopPropagation()
+    if (e.key === 'ArrowLeft' && paso > 0) irAPaso(paso - 1)
+    else if (e.key === 'ArrowRight' && paso < pasosRuta.length - 1) irAPaso(paso + 1)
+  }
+  const barraPasosAbierta = paso != null
+  useEffect(() => {
+    if (!barraPasosAbierta) return
+    const f = (e) => teclaPaso.current?.(e)
+    window.addEventListener('keydown', f, true)
+    return () => window.removeEventListener('keydown', f, true)
+  }, [barraPasosAbierta])
+
   // si desde el origen no hay camino, ¿desde otra entrada del edificio sí? (la app lo ofrece en vez de solo decir que no)
   const alternativa = useMemo(() => {
     if (!origen || !destino || origen.id === destino.id || rutaOk || origen.piso !== destino.piso) return null
@@ -628,6 +704,9 @@ export default function App() {
   const local = (l) => (l && l.piso === pisoId ? { ...l, id: l.local } : null)
   const destinoVista = local(destino)
   const focoVista = foco && foco.piso === pisoId ? foco : null
+  // índice (en la lista del paso a paso) del primer paso de cada tramo: así la lista marca el paso actual
+  const inicioPasos = []
+  if (rutaOk) rutaOk.tramos.reduce((n, t, k) => { inicioPasos.push(n); return n + t.pasos.length - (k > 0 ? 1 : 0) + (k === 0 && rutaOk.vertical ? 1 : 0) }, 0)
 
   return (
     <div className={`pb-app modo-${modo === 'plano' ? '2d modo-plano' : modo}${INSERTADO ? ` insertado-${INSERTADO}` : ''}${LIGERO ? ' ligero' : ''}`}>
@@ -663,6 +742,10 @@ export default function App() {
               onListo={() => setLlego(false)} />
           )}
 
+          {destino && rutaOk && paso != null && !(recorrer || llego || transicion) && (
+            <BarraPasos pasos={pasosRuta} n={paso} pisos={pisos} onIr={irAPaso} onCerrar={cerrarPasos} />
+          )}
+
           {destino && !(rutaOk && (recorrer || llego || transicion)) && (
             <Hoja clase="pb-ruta" resumen={rutaOk ? `${Math.round(rutaOk.metros)} m · ${minutos} min` : destino.nombre}>
               <div className="campos">
@@ -690,10 +773,17 @@ export default function App() {
                     <input type="checkbox" checked={accesible} onChange={(e) => setAccesible(e.target.checked)} />
                     <Icono nombre="accesible" size={16} /> Ruta accesible (sin escalones)
                   </label>
-                  <button className="pb-ver-pasos" onClick={() => setVerPasos((v) => !v)} aria-expanded={verPasos}>
-                    <Icono nombre={verPasos ? 'bajar' : 'subir'} size={15} grosor={2.4} />
-                    {verPasos ? 'Ocultar los pasos' : `Ver los ${rutaOk.tramos.reduce((n, t, k) => n + t.pasos.length - (k > 0 ? 1 : 0), rutaOk.vertical ? 1 : 0)} pasos`}
-                  </button>
+                  <div className="pb-ver-fila">
+                    <button className="pb-ver-pasos" onClick={() => setVerPasos((v) => !v)} aria-expanded={verPasos}>
+                      <Icono nombre={verPasos ? 'bajar' : 'subir'} size={15} grosor={2.4} />
+                      {verPasos ? 'Ocultar los pasos' : `Ver los ${rutaOk.tramos.reduce((n, t, k) => n + t.pasos.length - (k > 0 ? 1 : 0), rutaOk.vertical ? 1 : 0)} pasos`}
+                    </button>
+                    {/* recorre las indicaciones a mano: la vista va a cada paso sin caminar */}
+                    <button className="pb-ver-pasos" onClick={() => (paso != null ? cerrarPasos() : irAPaso(0))} aria-pressed={paso != null}>
+                      <Icono nombre="caminar" size={15} grosor={2.4} />
+                      Paso a paso
+                    </button>
+                  </div>
                   {verPasos && <ol className="pb-pasos">
                     {rutaOk.tramos.map((t, k) => [
                       rutaOk.tramos.length > 1 && (
@@ -704,12 +794,12 @@ export default function App() {
                         </li>
                       ),
                       ...t.pasos.filter((p, i) => !(k > 0 && i === 0)).map((p, i) => (
-                        <li key={`${k}-${i}`} className={`paso-${p.tipo}`}>
+                        <li key={`${k}-${i}`} className={`paso-${p.tipo}${paso != null && paso === inicioPasos[k] + i ? ' actual' : ''}`}>
                           <span className="pb-paso-i"><Icono nombre={ICONO_PASO[p.tipo]} size={15} /></span>{p.texto}
                         </li>
                       )),
                       k === 0 && rutaOk.vertical && (
-                        <li key="vertical" className="paso-vertical">
+                        <li key="vertical" className={`paso-vertical${paso != null && paso === inicioPasos[0] + t.pasos.length ? ' actual' : ''}`}>
                           <span className="pb-paso-i"><Icono nombre={rutaOk.vertical.tipo === 'ascensor' ? 'ascensor' : 'escalera'} size={15} /></span>{rutaOk.vertical.texto}
                         </li>
                       ),

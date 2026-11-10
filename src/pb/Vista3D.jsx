@@ -764,6 +764,12 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
       c.object.position.set(cx + 95, altura + 110, -cy + 95)
       pedidoZoom.current = { dist: Math.hypot(95, 110, 95), target: new THREE.Vector3(cx, altura, -cy) }
     },
+    // «paso a paso»: la cámara va a un punto del plano del piso a la vista (sin cambiar el giro), ni muy cerca ni muy lejos
+    listo: () => !!controles.current,
+    irA: (x, y) => {
+      if (!controles.current) return
+      pedidoZoom.current = { dist: Math.min(18, Math.max(8, distActual())), target: new THREE.Vector3(x, base + 1.3, -y) }
+    },
   }))
   const andado = useRef(null)
   const persona = useRef(null)
