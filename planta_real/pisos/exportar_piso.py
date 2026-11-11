@@ -614,6 +614,7 @@ PUERTAS_ARCO |= {'SB', 'P1', 'P2', 'P3'}
 # en esos pisos solo cuentan los arcos de las capas de puertas: en las demás capas hay esquinas de muro redondeadas
 # y muebles con arcos de 90° (en la planta baja se revisaron uno por uno y se dejan todas las capas, como estaba)
 CAPAS_PUERTA_ARCO = {'PU', 'P0 - Puertas', '23-DOOR'}
+CAPAS_MURO_ARCO = {'PA', 'P0 - Paredes'}   # arcos de estas capas: esquinas de muro redondeadas, nunca puertas
 
 
 def puertas_de_arco(m):
@@ -629,6 +630,11 @@ def puertas_de_arco(m):
         if e[1] != 'ARC' or len(e[2]) < 3:
             continue
         if getattr(m, 'piso', 'PB') != 'PB' and e[0] not in CAPAS_PUERTA_ARCO:
+            continue
+        # los arcos de la capa de muros (PA) son esquinas redondeadas de muro, no puertas: en la planta baja salían
+        # 16 puertas falsas de 0,5 m junto a las columnas del bloque este (x 125-141, y 46-66) y, con el corte de
+        # vano de abajo, abrían huecos en esos muros; también la esquina curva de la fachada oeste (x 8, y 94)
+        if e[0] in CAPAS_MURO_ARCO:
             continue
         pts = [(x / 1000 - ox, y / 1000 - oy) for x, y in e[2]]
         p0, pm, p1 = pts[0], pts[len(pts) // 2], pts[-1]
