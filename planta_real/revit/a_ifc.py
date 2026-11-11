@@ -232,7 +232,14 @@ def letreros(m):
     return out
 
 
-def escribir(m, salida):
+# alto que queda entre el remate de los muros de un piso (3,84 m) y el piso de arriba (4,20 m). En la web, la losa de
+# cada piso llena ese alto: con la losa de 0,20 m quedaba una franja abierta de 16 cm entre piso y piso
+H_ENTREPISO = 0.36
+
+
+def escribir(m, salida, web=False):
+    """web=True: modelo para la página (glb_piso.py): losa del alto del entrepiso y en una sola pieza (la retícula de
+    `trozos` es para Revit y en la web solo suma caras internas)."""
     E = Escritor()
     gris = E.estilo('SOLCA Muro', (0.95, 0.94, 0.90))
     tabique_e = E.estilo('SOLCA Tabique', (0.90, 0.93, 0.96))
@@ -258,8 +265,9 @@ def escribir(m, salida):
     pisos = {k: E.estilo('SOLCA Piso ' + v[0], v[1]) for k, v in CATEGORIAS.items()}
 
     # losa de piso
-    for q in trozos(m.huella, 12.0):
-        E.elemento('IfcSlab', 'Losa de piso', [E.extrusion(q, -0.20, 0.20)], piso, 'FLOOR')
+    h_losa = H_ENTREPISO if web else 0.20
+    for q in (lista_polis(m.huella) if web else trozos(m.huella, 12.0)):
+        E.elemento('IfcSlab', 'Losa de piso', [E.extrusion(q, -h_losa, h_losa)], piso, 'FLOOR')
     # acabado de piso de cada ambiente con el color de su categoría (1 cm)
     for a in m.ambientes:
         cat = categoria(a['nombre'])
@@ -330,6 +338,11 @@ def escribir(m, salida):
         vid = max(lista_polis(vid), key=lambda g: g.area) if not vid.is_empty else pg
         el = E.elemento('IfcWindow', 'Ventana', [E.extrusion(vid, H_ANTEPECHO, H_DINTEL_VENTANA - H_ANTEPECHO)],
                         vidrio, 'WINDOW')
+    # vanos de fachada que el plano deja sin cerramiento (entre dos ventanas o entre ventana y muro): llevan dintel a
+    # la altura del de las ventanas; sin él, el hueco llegaba hasta la losa (los arma glb_piso.py)
+    for pg in getattr(m, 'dinteles_extra', []):
+        E.elemento('IfcWall', 'Dintel de vano', [E.extrusion(pg, H_DINTEL_VENTANA, ALTURA - H_DINTEL_VENTANA)],
+                   gris, 'STANDARD')
     # ventanillas de atención: antepecho 1,0 m, vidrio hasta 2,1 m y dintel
     for pg in getattr(m, 'ventanillas', []):
         E.elemento('IfcWall', 'Antepecho de ventanilla', [E.extrusion(pg, 0, 1.0)], gris, 'STANDARD')
