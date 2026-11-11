@@ -179,10 +179,10 @@ export function Exterior({ d, mapa = null, losa: losaPiso = null }) {
 
   return (
     <group>
-      {datos.base.map((g, k) => <mesh key={'b' + k} geometry={g} position-y={-0.58} receiveShadow castShadow><meshLambertMaterial color="#E6E8EB" /></mesh>)}
-      {datos.vereda.map((g, k) => <mesh key={'v' + k} geometry={g} position-y={-0.5} receiveShadow><meshLambertMaterial color="#ECEDEF" /></mesh>)}
-      {datos.calles.map((g, k) => <mesh key={'c' + k} geometry={g} position-y={-0.21} receiveShadow><meshLambertMaterial color="#AEB4BC" /></mesh>)}
-      {datos.veredasC.map((g, k) => <mesh key={'w' + k} geometry={g} position-y={-0.21} receiveShadow><meshLambertMaterial color="#ECEDEF" /></mesh>)}
+      {datos.base.map((g, k) => <mesh key={'b' + k} geometry={g} position-y={-0.58} receiveShadow castShadow><meshLambertMaterial color="#DDDAD4" /></mesh>)}
+      {datos.vereda.map((g, k) => <mesh key={'v' + k} geometry={g} position-y={-0.5} receiveShadow><meshLambertMaterial color="#E6E4DF" /></mesh>)}
+      {datos.calles.map((g, k) => <mesh key={'c' + k} geometry={g} position-y={-0.21} receiveShadow><meshLambertMaterial color="#A9AFB7" /></mesh>)}
+      {datos.veredasC.map((g, k) => <mesh key={'w' + k} geometry={g} position-y={-0.21} receiveShadow><meshLambertMaterial color="#E6E4DF" /></mesh>)}
       {datos.canchas.map((c, k) => (
         <group key={'c' + k} position-y={-0.2}>
           <mesh geometry={c.borde} receiveShadow><meshLambertMaterial color="#DDE0E4" /></mesh>

@@ -243,9 +243,9 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
       // exterior apagado: áreas verdes de OSM en un verde grisáceo, manzanas claras
       try {
         for (const l of map.getStyle().layers) {
-          if (l.type === 'background') map.setPaintProperty(l.id, 'background-color', '#EEF0EC')
-          else if (l.type === 'fill' && /park|grass|wood|garden|pitch|cemetery|scrub|forest|meadow/.test(l.id)) { map.setPaintProperty(l.id, 'fill-color', '#DCE5D6'); map.setPaintProperty(l.id, 'fill-opacity', 1) }
-          else if (l.type === 'fill' && /building/.test(l.id)) map.setPaintProperty(l.id, 'fill-color', '#E2E6EC')
+          if (l.type === 'background') map.setPaintProperty(l.id, 'background-color', '#E9EFE3')
+          else if (l.type === 'fill' && /park|grass|wood|garden|pitch|cemetery|scrub|forest|meadow/.test(l.id)) { map.setPaintProperty(l.id, 'fill-color', '#CFDCC6'); map.setPaintProperty(l.id, 'fill-opacity', 1) }
+          else if (l.type === 'fill' && /building/.test(l.id)) map.setPaintProperty(l.id, 'fill-color', '#DDDAD4')
           else if (l.type === 'fill' && /residential|landuse/.test(l.id)) map.setPaintProperty(l.id, 'fill-color', '#E9EDE4')
         }
       } catch { /* estilo de respaldo sin esas capas */ }
