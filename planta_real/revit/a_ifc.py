@@ -36,7 +36,41 @@ def limpiar(pg):
     g = max(piezas, key=lambda q: q.area).simplify(TOL * 0.6, preserve_topology=True)
     if not g.is_valid:
         g = max(lista_polis(make_valid(g)) or [g.convex_hull], key=lambda q: q.area)
+    # grietas: un contorno que vuelve sobre sí mismo a menos de 4 mm (dos muros pegados sin llegar a unirse) es válido
+    # para shapely, pero IfcOpenShell lo triangula a medias y el muro salía incompleto en el 3D (piso 3: los muros
+    # entre las habitaciones 321 y 323 y sus baños). Se cierra la grieta; el contorno casi no cambia.
+    if casi_se_toca(g):
+        for r in (0.003, 0.006, 0.012):
+            h = lista_polis(g.buffer(r, join_style=2).buffer(-r, join_style=2))
+            if not h:
+                continue
+            h = max(h, key=lambda q: q.area)
+            if h.is_valid and not casi_se_toca(h):
+                g = h
+                break
     return g
+
+
+def casi_se_toca(pg, tol=0.004):
+    """True si algún vértice de un anillo queda a menos de `tol` de un tramo no vecino del mismo anillo."""
+    from shapely.geometry import LineString, Point
+    from shapely.strtree import STRtree
+    for anillo in [pg.exterior] + list(pg.interiors):
+        pts = list(anillo.coords)[:-1]
+        n = len(pts)
+        if n < 5:
+            continue
+        segs = [LineString([pts[j], pts[(j + 1) % n]]) for j in range(n)]
+        arbol = STRtree(segs)
+        for i, p in enumerate(pts):
+            P = Point(p)
+            for j in arbol.query(P.buffer(tol)):
+                j = int(j)
+                if j in (i, (i - 1) % n):
+                    continue
+                if segs[j].distance(P) < tol:
+                    return True
+    return False
 
 
 def anillo_limpio(anillo):

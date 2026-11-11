@@ -608,6 +608,12 @@ def rellenar_banos(m):
 
 
 PUERTAS_ARCO = {'PB'}   # pisos donde las puertas dibujadas solo con su arco (sin bloque) también cuentan
+# auditoría del plano (nov 2026): en los demás pisos también hay puertas dibujadas solo con arco y hoja en la capa PU
+# o «P0 - Puertas» (baños del bloque central de la torre, vestidores y consultorios del subsuelo); quedaban sin puerta
+PUERTAS_ARCO |= {'SB', 'P1', 'P2', 'P3'}
+# en esos pisos solo cuentan los arcos de las capas de puertas: en las demás capas hay esquinas de muro redondeadas
+# y muebles con arcos de 90° (en la planta baja se revisaron uno por uno y se dejan todas las capas, como estaba)
+CAPAS_PUERTA_ARCO = {'PU', 'P0 - Puertas', '23-DOOR'}
 
 
 def puertas_de_arco(m):
@@ -621,6 +627,8 @@ def puertas_de_arco(m):
     nuevas = []
     for e in m.planos:
         if e[1] != 'ARC' or len(e[2]) < 3:
+            continue
+        if getattr(m, 'piso', 'PB') != 'PB' and e[0] not in CAPAS_PUERTA_ARCO:
             continue
         pts = [(x / 1000 - ox, y / 1000 - oy) for x, y in e[2]]
         p0, pm, p1 = pts[0], pts[len(pts) // 2], pts[-1]
@@ -651,6 +659,17 @@ def puertas_de_arco(m):
         mids.append(mid)
         nuevas.append(puerta_nueva(tuple(c), tuple(b), False))
     m.puertas += nuevas
+    # si el dibujo pasa el muro de largo por el vano (la puerta va dibujada encima), el vano corta el muro, igual que
+    # con PUERTAS_EXTRA; en el 2D ya salía cortado y en el 3D la hoja quedaba metida en la pared
+    cortes = 0
+    for p in nuevas:
+        if p['rect'].intersection(m.muros_raw).area > 0.3 * p['rect'].area:
+            hueco = p['rect'].buffer(0.12, cap_style=2, join_style=2)
+            m.muros_raw = m.muros_raw.difference(hueco)
+            m.muros = [q for w in m.muros for q in lista_polis(w.difference(hueco)) if q.area > 0.005]
+            cortes += 1
+    if cortes:
+        print('puertas de arco que cortan muro', cortes)
     return len(nuevas)
 
 
