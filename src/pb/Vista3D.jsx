@@ -125,7 +125,8 @@ const nombreDe = (o) => {
   const n = o.userData?.name || o.parent?.userData?.name || o.name || o.parent?.name || ''
   return n.includes('.') ? n : n.replace(/(^|[|,])(\d)(\d{2,3})(?=[|,]|$)/g, '$1$2.$3')
 }
-const OCULTOS = ['muros|0.360,0.160,0.053', 'muros|0.562,0.026,0.014', 'muebles|0.672,0.672,0.706']
+const HOJAS_MADERA = ['muros|0.360,0.160,0.053', 'muros|0.562,0.026,0.014']
+const OCULTOS = [...HOJAS_MADERA, 'muebles|0.672,0.672,0.706']
 
 // altura de un piso a otro (muros de 3,84 m + losa) y cuánto suben los pisos de arriba al mirar uno de abajo
 export const H_PISO = 4.2
@@ -175,7 +176,12 @@ function ParteEdificio({ url, activo, corte, letreros, plano }) {
       o.receiveShadow = true
       const nombre = nombreDe(o)
       const g = nombre.split('|')[0]
-      if (OCULTOS.some((k) => nombre.startsWith(k))) { o.visible = !activo; return }
+      if (OCULTOS.some((k) => nombre.startsWith(k))) {
+        o.visible = !activo
+        // hojas de madera del modelo: en los pisos que no se miran salen claras, como las de la página (#E4E1DB)
+        if (!activo && !o.userData.clara && HOJAS_MADERA.some((k) => nombre.startsWith(k))) { o.material = o.material.clone(); o.material.color.set('#E4E1DB'); o.userData.clara = true }
+        return
+      }
       const m = o.material
       if (g === 'pisos' && !o.userData.coloreado) {
         const c = colorDePiso(nombre)
@@ -228,7 +234,7 @@ function Techo({ huella }) {
       const anillo = ext[0][0] === ext[ext.length - 1][0] && ext[0][1] === ext[ext.length - 1][1] ? ext.slice(0, -1) : ext
       const forma = new THREE.Shape(anillo.map(V))
       for (const h of huecos) forma.holes.push(new THREE.Path(h.map(V)))
-      const g = new THREE.ExtrudeGeometry(forma, { depth: 0.28, bevelEnabled: false })
+      const g = new THREE.ExtrudeGeometry(forma, { depth: 0.36, bevelEnabled: false })
       g.rotateX(-Math.PI / 2)
       losas.push(g)
       // antepecho: el borde exterior, 25 cm hacia adentro, 0,9 m de alto
@@ -236,7 +242,7 @@ function Techo({ huella }) {
       borde.holes.push(new THREE.Path(ensanchar(anillo, -0.25).map(V)))
       const b = new THREE.ExtrudeGeometry(borde, { depth: 0.9, bevelEnabled: false })
       b.rotateX(-Math.PI / 2)
-      b.translate(0, 0.28, 0)
+      b.translate(0, 0.36, 0)
       bordes.push(b)
     }
     return { losas, bordes }
@@ -245,7 +251,7 @@ function Techo({ huella }) {
   useEffect(() => () => [...geos.losas, ...geos.bordes].forEach((g) => g.dispose()), [geos])
   // la losa va justo bajo el piso de arriba (que la tapa donde lo hay) y se ve como azotea donde no
   return (
-    <group position-y={3.86}>
+    <group position-y={3.84}>
       {geos.losas.map((g, k) => <mesh key={'l' + k} geometry={g} material={TECHO} receiveShadow castShadow />)}
       {geos.bordes.map((g, k) => <mesh key={'b' + k} geometry={g} material={ANTEPECHO} castShadow />)}
     </group>
