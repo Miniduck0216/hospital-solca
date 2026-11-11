@@ -5,6 +5,7 @@ import * as THREE from 'three'
 import maplibregl from 'maplibre-gl'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls, useGLTF, Line, Html } from '@react-three/drei'
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { BASE, aLonLat, rumbo, dePlano, CATS } from './datos.js'
 import { Cargando } from './Cargando.jsx'
 import { Exterior } from './Exterior3D.jsx'
@@ -34,14 +35,14 @@ function SueloMapa({ centro, onListo }) {
         for (const l of map.getStyle().layers) {
           try {
             if (l.type === 'symbol') map.setLayoutProperty(l.id, 'visibility', 'none')
-            else if (l.type === 'background') map.setPaintProperty(l.id, 'background-color', '#D3E0CC')
+            else if (l.type === 'background') map.setPaintProperty(l.id, 'background-color', '#CFDCC6')
             else if (l.type === 'fill' && /water/.test(l.id)) map.setPaintProperty(l.id, 'fill-color', '#C9DCE6')
-            else if (l.type === 'fill' && /building/.test(l.id)) map.setPaintProperty(l.id, 'fill-color', '#E6E8EB')
-            else if (l.type === 'fill' && /park|grass|wood|garden|pitch|forest|scrub|meadow|cemetery/.test(l.id)) map.setPaintProperty(l.id, 'fill-color', '#C3D4BC')
-            else if (l.type === 'fill') map.setPaintProperty(l.id, 'fill-color', '#D3E0CC')
-            else if (l.type === 'line' && /path|pedestrian|footway|steps|track/.test(l.id)) map.setPaintProperty(l.id, 'line-color', '#ECEDEF')
-            else if (l.type === 'line' && /casing/.test(l.id)) map.setPaintProperty(l.id, 'line-color', '#E1E4E8')
-            else if (l.type === 'line' && /road|highway|street|bridge|tunnel|motorway|trunk|primary|secondary|tertiary|minor|service/.test(l.id)) map.setPaintProperty(l.id, 'line-color', '#AEB4BC')
+            else if (l.type === 'fill' && /building/.test(l.id)) map.setPaintProperty(l.id, 'fill-color', '#DDDAD4')
+            else if (l.type === 'fill' && /park|grass|wood|garden|pitch|forest|scrub|meadow|cemetery/.test(l.id)) map.setPaintProperty(l.id, 'fill-color', '#BFD3B3')
+            else if (l.type === 'fill') map.setPaintProperty(l.id, 'fill-color', '#CFDCC6')
+            else if (l.type === 'line' && /path|pedestrian|footway|steps|track/.test(l.id)) map.setPaintProperty(l.id, 'line-color', '#E6E4DF')
+            else if (l.type === 'line' && /casing/.test(l.id)) map.setPaintProperty(l.id, 'line-color', '#DCD9D3')
+            else if (l.type === 'line' && /road|highway|street|bridge|tunnel|motorway|trunk|primary|secondary|tertiary|minor|service/.test(l.id)) map.setPaintProperty(l.id, 'line-color', '#A9AFB7')
             else if (l.type === 'line' && /boundary|admin/.test(l.id)) map.setLayoutProperty(l.id, 'visibility', 'none')
           } catch { /* capa sin esa propiedad */ }
         }
@@ -83,11 +84,13 @@ function SueloMapa({ centro, onListo }) {
     return () => { vivo = false; clearTimeout(espera); try { map.remove() } catch { /* listo */ } div.remove() }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+  // la textura del suelo ocupa memoria de la tarjeta gráfica: se libera al cambiarla o al salir del 3D
+  useEffect(() => () => tex?.dispose(), [tex])
   return (
     <mesh rotation-x={-Math.PI / 2} position={[centro[0], -0.62, -centro[1]]} receiveShadow renderOrder={-1}>
       <planeGeometry args={[LADO, LADO]} />
       {tex ? <meshBasicMaterial key="mapa" map={tex} toneMapped={false} polygonOffset polygonOffsetFactor={4} polygonOffsetUnits={4} />
-        : <meshBasicMaterial key="liso" color="#D3E0CC" toneMapped={false} polygonOffset polygonOffsetFactor={4} polygonOffsetUnits={4} />}
+        : <meshBasicMaterial key="liso" color="#CFDCC6" toneMapped={false} polygonOffset polygonOffsetFactor={4} polygonOffsetUnits={4} />}
     </mesh>
   )
 }
@@ -196,9 +199,11 @@ function ParteEdificio({ url, activo, corte, letreros, plano }) {
       // paleta de interiores: muros casi blancos, mobiliario gris claro, marcos de puerta gris medio
       if ((g === 'muros' || g === 'muebles') && !o.userData.tono && o.material?.color) {
         const hsl = o.material.color.getHSL({})
-        if (nombre.startsWith(MARCO)) { o.material = o.material.clone(); o.material.color.set('#6B7280'); o.material.roughness = 0.9 }
-        else if (nombre.startsWith('muros|0.902')) { o.material = o.material.clone(); o.material.color.set('#FAFAF8'); o.material.roughness = 1 }
-        else if (hsl.s < 0.12) { o.material = o.material.clone(); o.material.color.set(g === 'muros' ? '#F1F2F3' : '#D9DDE2'); o.material.roughness = 1 }
+        // vidrios (muros transparentes): un azul algo más profundo para que se lean
+        if (o.material.transparent && g === 'muros') { o.material = o.material.clone(); o.material.color.set('#3A7DB5') }
+        else if (nombre.startsWith(MARCO)) { o.material = o.material.clone(); o.material.color.set('#6B7280'); o.material.roughness = 0.9 }
+        else if (nombre.startsWith('muros|0.902')) { o.material = o.material.clone(); o.material.color.set('#FBF9F4'); o.material.roughness = 1 }
+        else if (hsl.s < 0.12) { o.material = o.material.clone(); o.material.color.set(g === 'muros' ? '#F3F1EC' : '#D9DDE2'); o.material.roughness = 1 }
         // mobiliario de color (madera, tapizados): se apaga hacia el gris para que no compita con la ruta
         else if (g === 'muebles' && !o.material.transparent) { o.material = o.material.clone(); o.material.color.setHSL(hsl.h, hsl.s * 0.35, 0.45 + hsl.l * 0.5); o.material.roughness = 1 }
         o.userData.tono = true
@@ -222,8 +227,8 @@ function ParteEdificio({ url, activo, corte, letreros, plano }) {
 }
 
 // techo de un piso: losa sobre su huella (con los patios y tragaluces abiertos) y un antepecho en el borde
-const TECHO = new THREE.MeshStandardMaterial({ color: '#D9DCE0', roughness: 0.95 })
-const ANTEPECHO = new THREE.MeshStandardMaterial({ color: '#EEF0F2', roughness: 1 })
+const TECHO = new THREE.MeshStandardMaterial({ color: '#C9C6C0', roughness: 0.95 })
+const ANTEPECHO = new THREE.MeshStandardMaterial({ color: '#D5D2CC', roughness: 1 })
 function Techo({ huella }) {
   const geos = useMemo(() => {
     const V = ([x, y]) => new THREE.Vector2(x, y)
@@ -368,7 +373,8 @@ function Ruta({ ruta, andado, persona }) {
     }
     const { seg, pt } = cercano(D, p, corte ? corte.seg : 1)
     const arc = cum[seg - 1] + Math.hypot(pt[0] - D[seg - 1][0], pt[1] - D[seg - 1][1])
-    if (ult.current !== -1 && Math.abs(arc - ult.current) < 0.1) return
+    // cada cambio rehace las dos líneas (gris y azul): en el tótem se hace cada 0,25 m, no cada 0,1 m
+    if (ult.current !== -1 && Math.abs(arc - ult.current) < (LIGERO ? 0.25 : 0.1)) return
     ult.current = arc
     setCorte({ seg, pt, arc })
   })
@@ -596,8 +602,8 @@ function Puertas({ puertas, plano, persona, ruta, recorrer, corte }) {
           <mesh position={[hj.ini + hj.L / 2, 0.01 + ALTO_HOJA / 2, 0]} material={hj.ducto ? mats.hojaDucto : mats.hoja} castShadow>
             <boxGeometry args={[hj.L, ALTO_HOJA, 0.04]} />
           </mesh>
-          {/* manija: una barra corta a cada cara de la hoja */}
-          {!hj.ducto && [0.035, -0.035].map((z) => (
+          {/* manija: una barra corta a cada cara de la hoja (en el tótem no se dibuja: son 2 mallas más por puerta) */}
+          {!hj.ducto && !LIGERO && [0.035, -0.035].map((z) => (
             <mesh key={z} position={[hj.ini + hj.L - 0.12, 1.0, z]} material={mats.manija}>
               <boxGeometry args={[0.12, 0.02, 0.03]} />
             </mesh>
@@ -730,7 +736,7 @@ function MurosExtra({ muros, plano }) {
     g.rotateX(-Math.PI / 2)
     return g
   }), [muros])
-  const mat = useMemo(() => new THREE.MeshStandardMaterial({ color: '#FAFAF8', roughness: 1 }), [])
+  const mat = useMemo(() => new THREE.MeshStandardMaterial({ color: '#FBF9F4', roughness: 1 }), [])
   useEffect(() => { mat.clippingPlanes = [plano] }, [mat, plano])
   useEffect(() => () => { geos.forEach((g) => g.dispose()); mat.dispose() }, [geos, mat])
   return <group>{geos.map((g, k) => <mesh key={k} geometry={g} material={mat} castShadow receiveShadow />)}</group>
@@ -748,14 +754,33 @@ function PisosColor({ d, destino }) {
     // los cuartos van 5 mm sobre los pasillos: donde se tocan (en las puertas) no parpadean
     return { id: a.id, g, y: plano ? 0 : 0.005, color: plano ? PALETA[a.cat] || PALETA.circulacion : PALETA[a.cat] || PALETA.otro }
   }), [d])
+  // un solo dibujo por color (cientos de cuartos = pocas llamadas a la tarjeta gráfica); el cuarto de destino va
+  // encima, en azul, en una malla aparte
+  const grupos = useMemo(() => {
+    const porColor = new Map()
+    for (const p of piezas) {
+      if (!porColor.has(p.color)) porColor.set(p.color, [])
+      porColor.get(p.color).push(p)
+    }
+    return [...porColor].map(([color, lista]) => {
+      const geos = lista.map((p) => p.g.clone().translate(0, p.y, 0))
+      const g = mergeGeometries(geos, false)
+      geos.forEach((x) => x.dispose())
+      return { color, g }
+    })
+  }, [piezas])
+  const materiales = useMemo(() => grupos.map((x) => new THREE.MeshStandardMaterial({ color: x.color, roughness: 0.95, polygonOffset: true, polygonOffsetFactor: -2 })), [grupos])
+  const destacado = useMemo(() => piezas.find((p) => destino && destino.id === p.id), [piezas, destino])
+  useEffect(() => () => { grupos.forEach((x) => x.g?.dispose()); materiales.forEach((m) => m.dispose()) }, [grupos, materiales])
   useEffect(() => () => piezas.forEach((p) => p.g.dispose()), [piezas])
   return (
     <group position-y={0.04}>
-      {piezas.map((p) => (
-        <mesh key={p.id} geometry={p.g} position-y={p.y} receiveShadow>
-          <meshStandardMaterial color={destino && destino.id === p.id ? AZUL : p.color} roughness={0.95} polygonOffset polygonOffsetFactor={-2} />
+      {grupos.map((x, k) => x.g && <mesh key={k} geometry={x.g} material={materiales[k]} receiveShadow />)}
+      {destacado && (
+        <mesh geometry={destacado.g} position-y={destacado.y} receiveShadow>
+          <meshStandardMaterial color={AZUL} roughness={0.95} polygonOffset polygonOffsetFactor={-3} />
         </mesh>
-      ))}
+      )}
     </group>
   )
 }
@@ -846,10 +871,31 @@ function SeguirAltura({ controles, altura }) {
   return null
 }
 
-// modo ligero: el lienzo se dibuja a pedido y este reloj lo pide a 30 cuadros por segundo (la mitad del trabajo de la
-// tarjeta gráfica del tótem; los movimientos se ven igual de suaves para seguir la ruta)
-function Cuadros({ fps = 30 }) {
+// modo ligero: el lienzo se dibuja a pedido. Reloj de cuadros: 30 por segundo mientras hay movimiento (caminar,
+// vuelo de cámara, pisos que suben o bajan, inercia de los controles) y 6 tras 1 s quieto. El movimiento se detecta
+// comparando la cámara con el cuadro anterior y con las marcas de inicio (ultimoImpulso, pedidoZoom).
+function Cuadros({ caminando = false, controles, pedido, marca, invalidarRef }) {
   const { invalidate } = useThree()
+  const [fps, setFps] = useState(6)
+  const fpsRef = useRef(6)
+  const hasta = useRef(0)
+  const prev = useRef(null)
+  useEffect(() => { if (invalidarRef) invalidarRef.current = invalidate }, [invalidate, invalidarRef])
+  useFrame(() => {
+    const t = performance.now()
+    let mueve = caminando || !!pedido?.current || t - (marca?.current ?? 0) < 1000
+    const c = controles?.current
+    if (c) {
+      const p = c.object.position, q = c.target
+      const v = [p.x, p.y, p.z, q.x, q.y, q.z]
+      const pv = prev.current
+      if (pv && v.some((x, k) => Math.abs(x - pv[k]) > 1e-3)) mueve = true
+      prev.current = v
+    }
+    if (mueve) hasta.current = t + 1000
+    const nuevo = t < hasta.current ? 30 : 6
+    if (nuevo !== fpsRef.current) { fpsRef.current = nuevo; setFps(nuevo) }
+  })
   useEffect(() => {
     const id = setInterval(() => { if (!document.hidden) invalidate() }, 1000 / fps)
     return () => clearInterval(id)
@@ -906,12 +952,17 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
   const cx = (Math.min(...hu.map((p) => p[0])) + Math.max(...hu.map((p) => p[0]))) / 2
   const cy = (Math.min(...hu.map((p) => p[1])) + Math.max(...hu.map((p) => p[1]))) / 2
   const altura = armado ? 6 : base
+  // marca de inicio de cualquier movimiento: pide un cuadro ya (no espera el tic de reposo)
+  const ultimoImpulso = useRef(0), invalidarRef = useRef(null)
+  const impulso = () => { ultimoImpulso.current = performance.now(); invalidarRef.current?.() }
+  useEffect(() => { impulso() }, [armado, pisoId, altura, ruta, foco, recorrer, pausa])
   useImperativeHandle(fwd, () => ({
     // el dock eligió un piso: se deja el edificio completo y se ve ese piso (aunque ya fuera el piso a la vista)
     verPiso: () => setArmado(false),
-    acercar: () => { pedidoZoom.current = { dist: (pedidoZoom.current?.dist ?? distActual()) / 2.2 } },
-    alejar: () => { pedidoZoom.current = { dist: (pedidoZoom.current?.dist ?? distActual()) * 2.2 } },
+    acercar: () => { pedidoZoom.current = { dist: (pedidoZoom.current?.dist ?? distActual()) / 2.2 }; impulso() },
+    alejar: () => { pedidoZoom.current = { dist: (pedidoZoom.current?.dist ?? distActual()) * 2.2 }; impulso() },
     centrar: () => {
+      impulso()
       const c = controles.current
       if (!c) return
       // con una ruta a la vista: centra al personaje (de cerca, sin cambiar el giro) y vuelve a seguirlo
@@ -930,6 +981,7 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
     // «paso a paso»: la cámara va a un punto del plano del piso a la vista (sin cambiar el giro), ni muy cerca ni muy lejos
     listo: () => !!controles.current,
     irA: (x, y) => {
+      impulso()
       if (!controles.current) return
       pedidoZoom.current = { dist: Math.min(18, Math.max(8, distActual())), target: new THREE.Vector3(x, base + 1.3, -y) }
     },
@@ -953,13 +1005,13 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
     <div className="pb-3d">
       <Canvas shadows={!LIGERO} flat dpr={LIGERO ? 1 : [1, 2]} frameloop={LIGERO ? 'demand' : 'always'} camera={{ position: [cx + 95, altura + 110, -cy + 95], fov: 32, near: 0.5, far: 2400 }}
         gl={{ antialias: !LIGERO, powerPreference: LIGERO ? 'low-power' : 'high-performance' }}>
-        {LIGERO && <Cuadros fps={30} />}
+        {LIGERO && <Cuadros caminando={recorrer && !pausa} controles={controles} pedido={pedidoZoom} marca={ultimoImpulso} invalidarRef={invalidarRef} />}
         <Depurar />
         {/* luz pareja y fría, sol suave: con la paleta clara, más luz quemaría los pisos a blanco (el lienzo no lleva
             curva de tonos) */}
-        <color attach="background" args={['#EEF0F3']} />
-        <fog attach="fog" args={['#EEF0F3', 380, 900]} />
-        <hemisphereLight args={['#FFFFFF', '#E3E6EA', 2.0]} />
+        <color attach="background" args={['#ECEAE6']} />
+        <fog attach="fog" args={['#ECEAE6', 380, 900]} />
+        <hemisphereLight args={['#FFFFFF', '#D9D5CE', 2.0]} />
         <directionalLight position={[cx + 70, 140, -cy + 30]} intensity={1.2} castShadow={!LIGERO} shadow-mapSize={[2048, 2048]}
           shadow-camera-left={-110} shadow-camera-right={110} shadow-camera-top={110} shadow-camera-bottom={-110} shadow-camera-near={10} shadow-camera-far={450}
           shadow-bias={-0.0004} shadow-normalBias={0.06} target-position={[cx, 0, -cy]} />
@@ -985,7 +1037,7 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
         <ZoomSuave controles={controles} pedido={pedidoZoom} />
         <GestosLibres libre={libre} recorrer={recorrer} />
         <PlanoCercano controles={controles} />
-        <OrbitControls ref={controles} touches={{ ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN }} target={[cx, altura, -cy]} maxPolarAngle={recorrer ? Math.PI / 1.9 : Math.PI / 2.08} minDistance={recorrer ? 1.5 : 4} maxDistance={recorrer ? 160 : 460} enablePan enableDamping zoomSpeed={1.8} />
+        <OrbitControls ref={controles} onStart={impulso} touches={{ ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN }} target={[cx, altura, -cy]} maxPolarAngle={recorrer ? Math.PI / 1.9 : Math.PI / 2.08} minDistance={recorrer ? 1.5 : 4} maxDistance={recorrer ? 160 : 460} enablePan enableDamping zoomSpeed={1.8} />
       </Canvas>
       {/* en celular, botón redondo que abre o cierra el panel (oculto en escritorio y en el tótem, ver pb.css) */}
       <button type="button" className="pb-3d-abrir" aria-expanded={panel} aria-controls="pb-3d-ctrl" aria-label="Opciones de la vista" onClick={() => setPanel((v) => !v)}>Vista</button>
