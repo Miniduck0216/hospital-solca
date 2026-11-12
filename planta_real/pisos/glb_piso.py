@@ -336,6 +336,7 @@ def cerrar_fachada(m, piso, zona=None):
             # líneas del plano paralelas al tramo: largo cubierto y distancia al contorno, por clase
             cubre = {'ventana': 0.0, 'muro': 0.0}
             desv = {'ventana': [], 'muro': []}
+            lineas = {'ventana': [], 'muro': []}
             for capa, l in segs:
                 if not l.intersects(zona_s):
                     continue
@@ -351,6 +352,7 @@ def cerrar_fachada(m, piso, zona=None):
                 p = [float((np.array(q) - np.array(a)) @ u) for q in dentro.coords]
                 cubre[k] += max(0.0, min(L, max(p)) - max(0.0, min(p)))
                 desv[k] += [float((np.array(q) - np.array(a)) @ n) for q in dentro.coords]
+                lineas[k].append((v, dentro))
             centro = s.centroid
             # borde de un espacio exterior del plano (terraza, patio, porche…): abierto de verdad, no se toca
             pc = [Point(*(np.array(centro.coords[0]) + n * f)) for f in (0.4, -0.4)]
@@ -368,8 +370,21 @@ def cerrar_fachada(m, piso, zona=None):
                 clase = 'muro'
             else:
                 clase = 'abierto'
+            if clase == 'abierto' and L < 0.5:
+                # (quiebres cortos del contorno, en diagonal: un dintel ahí sale como un panel girado delante de la
+                # fachada, como los dos que quedaban sobre la pérgola del piso 1)
+                continue
+            # la pieza va paralela a las líneas del plano, no al contorno (que quiebra en diagonal en las esquinas
+            # de los cuartos): eje de la línea más larga de esa clase
+            k = 'ventana' if clase == 'ventana' else 'muro'
+            if clase != 'abierto' and lineas[k]:
+                v = max(lineas[k], key=lambda e: e[1].length)[0]
+                u = v if float(v @ u) >= 0 else -v
+                n = np.array([-u[1], u[0]])
+                desv[k] = [float((np.array(q) - np.array(a)) @ n) for _, dl in lineas[k] for q in dl.coords]
+                b = tuple(np.array(a) + u * float((np.array(b) - np.array(a)) @ u))
             # posición y grueso: entre las líneas del plano de esa clase (de 12 a 30 cm); sin líneas, sobre el contorno
-            ds = desv['ventana' if clase == 'ventana' else 'muro'] if clase != 'abierto' else []
+            ds = desv[k] if clase != 'abierto' else []
             if ds:
                 d0, d1 = min(ds), max(ds)
                 if d1 - d0 > 0.30:          # líneas a los dos lados del contorno que no son un mismo muro
@@ -747,8 +762,15 @@ def recortar_vieja(zona, m=None):
                         n_p -= int(dentro.sum())
                         g.update_faces(~dentro)
                         g.remove_unreferenced_vertices()
-            n_p += _sumar(esc, 'viseras', [prisma(cubierta, ALTURA - 0.10, ALTURA)] +
-                          [prisma(q, ALTURA - 0.30, ALTURA - 0.10, tapa=False) for q in costillas])
+            # (nov 2026) la pérgola va abierta, como la dibuja el DWG: solo el marco del contorno y las costillas, todo
+            # horizontal y de 15 cm, al nivel de la losa. Con la cubierta llena, su contorno quebrado (el frente baja a
+            # y 102,5 entre x 51,5 y 56,8) se leía desde fuera como una losa inclinada flotando sobre el vidrio
+            cs_ = list(cubierta.exterior.coords)
+            marco = [LineString([p, q]).buffer(0.075, cap_style=2, join_style=2).intersection(cubierta)
+                     for p, q in zip(cs_[:-1], cs_[1:]) if math.dist(p, q) > 0.05]
+            piezas_p = [g for q in marco + [c.intersection(cubierta) for c in costillas] for g in _polis(q)
+                        if g.area > 0.005]
+            n_p += _sumar(esc, 'viseras', [prisma(q, ALTURA - 0.15, ALTURA) for q in piezas_p])
         print('planta baja vieja: muro del descanso desde', round(z0, 2), 'm,', len(pares), 'tramos,', n_m,
               'triángulos; pérgola', 0 if cubierta is None else len(costillas), 'costillas,', n_p, 'triángulos')
         # envolvente: tramos de la fachada vieja sin cerramiento, con las piezas del DWG 2025
