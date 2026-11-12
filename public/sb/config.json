@@ -58,11 +58,11 @@
   },
   "a7": {
    "si": "Reloj",
-   "nombre": "Despacho · Recepción · Reloj"
+   "nombre": "Despacho · Recepción · Reloj 2 · Subsuelo"
   },
   "a125": {
    "si": "Reloj",
-   "nombre": "Despacho · Recepción · Reloj"
+   "nombre": "Despacho · Recepción · Reloj 1 · Subsuelo"
   },
   "a17": {
    "si": "Vestidor",
@@ -280,6 +280,30 @@
   "a104": {
    "si": "Oficina",
    "nombre": "Oficina 7 · Subsuelo"
+  },
+  "a113": {
+   "si": "Vestidores",
+   "nombre": "Vestidores 1 · Subsuelo"
+  },
+  "a40": {
+   "si": "Vestidores",
+   "nombre": "Vestidores 2 · Subsuelo"
+  },
+  "a143": {
+   "si": "Vestidor",
+   "nombre": "Vestidor 1 · Subsuelo"
+  },
+  "a101": {
+   "si": "Vestidor",
+   "nombre": "Vestidor 2 · Subsuelo"
+  },
+  "a102": {
+   "si": "Control",
+   "nombre": "Control 1 · Subsuelo"
+  },
+  "a145": {
+   "si": "Control",
+   "nombre": "Control 2 · Subsuelo"
   },
   "a68": {
    "si": "SS.HH.",
@@ -871,5 +895,6 @@
    "y": 5.02,
    "zona": true
   }
- ]
+ ],
+ "puertasAuto": []
 }

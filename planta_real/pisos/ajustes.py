@@ -263,6 +263,88 @@ AJUSTES = {
     ],
 }
 
+# nombres repetidos dentro de un mismo piso: número y zona (o piso) para distinguirlos. Se aplica después de AJUSTES.
+# Quedan fuera baños, pasillos, halls, ductos, escaleras y ascensores, y los nombres que ya traen número.
+NUMERADOS = {
+    'SB': [
+        ('Reloj', (101.08, 45.34), {'nombre': 'Despacho · Recepción · Reloj 1 · Subsuelo'}),
+        ('Reloj', (104.64, 25.46), {'nombre': 'Despacho · Recepción · Reloj 2 · Subsuelo'}),
+        ('Vestidores', (99.69, -23.3), {'nombre': 'Vestidores 1 · Subsuelo'}),
+        ('Vestidores', (165.06, 33.91), {'nombre': 'Vestidores 2 · Subsuelo'}),
+        ('Vestidor', (50.02, 39.01), {'nombre': 'Vestidor 1 · Subsuelo'}),
+        ('Vestidor', (96.43, -21.98), {'nombre': 'Vestidor 2 · Subsuelo'}),
+        ('Control', (145.97, 54.69), {'nombre': 'Control 1 · Subsuelo'}),
+        ('Control', (162.3, 59.45), {'nombre': 'Control 2 · Subsuelo'}),
+    ],
+    'PB': [
+        ('Cajas', (78.94, 35.37), {'nombre': 'Cajas · Zona 1'}),
+        ('Cajas', (86.44, 37.45), {'nombre': 'Cajas 1 · Planta Baja'}),
+        ('Cajas', (131.59, 104.67), {'nombre': 'Cajas 2 · Planta Baja'}),
+        ('Bodega', (25.24, 96.3), {'nombre': 'Bodega · Zona 2'}),
+        ('Bodega', (87.88, 11.76), {'nombre': 'Bodega 1 · Planta Baja'}),
+        ('Bodega', (111.59, 12.61), {'nombre': 'Bodega 2 · Planta Baja'}),
+        ('Bodega', (137.11, 99.73), {'nombre': 'Bodega 3 · Planta Baja'}),
+        ('Bodega', (158.28, 45.98), {'nombre': 'Bodega 4 · Planta Baja'}),
+        ('Bodega', (104.37, 82.73), {'nombre': 'Bodega · Zona 3'}),
+        ('Secretaría', (55.88, 35.2), {'nombre': 'Secretaría · Zona 1'}),
+        ('Secretaría', (91.28, 93.13), {'nombre': 'Secretaría · Zona 3'}),
+        ('Secretaría', (100.74, 29.45), {'nombre': 'Secretaría 1 · Planta Baja'}),
+        ('Secretaría', (101.91, -17.09), {'nombre': 'Secretaría 2 · Planta Baja'}),
+        ('', (73.49, 55.8), {'nombre': 'Cuarto UPS 1 · Zona 1'}),
+        ('Cuarto UPS', (78.89, 68.34), {'nombre': 'Cuarto UPS 2 · Zona 1'}),
+        ('Secretaría – Control', (20.48, 79.81), {'nombre': 'Secretaría – Control 1 · Zona 2'}),
+        ('Secretaría – Control', (44.45, 79.81), {'nombre': 'Secretaría – Control 2 · Zona 2'}),
+        ('Secretaría – Control', (69.28, 79.81), {'nombre': 'Secretaría – Control 3 · Zona 2'}),
+        ('Abastecimiento', (68.92, 96.56), {'nombre': 'Abastecimiento · Zona 2'}),
+        ('Abastecimiento', (104.94, 61.43), {'nombre': 'Abastecimiento · Planta Baja'}),
+        ('Gestión Privados', (65.53, 28.26), {'nombre': 'Gestión Privados 1 · Zona 1'}),
+        ('Gestión Privados', (67.2, 28.26), {'nombre': 'Gestión Privados 2 · Zona 1'}),
+        ('Gestión Privados', (69.23, 28.26), {'nombre': 'Gestión Privados 3 · Zona 1'}),
+        ('Gestión Privados', (70.89, 28.26), {'nombre': 'Gestión Privados 4 · Zona 1'}),
+        ('Gestión Privados', (73.05, 28.25), {'nombre': 'Gestión Privados 5 · Zona 1'}),
+        ('Espera', (82.64, 13.7), {'nombre': 'Espera · Zona 1'}),
+        ('Espera', (85.99, 75.19), {'nombre': 'Espera · Zona 3'}),
+        ('Auditoria Medica', (102.03, -25.77), {'nombre': 'Auditoría Médica · Planta Baja'}),
+        ('Auditoría Médica', (66.58, 15.21), {'nombre': 'Auditoría Médica · Zona 1'}),
+        ('Residencia', (134.31, 103.01), {'nombre': 'Residencia · Planta Baja'}),
+        ('Residencia', (101.15, 82.73), {'nombre': 'Residencia · Zona 3'}),
+        ('Sala Reuniones', (86.88, 54.52), {'nombre': 'Sala Reuniones 1 · Planta Baja'}),
+        ('Sala Reuniones', (110.85, 25.25), {'nombre': 'Sala Reuniones 2 · Planta Baja'}),
+        ('Sala Reuniones', (117.41, 82.94), {'nombre': 'Sala Reuniones 3 · Planta Baja'}),
+        ('Sala Reuniones', (158.28, 41.88), {'nombre': 'Sala Reuniones 4 · Planta Baja'}),
+        ('Sala Reuniones', (63.14, 70.04), {'nombre': 'Sala Reuniones · Zona 1'}),
+        ('Ginecología', (128.23, 99.63), {'nombre': 'Ginecología 1 · Planta Baja'}),
+        ('Ginecología', (148.55, 109.27), {'nombre': 'Ginecología 2 · Planta Baja'}),
+        ('U. Limpia', (103.45, 15.65), {'nombre': 'U. Limpia 1 · Planta Baja'}),
+        ('U. Limpia', (133.93, 65.13), {'nombre': 'U. Limpia 2 · Planta Baja'}),
+        ('', (101.14, 23.56), {'nombre': 'Archivo 1 · Planta Baja'}),
+        ('Archivo', (107.61, 43.35), {'nombre': 'Archivo 2 · Planta Baja'}),
+        ('U. Usada', (103.59, 16.99), {'nombre': 'U. Usada 1 · Planta Baja'}),
+        ('U. Usada', (127.6, 66.98), {'nombre': 'U. Usada 2 · Planta Baja'}),
+        ('U. Usada', (90.77, 100.4), {'nombre': 'U. Usada · Zona 3'}),
+        ('', (106.88, 81.63), {'nombre': 'Vestidor 1 · Zona 3'}),
+        ('', (111.58, 81.68), {'nombre': 'Vestidor 2 · Zona 3'}),
+        ('U.U.', (104.98, 55.63), {'nombre': 'U.U. 1 · Planta Baja'}),
+        ('U.U.', (118.66, 90.57), {'nombre': 'U.U. 2 · Planta Baja'}),
+        ('V', (95.89, 58.28), {'nombre': 'V 1 · Planta Baja'}),
+        ('V', (103.11, 58.28), {'nombre': 'V 2 · Planta Baja'}),
+        ('Lenc.', (89.1, 42.52), {'nombre': 'Lenc. 1 · Planta Baja'}),
+        ('Lenc.', (103.6, 55.63), {'nombre': 'Lenc. 2 · Planta Baja'}),
+    ],
+    'P1': [],
+    'P2': [],
+    'P3': [
+        ('U.L.', (73.17, 98.76), {'nombre': 'U.L. 1 · Piso 3'}),
+        ('U.L.', (73.49, 69.04), {'nombre': 'U.L. 2 · Piso 3'}),
+        ('U.U.', (72.98, 71.13), {'nombre': 'U.U. 1 · Piso 3'}),
+        ('U.U.', (72.99, 100.98), {'nombre': 'U.U. 2 · Piso 3'}),
+        ('Filtro', (78.05, 98.8), {'nombre': 'Filtro 1 · Piso 3'}),
+        ('Filtro', (78.05, 103.38), {'nombre': 'Filtro 2 · Piso 3'}),
+        ('Filtro', (78.08, 94.44), {'nombre': 'Filtro 3 · Piso 3'}),
+        ('Filtro', (78.29, 90.1), {'nombre': 'Filtro 4 · Piso 3'}),
+    ],
+}
+
 # tildes y erratas de los nombres del DWG: el nombre del plano (sin tilde) → el nombre correcto. Solo se aplica a
 # los cuartos que no tienen otro nombre en AJUSTES.
 TILDES = {
@@ -318,6 +400,11 @@ LETREROS = {
 
 # lugares sin cuarto propio (puntos con nombre): mostradores y zonas dentro de un hall, cuartos que el dibujo no cierra
 # pasos abiertos (puertas que el dibujo no tiene): [punto, punto] a través del muro
+# recorridos de pacientes (línea de paso en la rejilla): puntos por donde camina el personal hasta una estación
+LINEAS = {
+    'PB': [[[142.0, 68.9], [139.5, 68.9], [136.0, 68.9], [129.8, 68.9], [129.8, 67.8]]],   # recuperación: del pasillo del este hasta la estación
+}
+
 PASOS = {
     'PB': [[[139.95, 91.3], [139.95, 92.5]],     # emergencia: vestíbulo del baño (la rejilla lo deja cerrado en la esquina)
            [[163.4, 102.8], [165.1, 101.0]],     # clínica de heridas: puerta del pasillo junto a la fachada (frente a Triaje)
@@ -588,7 +675,7 @@ def main():
         cfg_p = os.path.join(carpeta, 'config.json')
         cfg = json.load(open(cfg_p))
         aj = {}
-        for nombre, (x, y), que in AJUSTES.get(piso, []):
+        for nombre, (x, y), que in AJUSTES.get(piso, []) + NUMERADOS.get(piso, []):
             cand = [a for a in d['ambientes'] if a['nombre'] == nombre]
             if not cand:
                 print(piso, 'no está:', nombre)
@@ -631,8 +718,14 @@ def main():
             lug.append({'id': lid, 'nombre': nombre, 'cat': cat, 'x': x, 'y': y, 'personal': bool(l[4]) if len(l) > 4 else False})
         cfg['lugares'] = lug
         cfg['pasos'] = [{'tipo': 'abrir', 'puntos': pp} for pp in PASOS.get(piso, [])]
+        cfg['pasos'] += [{'tipo': 'linea', 'puntos': pp} for pp in LINEAS.get(piso, [])]
         nuevos = {z['nombre']: z for z in LETREROS.get(piso, [])}
         cfg['letreros'] = [nuevos.pop(l['nombre'], l) for l in (cfg.get('letreros') or [])] + list(nuevos.values())
+        # puertas que se abren solas por nombre: el cuarto renombrado conserva la regla
+        pa = list(cfg.get('puertasAuto') or [])
+        pa += [v['nombre'] for v in aj.values() if v.get('nombre') and v.get('si') in pa and v['nombre'] not in pa]
+        if pa or 'puertasAuto' in cfg:
+            cfg['puertasAuto'] = pa
         cfg['ajustes'] = aj
         json.dump(cfg, open(cfg_p, 'w'), ensure_ascii=False, indent=1)
         print(piso, len(aj), 'ajustes')

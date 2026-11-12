@@ -85,7 +85,13 @@
   "Tesorería",
   "Secretaría – Control",
   "Minusválidos",
-  "SS.HH."
+  "SS.HH.",
+  "Cajas · Zona 1",
+  "Cajas 1 · Planta Baja",
+  "Cajas 2 · Planta Baja",
+  "Secretaría – Control 1 · Zona 2",
+  "Secretaría – Control 2 · Zona 2",
+  "Secretaría – Control 3 · Zona 2"
  ],
  "renombres": [
   {
@@ -188,7 +194,8 @@
   },
   "a438": {
    "si": "Sala Reuniones",
-   "personal": true
+   "personal": true,
+   "nombre": "Sala Reuniones · Zona 1"
   },
   "a439": {
    "si": "Quimioterápicos",
@@ -234,7 +241,7 @@
   },
   "a70": {
    "si": "",
-   "nombre": "Cuarto UPS",
+   "nombre": "Cuarto UPS 1 · Zona 1",
    "personal": true
   },
   "a12": {
@@ -301,11 +308,13 @@
   },
   "a406": {
    "si": "Lenc.",
-   "personal": true
+   "personal": true,
+   "nombre": "Lenc. 2 · Planta Baja"
   },
   "a379": {
    "si": "U.U.",
-   "personal": true
+   "personal": true,
+   "nombre": "U.U. 1 · Planta Baja"
   },
   "a264": {
    "si": "Toma de Muestras · Módulo 01",
@@ -357,7 +366,8 @@
     89.3,
     92.3
    ],
-   "ventanilla": true
+   "ventanilla": true,
+   "nombre": "Secretaría · Zona 3"
   },
   "a306": {
    "si": "",
@@ -396,11 +406,13 @@
   },
   "a399": {
    "si": "U. Usada",
-   "personal": true
+   "personal": true,
+   "nombre": "U. Usada 1 · Planta Baja"
   },
   "a408": {
    "si": "U. Limpia",
-   "personal": true
+   "personal": true,
+   "nombre": "U. Limpia 1 · Planta Baja"
   },
   "a221": {
    "si": "",
@@ -421,7 +433,7 @@
   },
   "a346": {
    "si": "",
-   "nombre": "Archivo",
+   "nombre": "Archivo 1 · Planta Baja",
    "personal": true
   },
   "a210": {
@@ -431,11 +443,11 @@
   },
   "a368": {
    "si": "",
-   "nombre": "Vestidor"
+   "nombre": "Vestidor 1 · Zona 3"
   },
   "a366": {
    "si": "",
-   "nombre": "Vestidor"
+   "nombre": "Vestidor 2 · Zona 3"
   },
   "a257": {
    "si": "Recepcion",
@@ -470,7 +482,8 @@
   },
   "a239": {
    "si": "U. Limpia",
-   "personal": true
+   "personal": true,
+   "nombre": "U. Limpia 2 · Planta Baja"
   },
   "a343": {
    "si": "Estacion",
@@ -593,6 +606,174 @@
   "a268": {
    "si": "Biopsias",
    "nombre": "Biopsias 3 · Planta Baja"
+  },
+  "a19": {
+   "si": "Cajas",
+   "nombre": "Cajas · Zona 1"
+  },
+  "a345": {
+   "si": "Cajas",
+   "nombre": "Cajas 1 · Planta Baja"
+  },
+  "a374": {
+   "si": "Cajas",
+   "nombre": "Cajas 2 · Planta Baja"
+  },
+  "a57": {
+   "si": "Bodega",
+   "nombre": "Bodega · Zona 2"
+  },
+  "a194": {
+   "si": "Bodega",
+   "nombre": "Bodega 1 · Planta Baja"
+  },
+  "a358": {
+   "si": "Bodega",
+   "nombre": "Bodega 2 · Planta Baja"
+  },
+  "a205": {
+   "si": "Bodega",
+   "nombre": "Bodega 3 · Planta Baja"
+  },
+  "a262": {
+   "si": "Bodega",
+   "nombre": "Bodega 4 · Planta Baja"
+  },
+  "a216": {
+   "si": "Bodega",
+   "nombre": "Bodega · Zona 3"
+  },
+  "a59": {
+   "si": "Secretaría",
+   "nombre": "Secretaría · Zona 1"
+  },
+  "a327": {
+   "si": "Secretaría",
+   "nombre": "Secretaría 1 · Planta Baja"
+  },
+  "a320": {
+   "si": "Secretaría",
+   "nombre": "Secretaría 2 · Planta Baja"
+  },
+  "a441": {
+   "si": "Cuarto UPS",
+   "nombre": "Cuarto UPS 2 · Zona 1"
+  },
+  "a85": {
+   "si": "Secretaría – Control",
+   "nombre": "Secretaría – Control 1 · Zona 2"
+  },
+  "a87": {
+   "si": "Secretaría – Control",
+   "nombre": "Secretaría – Control 2 · Zona 2"
+  },
+  "a82": {
+   "si": "Secretaría – Control",
+   "nombre": "Secretaría – Control 3 · Zona 2"
+  },
+  "a84": {
+   "si": "Abastecimiento",
+   "nombre": "Abastecimiento · Zona 2"
+  },
+  "a363": {
+   "si": "Abastecimiento",
+   "nombre": "Abastecimiento · Planta Baja"
+  },
+  "a95": {
+   "si": "Gestión Privados",
+   "nombre": "Gestión Privados 1 · Zona 1"
+  },
+  "a97": {
+   "si": "Gestión Privados",
+   "nombre": "Gestión Privados 2 · Zona 1"
+  },
+  "a98": {
+   "si": "Gestión Privados",
+   "nombre": "Gestión Privados 3 · Zona 1"
+  },
+  "a93": {
+   "si": "Gestión Privados",
+   "nombre": "Gestión Privados 4 · Zona 1"
+  },
+  "a96": {
+   "si": "Gestión Privados",
+   "nombre": "Gestión Privados 5 · Zona 1"
+  },
+  "a125": {
+   "si": "Espera",
+   "nombre": "Espera · Zona 1"
+  },
+  "a180": {
+   "si": "Espera",
+   "nombre": "Espera · Zona 3"
+  },
+  "a188": {
+   "si": "Auditoria Medica",
+   "nombre": "Auditoría Médica · Planta Baja"
+  },
+  "a427": {
+   "si": "Auditoría Médica",
+   "nombre": "Auditoría Médica · Zona 1"
+  },
+  "a217": {
+   "si": "Residencia",
+   "nombre": "Residencia · Planta Baja"
+  },
+  "a228": {
+   "si": "Residencia",
+   "nombre": "Residencia · Zona 3"
+  },
+  "a232": {
+   "si": "Sala Reuniones",
+   "nombre": "Sala Reuniones 1 · Planta Baja"
+  },
+  "a249": {
+   "si": "Sala Reuniones",
+   "nombre": "Sala Reuniones 2 · Planta Baja"
+  },
+  "a225": {
+   "si": "Sala Reuniones",
+   "nombre": "Sala Reuniones 3 · Planta Baja"
+  },
+  "a246": {
+   "si": "Sala Reuniones",
+   "nombre": "Sala Reuniones 4 · Planta Baja"
+  },
+  "a235": {
+   "si": "Ginecología",
+   "nombre": "Ginecología 1 · Planta Baja"
+  },
+  "a251": {
+   "si": "Ginecología",
+   "nombre": "Ginecología 2 · Planta Baja"
+  },
+  "a293": {
+   "si": "Archivo",
+   "nombre": "Archivo 2 · Planta Baja"
+  },
+  "a350": {
+   "si": "U. Usada",
+   "nombre": "U. Usada 2 · Planta Baja"
+  },
+  "a389": {
+   "si": "U. Usada",
+   "nombre": "U. Usada · Zona 3"
+  },
+  "a367": {
+   "si": "U.U.",
+   "nombre": "U.U. 2 · Planta Baja"
+  },
+  "a411": {
+   "si": "V",
+   "nombre": "V 1 · Planta Baja"
+  },
+  "a384": {
+   "si": "V",
+   "nombre": "V 2 · Planta Baja"
+  },
+  "a404": {
+   "si": "Lenc.",
+   "nombre": "Lenc. 1 · Planta Baja"
   },
   "a294": {
    "si": "Ascensores",
@@ -839,10 +1020,6 @@
   "a186": {
    "si": "Resonancia Magnetica",
    "nombre": "Resonancia Magnética"
-  },
-  "a188": {
-   "si": "Auditoria Medica",
-   "nombre": "Auditoría Médica"
   },
   "a189": {
    "si": "Flebotomia",
@@ -1249,6 +1426,31 @@
     [
      129.8,
      68.6
+    ]
+   ]
+  },
+  {
+   "tipo": "linea",
+   "puntos": [
+    [
+     142.0,
+     68.9
+    ],
+    [
+     139.5,
+     68.9
+    ],
+    [
+     136.0,
+     68.9
+    ],
+    [
+     129.8,
+     68.9
+    ],
+    [
+     129.8,
+     67.8
     ]
    ]
   }
