@@ -59,6 +59,27 @@ AJUSTES = {
         ('Aire Acondic.', (78.5, 3.5), 'personal'),
         ('SS.HH.', (117.4, 26.7), 'personal'),
         ('SS.HH.', (120.3, 26.7), 'personal'),
+        # nombres distintos por zona (cuartos con el mismo nombre en el piso)
+        ('Bodega', (47.52, 39.01), {'nombre': 'Bodega 1 · Subsuelo'}),
+        ('Bodega', (94.07, 11.47), {'nombre': 'Bodega 2 · Subsuelo'}),
+        ('Bodega', (94.12, 18.42), {'nombre': 'Bodega 3 · Subsuelo'}),
+        ('Bodega', (102.17, -17.09), {'nombre': 'Bodega 4 · Subsuelo'}),
+        ('Bodega', (156.63, 59.82), {'nombre': 'Bodega 5 · Subsuelo'}),
+        ('Bodega', (164.3, 59.9), {'nombre': 'Bodega 6 · Subsuelo'}),
+        ('Bodega Estadística', (102.75, -28.05), {'nombre': 'Bodega Estadística 1 · Subsuelo'}),
+        ('Bodega Estadística', (105.9, -28.0), {'nombre': 'Bodega Estadística 2 · Subsuelo'}),
+        ('Consultorio', (134.07, 48.44), {'nombre': 'Consultorio 1 · Subsuelo'}),
+        ('', (134.07, 54.69), {'nombre': 'Consultorio 2 · Subsuelo'}),
+        ('Consultorio', (138.94, 54.69), {'nombre': 'Consultorio 3 · Subsuelo'}),
+        ('Consultorio', (139.07, 48.44), {'nombre': 'Consultorio 4 · Subsuelo'}),
+        ('Consultorio', (141.3, 45.0), {'nombre': 'Consultorio 5 · Subsuelo'}),
+        ('Oficina', (65.17, 25.8), {'nombre': 'Oficina 1 · Subsuelo'}),
+        ('Oficina', (71.19, 22.7), {'nombre': 'Oficina 2 · Subsuelo'}),
+        ('Oficina', (104.54, 36.42), {'nombre': 'Oficina 3 · Subsuelo'}),
+        ('Oficina', (119.81, 50.59), {'nombre': 'Oficina 4 · Subsuelo'}),
+        ('Oficina', (128.29, 57.87), {'nombre': 'Oficina 5 · Subsuelo'}),
+        ('Oficina', (130.65, 59.72), {'nombre': 'Oficina 6 · Subsuelo'}),
+        ('Oficina', (133.17, 58.91), {'nombre': 'Oficina 7 · Subsuelo'}),
     ],
     'PB': [
         ('Vestíbulo de Ductos', (78.8, 46.0), 'personal'),
@@ -145,6 +166,26 @@ AJUSTES = {
         ('', (108.6, 81.8), {'cat': 'circulacion'}),   # imagen: vestíbulo de los S.H.
         # medicina física: el pasillo entre masoterapia y mecanoterapia lleva el rótulo de la zona
         ('Aseo', (108.04, 100.28), {'nombre': 'Medicina Física', 'cat': 'circulacion', 'personal': False}),
+        # nombres distintos por zona (cuartos con el mismo nombre en el piso)
+        ('', (59.4, 57.88), {'nombre': 'Oficina 1 · Zona 1'}),
+        ('Oficina', (72.0, 14.61), {'nombre': 'Oficina 2 · Zona 1'}),
+        ('', (78.89, 4.55), {'nombre': 'Oficina 1 · Planta Baja'}),
+        ('Oficina', (81.8, 3.54), {'nombre': 'Oficina 2 · Planta Baja'}),
+        ('Oficina', (101.6, 31.55), {'nombre': 'Oficina 3 · Planta Baja'}),
+        ('Oficina', (90.47, 82.98), {'nombre': 'Oficina · Zona 3'}),
+        ('Atención Farmacéutica', (59.48, 64.84), {'nombre': 'Atención Farmacéutica 1 · Zona 1'}),
+        ('Atención Farmacéutica', (59.49, 67.05), {'nombre': 'Atención Farmacéutica 2 · Zona 1'}),
+        ('Aire Acondicionado', (107.54, 19.28), {'nombre': 'Aire Acondicionado 1 · Planta Baja'}),
+        ('Aire Acondicionado', (107.55, 16.04), {'nombre': 'Aire Acondicionado 2 · Planta Baja'}),
+        ('Aire Acondicionado', (107.84, 34.41), {'nombre': 'Aire Acondicionado 3 · Planta Baja'}),
+        ('Aire Acondicionado', (148.32, 44.33), {'nombre': 'Aire Acondicionado 4 · Planta Baja'}),
+        ('Seleccion Donantes', (104.83, 96.21), {'nombre': 'Selección Donantes 1 · Zona 3'}),
+        ('Seleccion Donantes', (105.69, 99.5), {'nombre': 'Selección Donantes 2 · Zona 3'}),
+        ('Utileria', (158.28, 53.68), {'nombre': 'Utilería 1 · Planta Baja'}),
+        ('Utileria', (158.28, 49.78), {'nombre': 'Utilería 2 · Planta Baja'}),
+        ('Biopsias', (118.34, 92.74), {'nombre': 'Biopsias 1 · Planta Baja'}),
+        ('Biopsias', (118.34, 94.82), {'nombre': 'Biopsias 2 · Planta Baja'}),
+        ('Biopsias', (118.38, 96.93), {'nombre': 'Biopsias 3 · Planta Baja'}),
     ],
     # bloque administrativo norte (hall interno, TICs, jefatura, sala de reuniones): no es de pacientes
     'P1': [('Hall Interno', (80.7, 32.8), {'nombre': 'Recepción · Hall Interno · TICs', 'personal': True}),   # un espacio, tres rótulos
@@ -180,7 +221,19 @@ AJUSTES = {
            # franja junto a la fachada norte, frente a la residencia: es paso (se abre al hall)
            ('', (26.9, 98.84), {'cat': 'circulacion'}),
            # baños de los dormitorios de residentes (se entra por su vestíbulo): son del personal
-           ('SS.HH.', (78.36, 61.69), 'personal'), ('SS.HH.', (78.38, 63.03), 'personal')],
+           ('SS.HH.', (78.36, 61.69), 'personal'), ('SS.HH.', (78.38, 63.03), 'personal'),
+           # nombres distintos por piso (cuartos con el mismo nombre) y ductos del personal
+           ('Dormitorio Residente', (81.92, 61.82), {'nombre': 'Dormitorio Residente 1 · Piso 1'}),
+           ('Dormitorio Residente', (82.13, 57.89), {'nombre': 'Dormitorio Residente 2 · Piso 1'}),
+           ('Oficina', (56.18, 98.2), {'nombre': 'Oficina 1 · Piso 1'}),
+           ('Oficina', (73.47, 89.67), {'nombre': 'Oficina 2 · Piso 1'}),
+           ('Bodega', (73.28, 97.18), {'nombre': 'Bodega 1 · Piso 1'}),
+           ('Bodega', (73.62, 101.26), {'nombre': 'Bodega 2 · Piso 1'}),
+           ('Terraza', (5.07, 84.02), {'nombre': 'Terraza 1 · Piso 1'}),
+           ('Terraza', (26.23, 77.9), {'nombre': 'Terraza 2 · Piso 1'}),
+           ('L.ch. · U.U.', (73.18, 79.79), 'personal'), ('Ductos', (73.85, 77.37), 'personal'),
+           ('Sanitario · Ducto', (73.7, 94.69), 'personal'),
+    ],
     'P2': [('', (78.36, 61.7), 'personal'), ('SS.HH.', (78.38, 63.04), 'personal'),   # baños de los residentes
            # cuartos que el dibujo deja sin rótulo: el nombre es el texto del plano
            ('', (65.82, 47.0), {'nombre': 'Quimioterapia Ambulatoria'}),
@@ -190,12 +243,24 @@ AJUSTES = {
            ('', (82.3, 61.9), {'nombre': 'Dormitorio Residente', 'personal': True}),
            ('Preparación Médica', (73.5, 70.5), 'personal'),
            # Usados y Camillas son un solo espacio (el plano tiene los dos rótulos)
-           ('Usados', (82.6, 48.0), {'nombre': 'Usados · Camillas'})],
+           ('Usados', (82.6, 48.0), {'nombre': 'Usados · Camillas'}),
+           # nombres distintos por piso y ductos del personal
+           ('', (81.94, 61.83), {'nombre': 'Dormitorio Residente 1 · Piso 2'}),
+           ('Dormitorio Residente', (82.15, 57.9), {'nombre': 'Dormitorio Residente 2 · Piso 2'}),
+           ('L.ch. · U.U.', (73.22, 79.77), 'personal'), ('Ductos', (73.33, 77.37), 'personal'),
+           ('Sanitario · Ducto', (73.72, 94.7), 'personal'),
+    ],
     'P3': [('SS.HH.', (78.36, 61.7), 'personal'), ('SS.HH.', (78.38, 63.04), 'personal'),   # baños de los residentes
            # un solo espacio con los dos rótulos del plano
            ('Usados', (82.6, 48.0), {'nombre': 'Usados · Camillas'}),
            ('Oficina', (73.48, 83.96), {'nombre': 'Oficina · Jefatura'}),
-           ('Apoyo', (73.49, 66.67), 'personal')],
+           ('Apoyo', (73.49, 66.67), 'personal'),
+           # nombres distintos por piso, ductos del personal y cuarto sin nombre junto al filtro
+           ('Dormitorio Residente', (81.94, 61.83), {'nombre': 'Dormitorio Residente 1 · Piso 3'}),
+           ('Dormitorio Residente', (82.15, 57.9), {'nombre': 'Dormitorio Residente 2 · Piso 3'}),
+           ('Ducto Agua y Sanit. · Ducto', (73.72, 76.78), 'personal'),
+           ('', (73.72, 96.49), {'nombre': 'Sanitario · Ducto', 'personal': True}),
+    ],
 }
 
 # tildes y erratas de los nombres del DWG: el nombre del plano (sin tilde) → el nombre correcto. Solo se aplica a
@@ -256,7 +321,8 @@ LETREROS = {
 PASOS = {
     'PB': [[[139.95, 91.3], [139.95, 92.5]],     # emergencia: vestíbulo del baño (la rejilla lo deja cerrado en la esquina)
            [[163.4, 102.8], [165.1, 101.0]],     # clínica de heridas: puerta del pasillo junto a la fachada (frente a Triaje)
-           [[146.5, 37.0], [146.5, 35.5]]],      # comedor de medicina nuclear: entrada desde la estación (vano de 0,6 m)
+           [[146.5, 37.0], [146.5, 35.5]],      # comedor de medicina nuclear: entrada desde la estación (vano de 0,6 m)
+           [[129.8, 67.6], [129.8, 68.6]]],   # estación del personal: puerta en su lado norte, hacia la recuperación
     'P1': [[[28.95, 83.6], [29.85, 83.6]]],   # puerta del baño de hombres del bloque de servicio
     'P3': [[[74.3, 87.33], [75.5, 87.33]]],      # vano entre el filtro de pacientes y los baños de Trasplantes
 }

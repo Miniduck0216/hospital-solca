@@ -55,6 +55,23 @@
    "si": "Apoyo",
    "personal": true
   },
+  "a31": {
+   "si": "Dormitorio Residente",
+   "nombre": "Dormitorio Residente 1 · Piso 3"
+  },
+  "a34": {
+   "si": "Dormitorio Residente",
+   "nombre": "Dormitorio Residente 2 · Piso 3"
+  },
+  "a54": {
+   "si": "Ducto Agua y Sanit. · Ducto",
+   "personal": true
+  },
+  "a45": {
+   "si": "",
+   "nombre": "Sanitario · Ducto",
+   "personal": true
+  },
   "a38": {
    "si": "Ascensores",
    "personal": true

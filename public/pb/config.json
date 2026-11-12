@@ -167,7 +167,7 @@
   "a322": {
    "si": "Seleccion Donantes",
    "personal": true,
-   "nombre": "Selección Donantes"
+   "nombre": "Selección Donantes 2 · Zona 3"
   },
   "a332": {
    "si": "Baño",
@@ -183,7 +183,8 @@
   },
   "a429": {
    "si": "Oficina",
-   "personal": true
+   "personal": true,
+   "nombre": "Oficina 2 · Zona 1"
   },
   "a438": {
    "si": "Sala Reuniones",
@@ -203,7 +204,7 @@
   },
   "a63": {
    "si": "",
-   "nombre": "Oficina",
+   "nombre": "Oficina 1 · Zona 1",
    "personal": true
   },
   "a66": {
@@ -243,7 +244,8 @@
   },
   "a321": {
    "si": "Oficina",
-   "personal": true
+   "personal": true,
+   "nombre": "Oficina 3 · Planta Baja"
   },
   "a111": {
    "si": "Hab. 02 · Hab. 03",
@@ -415,7 +417,7 @@
   },
   "a89": {
    "si": "",
-   "nombre": "Oficina"
+   "nombre": "Oficina 1 · Planta Baja"
   },
   "a346": {
    "si": "",
@@ -535,6 +537,62 @@
    "nombre": "Medicina Física",
    "cat": "circulacion",
    "personal": false
+  },
+  "a192": {
+   "si": "Oficina",
+   "nombre": "Oficina 2 · Planta Baja"
+  },
+  "a284": {
+   "si": "Oficina",
+   "nombre": "Oficina · Zona 3"
+  },
+  "a81": {
+   "si": "Atención Farmacéutica",
+   "nombre": "Atención Farmacéutica 1 · Zona 1"
+  },
+  "a437": {
+   "si": "Atención Farmacéutica",
+   "nombre": "Atención Farmacéutica 2 · Zona 1"
+  },
+  "a286": {
+   "si": "Aire Acondicionado",
+   "nombre": "Aire Acondicionado 1 · Planta Baja"
+  },
+  "a290": {
+   "si": "Aire Acondicionado",
+   "nombre": "Aire Acondicionado 2 · Planta Baja"
+  },
+  "a340": {
+   "si": "Aire Acondicionado",
+   "nombre": "Aire Acondicionado 3 · Planta Baja"
+  },
+  "a128": {
+   "si": "Aire Acondicionado",
+   "nombre": "Aire Acondicionado 4 · Planta Baja"
+  },
+  "a240": {
+   "si": "Seleccion Donantes",
+   "nombre": "Selección Donantes 1 · Zona 3"
+  },
+  "a255": {
+   "si": "Utileria",
+   "nombre": "Utilería 1 · Planta Baja"
+  },
+  "a259": {
+   "si": "Utileria",
+   "nombre": "Utilería 2 · Planta Baja"
+  },
+  "a279": {
+   "si": "Biopsias",
+   "nombre": "Biopsias 1 · Planta Baja"
+  },
+  "a280": {
+   "si": "Biopsias",
+   "nombre": "Biopsias 2 · Planta Baja"
+  },
+  "a268": {
+   "si": "Biopsias",
+   "nombre": "Biopsias 3 · Planta Baja"
   },
   "a294": {
    "si": "Ascensores",
@@ -822,21 +880,9 @@
    "si": "Estacion Enfermería",
    "nombre": "Estación Enfermería"
   },
-  "a240": {
-   "si": "Seleccion Donantes",
-   "nombre": "Selección Donantes"
-  },
   "a254": {
    "si": "Esterilizacion",
    "nombre": "Esterilización"
-  },
-  "a255": {
-   "si": "Utileria",
-   "nombre": "Utilería"
-  },
-  "a259": {
-   "si": "Utileria",
-   "nombre": "Utilería"
   },
   "a267": {
    "si": "Biologia Molecular",
@@ -1190,6 +1236,19 @@
     [
      146.5,
      35.5
+    ]
+   ]
+  },
+  {
+   "tipo": "abrir",
+   "puntos": [
+    [
+     129.8,
+     67.6
+    ],
+    [
+     129.8,
+     68.6
     ]
    ]
   }
