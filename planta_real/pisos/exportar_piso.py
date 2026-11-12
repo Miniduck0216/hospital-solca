@@ -191,6 +191,14 @@ VENTANAS_EN_MURO = {
 VENTANAS_EXTRA = {
     'P1': [box(50.28, 74.0, 58.86, 74.12), box(58.74, 74.0, 58.86, 77.2), box(50.28, 74.0, 50.4, 77.15)],
 }
+# ventanillas de atención que el dibujo no trae como bloque «Ventanilla» (marco de la planta baja): antepecho macizo
+# hasta 1,0 m, vidrio hasta 2,1 m y muro encima (a_ifc.py, como las del bloque). Toma de Muestras de la planta baja,
+# junto al Laboratorio de Genética: las ventanillas V6 y V7 hacia los dos cubículos de Cultivos son tabiques de 15 cm
+# dibujados con su contorno en la capa AY y dos líneas de vidrio (VE) por dentro; el modelo no las leía (ni muro ni
+# ventana) y quedaban abiertas de piso a techo
+VENTANILLAS_EXTRA = {
+    'PB': [box(107.19, 26.07, 108.79, 26.22), box(107.19, 24.13, 108.95, 24.28)],
+}
 # barandas de 1 m (no dejan pasar, no son muros): eje de la escalera de emergencia del ala oeste, borde de la escalera
 # del Bloque A hacia la sala del balcón, borde de la terraza junto a Almacén
 BARANDAS_EXTRA = {
@@ -589,6 +597,12 @@ def obra(m, piso):
         g = T(g)
         m.ventanas = [q for v in m.ventanas for q in lista_polis(v.difference(g)) if q.area > 0.01]
     m.ventanas = list(m.ventanas) + [T(g) for g in VENTANAS_EXTRA.get(piso, [])]
+    for g in VENTANILLAS_EXTRA.get(piso, []):
+        g = T(g)
+        quitar = g.buffer(0.02, join_style=2)
+        m.ventanas = [q for v in m.ventanas for q in lista_polis(v.difference(quitar)) if q.area > 0.01]
+        m.muros = [q for w in m.muros for q in lista_polis(w.difference(quitar)) if q.area > 0.005]
+        m.ventanillas = list(getattr(m, 'ventanillas', [])) + [g]
     m.barandas = list(barandas(m)) + [T(g) for g in BARANDAS_EXTRA.get(piso, [])]
     for a, b, doble in PUERTAS_EXTRA.get(piso, []):
         p = puerta_nueva(np.array(a) - (ox, oy), np.array(b) - (ox, oy), doble)
