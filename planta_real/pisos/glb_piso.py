@@ -811,6 +811,8 @@ def main():
     m.zona_recorte = zona if fuera else None
     # cierres de fachada (caja de escalera, dinteles de vano, rendijas, losa)
     arreglar(m, piso)
+    # hormigón macizo de los búnkeres (modelo_piso.CORRECCIONES, tipo «macizo»): sin losa debajo (ver a_ifc.escribir)
+    m.sin_losa = EP.macizos(m)
     from a_ifc import escribir
     ifc = f'/tmp/solca_{piso.lower()}.ifc'
     escribir(m, ifc, web=True)

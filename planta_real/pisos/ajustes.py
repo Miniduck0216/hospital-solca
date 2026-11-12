@@ -35,7 +35,7 @@ AJUSTES = {
         ('Pasillo', (70.79, 17.85), {'nombre': 'Talento Humano'}),   # el rótulo del plano está en esta área abierta
         ('Comedor', (77.49, 36.89), {'nombre': 'Comedor Especial'}),
         ('Cafetería', (92.38, 36.69), {'nombre': 'Comedor Personal'}),
-        ('Bodega · Control 2', (0, 0), {'nombre': 'Radioterapia'}),
+        ('Control 2 · Control 1', (0, 0), {'nombre': 'Radioterapia'}),   # (antes «Bodega · Control 2»: el pasillo llegaba a los laberintos)
         ('Abastecim. · Costura', (0, 0), {'nombre': 'Lavandería', 'personal': True}),
         ('Area Equipos', (113.72, 38.05), {'nombre': 'Esterilización', 'personal': True}),
         # antesala de las salas de Inserciones (se entra por ella desde el pasillo de radioterapia)
