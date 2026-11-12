@@ -26,6 +26,13 @@ VIEJA = os.path.join(AQUI, 'pb_vieja.json')
 NUEVA = '/tmp/pb_nueva.json'
 SALIDA = os.path.join(RAIZ, 'public', 'pb', 'datos.json')
 
+# Muros del DWG 2025 que la planta vieja no trae (auditoría de nov 2026, marco de la web): fachada norte junto al hall
+# de vidrio de la torre (P0 - Paredes con su par en Rebars), cara norte de la caja de las gradas de emergencia (par PA
+# entre las dos columnas: sin ella la escalera se veía por debajo desde la calle) y dos tabiques cortos (PA).
+from shapely.geometry import box as _caja  # noqa: E402
+MUROS_VIEJA = [_caja(59.99, 99.75, 62.79, 99.95), _caja(66.89, 107.95, 69.59, 108.25),
+               _caja(42.19, 86.6, 43.59, 86.7), _caja(50.99, 55.0, 51.14, 56.25)]
+
 # Zonas de la planta vieja que se rehacen con el DWG 2025: el plano viejo no traía sus tabiques (la dirección era un
 # solo espacio, la farmacia también). Dentro de cada zona mandan los muros, ventanas, puertas y muebles del DWG; los
 # cuartos salen de esos muros (cortados en cada puerta) y se nombran con los rótulos del plano. Cada id viejo de la
@@ -436,6 +443,8 @@ def main():
     geo = dict(muros=sumar('muros'), ventanas=sumar('ventanas'), puertas=puertas, muebles=muebles,
                trazos=trazos('trazos'), trazos_puertas=trazos('trazos_puertas'))
     rehacer(amb, n, geo, capas, gx0, gy0, RES)
+    # muros del DWG 2025 que la planta vieja no trae (también van al 3D, ver glb_piso.cerrar_fachada_vieja)
+    geo['muros'][:] = a_lista(pgs(geo['muros']).union(unary_union(MUROS_VIEJA)).buffer(0))
     # vereda: franja de 1,5 m alrededor de la huella completa (por fuera)
     hu_r = ras(huella)
     vereda = ndimage.binary_dilation(hu_r, iterations=int(round(1.5 / RES))) & ~hu_r

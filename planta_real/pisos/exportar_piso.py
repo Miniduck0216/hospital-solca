@@ -170,8 +170,23 @@ QUITAR_VENTANAS = {
     'PB': [box(83.9, -8.65, 90.45, -6.25)],   # vidrios del tramo de fachada junto a la Bodega Tics (no existe)
     'P1': [box(3.9, 75.4, 50.7, 75.8), box(16.5, 77.55, 50.3, 77.75), box(45.3, 72.7, 45.7, 75.4)],
 }
-# ventanas que en el plano son muros (doble línea de la capa de vidrios): las centrales de gases de la U.C.I.
-VENTANAS_A_MUROS = {'PB': [box(146.5, 76.3, 156.1, 86.5)]}
+# ventanas que en el plano son muros (doble línea de la capa de vidrios). Antes iban aquí las centrales de gases de la
+# U.C.I. (box(146.5, 76.3, 156.1, 86.5)); en el DWG 2025 su cerramiento es el símbolo de ventana completo (las dos
+# caras y dos líneas de malla entre ellas, capa VE): es reja de ventilación, no muro, y queda como ventana (nov 2026)
+VENTANAS_A_MUROS = {}
+# vidrios que el modelo deja como muro (o no saca) y en el plano son ventana: dos líneas VE a 4-5 cm (vidrio en un
+# vano del tabique, mampara) o el contorno de un vidrio dibujado en VE. Lo que haya de muro en la caja pasa a ventana y,
+# si no había nada, la caja es la ventana. No va aquí la banda de x 107,93 (subsuelo): una cara del muro en VE y la otra
+# en PA, a 15 cm, sin vidrio entre ellas: es muro.
+VENTANAS_EN_MURO = {
+    'SB': [box(102.75, 27.6, 102.88, 29.25), box(102.75, 35.99, 102.88, 37.56),     # mamparas de la Central de Esterilización
+           box(147.8, 51.64, 147.93, 52.86), box(104.68, 42.5, 105.7, 42.65),
+           box(56.91, 16.5, 57.65, 16.65), box(54.43, 16.5, 55.12, 16.65),
+           box(130.83, 36.97, 131.55, 37.12), box(67.28, 27.18, 67.8, 27.31),
+           box(109.15, 30.81, 109.27, 33.0),                                          # línea suelta en x 109
+           box(104.08, 30.3, 105.84, 30.52),                                          # vidrio en x 104 (línea al medio)
+           box(88.04, 28.85, 89.79, 29.45), box(83.94, 28.85, 84.74, 29.55)],         # «Servicio auto»: vidrios en x 84 y 88
+}
 # ventanas que faltan: el borde de la terraza de la cafetería (piso 1)
 VENTANAS_EXTRA = {
     'P1': [box(50.28, 74.0, 58.86, 74.12), box(58.74, 74.0, 58.86, 77.2), box(50.28, 74.0, 50.4, 77.15)],
@@ -548,6 +563,12 @@ def obra(m, piso):
         m.ventanas = [v for v in m.ventanas if not g.contains(v.centroid)]
         m.muros_raw = unary_union([m.muros_raw] + dentro)
         m.muros = list(m.muros) + dentro
+    for g in VENTANAS_EN_MURO.get(piso, []):
+        g = T(g)
+        dentro = [q for w in m.muros for q in lista_polis(w.intersection(g)) if q.area > 0.005]
+        m.muros = [q for w in m.muros for q in lista_polis(w.difference(g)) if q.area > 0.005]
+        m.ventanas = [q for v in m.ventanas for q in lista_polis(v.difference(g)) if q.area > 0.005] + \
+            [unary_union(dentro).minimum_rotated_rectangle if dentro else g]
     for g in QUITAR_VENTANAS.get(piso, []):
         g = T(g)
         m.ventanas = [q for v in m.ventanas for q in lista_polis(v.difference(g)) if q.area > 0.01]

@@ -257,7 +257,9 @@ function Techo({ huella }) {
   // la losa va justo bajo el piso de arriba (que la tapa donde lo hay) y se ve como azotea donde no
   return (
     <group position-y={3.84}>
-      {geos.losas.map((g, k) => <mesh key={'l' + k} geometry={g} material={TECHO} receiveShadow castShadow />)}
+      {/* (la losa no proyecta sombra: sobre sí misma oscurecía todo el techo menos donde terminaba la cámara de
+          sombras; los muros y el antepecho siguen dando la sombra del edificio) */}
+      {geos.losas.map((g, k) => <mesh key={'l' + k} geometry={g} material={TECHO} receiveShadow />)}
       {geos.bordes.map((g, k) => <mesh key={'b' + k} geometry={g} material={ANTEPECHO} castShadow />)}
     </group>
   )
@@ -1012,8 +1014,10 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
         <color attach="background" args={['#ECEAE6']} />
         <fog attach="fog" args={['#ECEAE6', 380, 900]} />
         <hemisphereLight args={['#FFFFFF', '#D9D5CE', 2.0]} />
-        <directionalLight position={[cx + 70, 140, -cy + 30]} intensity={1.2} castShadow={!LIGERO} shadow-mapSize={[2048, 2048]}
-          shadow-camera-left={-110} shadow-camera-right={110} shadow-camera-top={110} shadow-camera-bottom={-110} shadow-camera-near={10} shadow-camera-far={450}
+        {/* la cámara de sombras cubre todo el edificio (unos 190 × 155 m): con ±110 m su borde cruzaba techos y muros
+            en diagonal y dejaba a un lado un triángulo más claro, como una pieza suelta */}
+        <directionalLight position={[cx + 70, 140, -cy + 30]} intensity={1.2} castShadow={!LIGERO} shadow-mapSize={[4096, 4096]}
+          shadow-camera-left={-160} shadow-camera-right={160} shadow-camera-top={160} shadow-camera-bottom={-160} shadow-camera-near={10} shadow-camera-far={450}
           shadow-bias={-0.0004} shadow-normalBias={0.06} target-position={[cx, 0, -cy]} />
         {lista.map((p) => (
           <Piso3D key={p.id} p={p} techo={techos[p.id]} estado={estadoDe(p)} corte={corte} letreros={letreros}
