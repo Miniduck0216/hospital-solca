@@ -927,6 +927,40 @@ def recortar_vieja(zona, m=None):
     print('GLB vieja recortada', salida, round(os.path.getsize(salida) / 1e6, 2), 'MB')
 
 
+# Marquesinas exteriores (marco de la planta baja). Puerta 5 (emergencia, junto a Espera Familiares): el DWG 2025
+# dibuja delante de la puerta la zona «AMBULANCIA» con la cubierta en la capa AY: dos bordes laterales desde la
+# fachada (x 115,44 y 128,64, de y 107,75 a 113,75) y al frente una franja de 1,2 m con las puntas redondeadas
+# (x 115,04 a 129,04, y 113,35 a 114,55), sobre tres columnas de 40 cm (-COL40- en x 115,64, 122,04 y 128,44,
+# y 113,95). No es un cuarto: va solo en el 3D (ni en datos.json ni en las rutas). El plano no trae su altura: losa
+# de 25 cm con la cara de abajo a 3,25 m, viga de borde de 55 cm en la franja del frente y vigas laterales de 20 cm.
+MARQUESINAS = {
+    'PB': [dict(nombre='Puerta 5 (ambulancias)',
+                losa=unary_union([box(115.44, 107.75, 128.64, 113.75), box(115.34, 113.65, 128.74, 114.25).buffer(0.3)]),
+                viga=box(115.34, 113.65, 128.74, 114.25).buffer(0.3),
+                vigas=[box(115.44, 107.75, 115.64, 113.4), box(128.44, 107.75, 128.64, 113.4)],
+                columnas=[(115.64, 113.95), (122.04, 113.95), (128.44, 113.95)], lado=0.4,
+                z_losa=(3.25, 3.50), z_viga=2.95, z_vigas=3.0)],
+}
+
+
+def marquesinas(esc, piso, ox, oy):
+    """Marquesinas de MARQUESINAS en el GLB (marco del modelo, antes del traslado): losa y vigas con las viseras
+    (en la web se ven con los muros completos, como las demás viseras) y columnas con los muros."""
+    T = lambda g: affinity.translate(g, -ox, -oy)  # noqa: E731
+    for mq in MARQUESINAS.get(piso, []):
+        z0, z1 = mq['z_losa']
+        losa = [prisma(T(mq['losa']).simplify(0.005), z0, z1)]
+        vigas = [prisma(T(mq['viga']).simplify(0.005), mq['z_viga'], z0, tapa=False)] + \
+            [prisma(T(v), mq['z_vigas'], z0, tapa=False) for v in mq['vigas']]
+        h = mq['lado'] / 2
+        cols = [prisma(T(box(x - h, y - h, x + h, y + h)), 0, mq['z_viga'], tapa=False) for x, y in mq['columnas']]
+        n = _sumar(esc, 'viseras', losa + vigas) if any(k.startswith('viseras') for k in esc.geometry) else \
+            _malla_nueva(esc, 'viseras|0.740,0.740,0.706|0.00', (0.74, 0.74, 0.706), losa + vigas)
+        n += _sumar(esc, 'muros|0.902', cols) if any(k.startswith('muros|0.902') for k in esc.geometry) else \
+            _malla_nueva(esc, 'muros|0.902,0.884,0.810|0.00', (0.902, 0.884, 0.81), cols)
+        print('marquesina', mq['nombre'], n, 'triángulos')
+
+
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith('--')]
     piso = args[0]
@@ -969,6 +1003,8 @@ def main():
     # al marco de la planta baja: plano (x, y) -> glTF (x, z, -y)
     import trimesh
     esc = trimesh.load(salida, force='scene')
+    if MARQUESINAS.get(piso) and fuera:
+        marquesinas(esc, piso, ox, oy)
     esc.apply_translation([ox, 0.0, -oy])
     esc.export(salida)
     print('GLB', salida, round(os.path.getsize(salida) / 1e6, 2), 'MB; desplazado', round(ox, 3), round(oy, 3))
