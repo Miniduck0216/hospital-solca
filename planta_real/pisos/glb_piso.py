@@ -956,6 +956,27 @@ def cerrar_fachada_vieja(esc, m, zona):
                 cerca = [segs_web[int(j)] for j in arbol_web.query(t.buffer(0.6))]
                 clase, g = franja_del_plano(cerca, a, b)
                 if clase is not None:
+                    # la pieza termina en lo primero que hay de la planta vieja a cada lado (a 0,5 y 1,5 m de alto):
+                    # el marco de la puerta del Acceso 1 quedaba tapado por los machones (la sección cerrada en
+                    # polígonos no tiene los perfiles delgados del marco)
+                    c = t.interpolate(0.5, normalized=True)
+                    lo, hi = -3.0, 3.0
+                    for z in (0.5, 1.5):
+                        if secc[z] is None:
+                            continue
+                        for ln in secc[z].geometries.take(secc[z].query(g, predicate='intersects')):
+                            for pq in shapely.get_coordinates(ln.intersection(g.buffer(0.001))):
+                                sv = (pq[0] - c.x) * ua[0] + (pq[1] - c.y) * ua[1]
+                                if sv < -0.02:
+                                    lo = max(lo, sv)
+                                elif sv > 0.02:
+                                    hi = min(hi, sv)
+                    nn = (-ua[1], ua[0])
+                    corte = Polygon([(c.x + ua[0] * lo + nn[0] * 2, c.y + ua[1] * lo + nn[1] * 2),
+                                     (c.x + ua[0] * hi + nn[0] * 2, c.y + ua[1] * hi + nn[1] * 2),
+                                     (c.x + ua[0] * hi - nn[0] * 2, c.y + ua[1] * hi - nn[1] * 2),
+                                     (c.x + ua[0] * lo - nn[0] * 2, c.y + ua[1] * lo - nn[1] * 2)])
+                    g = g.intersection(corte)
                     piezas = [q for q in _polis(g.difference(macizo_viejo.buffer(0.01))) if q.area > 0.01]
                     (nuevos_m if clase == 'muro' else nuevos_v).extend(piezas)
                     del_plano.append((clase, round(a[0], 1), round(a[1], 1), round(math.dist(a, b), 1)))
