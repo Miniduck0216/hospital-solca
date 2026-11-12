@@ -237,6 +237,124 @@ def _segmentos_dxf(m, capas, zona):
     return [out[int(i)] for i in arbol.query(zona)]
 
 
+def franja_del_plano(segs, a, b, minimo=0.5, banda=0.35, capas_grosor=()):
+    """Pieza que el plano dibuja a lo largo del tramo a-b (mismo marco que `segs`, de _segmentos_dxf): clase
+    ('ventana', 'muro' o None si las líneas paralelas no cubren al menos `minimo` del tramo) y la franja entre esas
+    líneas, del largo del tramo. El grueso sale de las líneas paralelas a menos de `banda` del tramo y de los cierres
+    cortos (de hasta 35 cm) en perpendicular: un machón dibujado como una «U» (dos lados cortos y uno largo, sin el
+    cuarto) tiene así su grueso entero. Las líneas de `capas_grosor` solo cuentan para el grueso, no para decidir."""
+    import numpy as np
+    s = LineString([a, b])
+    L = s.length
+    if L < 0.1:
+        return None, None
+    u = np.array([b[0] - a[0], b[1] - a[1]]) / L
+    n = np.array([-u[1], u[0]])
+    zona = s.buffer(banda, cap_style=2)
+    cubre = {'ventana': 0.0, 'muro': 0.0}
+    desv = {'ventana': [], 'muro': []}
+    cortos = []
+    for capa, l in segs:
+        if not l.intersects(zona):
+            continue
+        (x1, y1), (x2, y2) = l.coords
+        v = np.array([x2 - x1, y2 - y1]) / l.length
+        dentro = l.intersection(zona)
+        if dentro.is_empty or dentro.geom_type != 'LineString':
+            continue
+        k = 'ventana' if capa in CAPAS_VENTANA else 'muro'
+        if abs(float(u @ v)) < 0.1 and l.length <= 0.35:
+            cortos.append((k, [float((np.array(q) - np.array(a)) @ n) for q in l.coords]))
+            continue
+        if abs(float(u @ v)) < 0.97 or dentro.length < 0.1:
+            continue
+        p = [float((np.array(q) - np.array(a)) @ u) for q in dentro.coords]
+        if capa not in capas_grosor:
+            cubre[k] += max(0.0, min(L, max(p)) - max(0.0, min(p)))
+        desv[k] += [float((np.array(q) - np.array(a)) @ n) for q in dentro.coords]
+    if cubre['ventana'] >= max(minimo, 0.4) * L:
+        k = 'ventana'
+    elif cubre['muro'] >= minimo * L:
+        k = 'muro'
+    else:
+        return None, None
+    ds = desv[k] + [d for kk, c in cortos if kk == k for d in c]
+    d0, d1 = min(ds), max(ds)
+    if d1 - d0 > 0.30:          # líneas a los dos lados del tramo que no son un mismo muro
+        d0 = d1 = sorted(desv[k] or ds)[len(desv[k] or ds) // 2]
+    if d1 - d0 < 0.12:
+        d0, d1 = (d0 + d1) / 2 - 0.06, (d0 + d1) / 2 + 0.06
+    p0, p1 = np.array(a) + n * d0, np.array(b) + n * d0
+    p2, p3 = np.array(b) + n * d1, np.array(a) + n * d1
+    return k, Polygon([tuple(p0), tuple(p1), tuple(p2), tuple(p3)])
+
+
+CAPAS_VESTIBULO = {'PA', 'P0 - Paredes', 'TA', 'Rebars'}
+CAPAS_VESTIBULO_VENTANA = {'VE', 'P0 - Ventanas'}
+
+
+def cerrar_vestibulo(m, centro, adentro, S, segs_de):
+    """Vano abierto según el plano (acceso, porche, pasaje, terraza): el espacio de detrás no debe dejar ver el interior
+    por un hueco. Donde su borde con los cuartos vecinos no tiene cierre en el modelo pero el plano sí dibuja muro o
+    ventana a lo largo, se pone esa pieza. Casos: el pasaje entre las centrales de oxígeno y vacío y la sala del este de
+    la planta baja (x 141 a 154, y 72,6), abierto al este como lo dibuja el DWG pero sin el muro que lo separa de la sala
+    (líneas TA y AY, las mismas que cierran el resto de ella), así que desde fuera se veía la sala; y la terraza del
+    oeste del piso 1, que se abría a la Hab. 17 sin la ventana con antepecho que dibuja el plano (x 6,1, y 77,2 a 79,4)
+    y a la sala de espera sin la puerta de vidrio (y 85,2).
+    Solo cuentan las capas de muro de verdad (PA, TA, Rebars…; AY, el borde de la losa, solo para el grueso) y las de
+    ventana; los tabiques livianos (baños) ya cierran: sin ellos el muro nuevo se encimaba con los de los baños. No se
+    cierra el borde con otro espacio exterior (terraza con terraza).
+    (marco del modelo) Devuelve (muros, ventanas, vidrios) nuevos."""
+    from shapely.ops import linemerge
+    S = unary_union([S] + [t['poligono'] for t in getattr(m, 'tabiques', []) if t.get('poligono') is not None])
+    pc = Point(centro[0] + adentro[0] * 0.4, centro[1] + adentro[1] * 0.4)
+    cuartos = [(a['poligono'], (a.get('nombre') or '').upper()) for a in m.ambientes
+               if a.get('poligono') is not None and not a['poligono'].is_empty]
+    detras = [q for q, _ in cuartos if q.contains(pc)]
+    if not detras:
+        return [], [], []
+    R = detras[0]
+    # (los cuartos vecinos quedan a 0,1-0,5 m: el grueso del muro o del umbral que los separa)
+    vecinos = [q for q, nom in cuartos if q is not R and q.distance(R) < 0.5 and q.intersection(R).area < 0.5 * q.area
+               and not (any(k in nom for k in EXTERIORES) and not nom.startswith('HAB'))]
+    if not vecinos:
+        return [], [], []
+    # (las piezas chicas, como el parante entre las dos hojas de una puerta de vidrio, no cortan el borde en pedazos)
+    grandes = unary_union([q for q in _polis(S) if q.area >= 0.1])
+    borde = R.exterior.intersection(unary_union(vecinos).buffer(0.5, join_style=2)).difference(grandes.buffer(0.3))
+    if borde.is_empty:
+        return [], [], []
+    if borde.geom_type == 'MultiLineString':
+        borde = linemerge(borde)
+    muros, ventanas, vidrios = [], [], []
+    capas = CAPAS_VESTIBULO | CAPAS_VESTIBULO_VENTANA | {'AY'}
+    for t in getattr(borde, 'geoms', [borde]):
+        if t.geom_type != 'LineString' or t.length < 0.5:
+            continue
+        cs = list(t.simplify(0.05).coords)
+        for a, b in zip(cs[:-1], cs[1:]):
+            if math.dist(a, b) < 0.5:
+                continue
+            # (el borde libre se recortó 0,3 m antes de las piezas que ya cierran: se alarga hasta ellas)
+            # (lo que pase al otro lado de esas piezas, si son más delgadas, se descarta)
+            libre = LineString([a, b]).buffer(0.2)
+            ua = ((b[0] - a[0]) / math.dist(a, b), (b[1] - a[1]) / math.dist(a, b))
+            a, b = (a[0] - ua[0] * 0.32, a[1] - ua[1] * 0.32), (b[0] + ua[0] * 0.32, b[1] + ua[1] * 0.32)
+            cerca = segs_de(LineString([a, b]).buffer(0.5))
+            clase, g = franja_del_plano([e for e in cerca if e[0] in capas], a, b, capas_grosor={'AY'})
+            if clase is None:
+                # puerta de vidrio hacia la terraza: el plano dibuja solo el umbral (dos líneas de P0 - Antepecho) y las
+                # hojas como arcos de la capa de ventanas. Va como paño de vidrio de piso a dintel
+                clase, g = franja_del_plano([e for e in cerca if e[0] == 'P0 - Antepecho'], a, b)
+                clase = 'vidrio' if clase else None
+            if clase is None:
+                continue
+            piezas = [q for q in _polis(g.difference(S)) if q.area > 0.01 and q.intersects(libre)]
+            {'muro': muros, 'ventana': ventanas, 'vidrio': vidrios}[clase].extend(piezas)
+            S = unary_union([S] + piezas)
+    return muros, ventanas, vidrios
+
+
 def contorno_fachada(m, piso, zona):
     """Contorno del piso que da a la calle o a un patio abierto (marco del modelo): el borde de la huella (sin las
     partes del corte con la planta baja vieja, que no son fachada) y el de los patios del plano (huecos de la huella
@@ -320,6 +438,37 @@ def cerrar_fachada(m, piso, zona=None):
     segs = _segmentos_dxf(m, CAPAS_VENTANA | CAPAS_MURO, libre.buffer(0.7))
     amb = [(a['poligono'], (a.get('nombre') or '').upper()) for a in m.ambientes]
     cerrados = []
+    todos_segs = arbol_segs = None
+    hechos = set()
+
+    def vestibulo(c0, adentro, S, a):
+        """cerrar_vestibulo para el espacio de detrás del punto c0 (una vez por espacio); devuelve el macizo nuevo."""
+        nonlocal todos_segs, arbol_segs
+        from shapely.strtree import STRtree
+        pc = Point(*(c0 + adentro * 0.4))
+        R = next((q for q, _ in amb if q.contains(pc)), None)
+        if R is None or id(R) in hechos:
+            return S
+        hechos.add(id(R))
+        if todos_segs is None:
+            todos_segs = _segmentos_dxf(m, CAPAS_MURO | CAPAS_VENTANA, None)
+            arbol_segs = STRtree([l for _, l in todos_segs])
+        vm, vv, vg = cerrar_vestibulo(m, tuple(c0), adentro, S,
+                                      lambda z: [todos_segs[int(i)] for i in arbol_segs.query(z)])
+        if not (vm or vv or vg):
+            return S
+        m.muros += vm
+        m.ventanas += vv
+        m.vidrios = list(getattr(m, 'vidrios', []) or []) + vg
+        for clase_v, lista in (('muro del vestíbulo', vm), ('ventana del vestíbulo', vv), ('vidrio del vestíbulo', vg)):
+            for q in lista:
+                bq = q.bounds
+                cerrados.append(dict(clase=clase_v, largo=round(max(bq[2] - bq[0], bq[3] - bq[1]), 2),
+                                     desde=[round(bq[0] + ox, 2), round(bq[1] + oy, 2)],
+                                     hasta=[round(bq[2] + ox, 2), round(bq[3] + oy, 2)]))
+        print(piso, 'espacio abierto cerrado hacia dentro, junto a', [round(a[0] + ox, 1), round(a[1] + oy, 1)], ':',
+              len(vm), 'muros,', len(vv), 'ventanas,', len(vg), 'vidrios,', round(sum(q.area for q in vm + vv + vg), 2), 'm²')
+        return unary_union([S] + vm + vv + vg)
     for t in getattr(libre, 'geoms', [libre]):
         if t.is_empty or t.geom_type != 'LineString' or t.length < 0.2:
             continue
@@ -357,8 +506,11 @@ def cerrar_fachada(m, piso, zona=None):
             # borde de un espacio exterior del plano (terraza, patio, porche…): abierto de verdad, no se toca
             pc = [Point(*(np.array(centro.coords[0]) + n * f)) for f in (0.4, -0.4)]
             # (no una habitación que lleva la terraza en el nombre: «HAB. 17 / TERRAZA N+3.95» es un cuarto con ventana)
-            if any(q.contains(p) and any(k in nom for k in EXTERIORES) and not nom.startswith('HAB')
-                   for q, nom in amb for p in pc):
+            ext = [f for f, p in zip((1, -1), pc) if any(q.contains(p) and any(k in nom for k in EXTERIORES)
+                                                         and not nom.startswith('HAB') for q, nom in amb)]
+            if ext:
+                # (el espacio exterior sí se cierra hacia los cuartos de dentro, por lo que dibuja el plano)
+                S = vestibulo(np.array(centro.coords[0]), n * ext[0], S, a)
                 continue
             if any(z.contains(centro) for z in forzados):
                 clase = 'muro'
@@ -374,6 +526,10 @@ def cerrar_fachada(m, piso, zona=None):
                 # (quiebres cortos del contorno, en diagonal: un dintel ahí sale como un panel girado delante de la
                 # fachada, como los dos que quedaban sobre la pérgola del piso 1)
                 continue
+            if clase == 'abierto':
+                # vano abierto: el cuarto de detrás no debe abrirse a los de dentro sin el cierre que dibuja el plano
+                c0 = np.array(centro.coords[0])
+                S = vestibulo(c0, n if cubierto.contains(Point(*(c0 + n * 0.4))) else -n, S, a)
             # la pieza va paralela a las líneas del plano, no al contorno (que quiebra en diagonal en las esquinas
             # de los cuartos): eje de la línea más larga de esa clase
             k = 'ventana' if clase == 'ventana' else 'muro'
@@ -393,14 +549,25 @@ def cerrar_fachada(m, piso, zona=None):
                 d0 = d1 = 0.0
             g = max(0.12, d1 - d0)
             medio = (d0 + d1) / 2
-            p0 = np.array(a) - u * 0.25 + n * medio
-            p1 = np.array(b) + u * 0.25 + n * medio
+            # (un dintel llega hasta las piezas de los lados aunque estén a más de 25 cm de las puntas)
+            ea = max(0.25, S.distance(Point(a)) + 0.08) if clase == 'abierto' else 0.25
+            eb = max(0.25, S.distance(Point(b)) + 0.08) if clase == 'abierto' else 0.25
+            p0 = np.array(a) - u * min(ea, 0.55) + n * medio
+            p1 = np.array(b) + u * min(eb, 0.55) + n * medio
             franja = LineString([tuple(p0), tuple(p1)]).buffer(g / 2, cap_style=2, join_style=2)
             piezas = [q for q in _polis(franja.difference(S)) if q.area > 0.01]
             if not piezas:
+                if clase == 'abierto':
+                    print(piso, 'vano sin dintel (sin pieza)', [round(a[0] + ox, 2), round(a[1] + oy, 2)],
+                          [round(b[0] + ox, 2), round(b[1] + oy, 2)])
                 continue
-            if clase == 'abierto' and (S.distance(Point(a)) > 0.3 or S.distance(Point(b)) > 0.3):
-                # un dintel que no apoya en nada a los dos lados quedaría flotando: el vano queda sin él
+            if clase == 'abierto' and (S.distance(Point(a)) > 0.45 or S.distance(Point(b)) > 0.45):
+                # un dintel que no apoya en nada a los dos lados quedaría flotando: el vano queda sin él. (Hasta 45 cm:
+                # la franja ya pasa 25 cm de cada punta, y la boca del pasaje del este quedaba a 33 cm de la esquina de
+                # vidrio de la central de vacío, sin dintel)
+                print(piso, 'vano sin dintel (sin apoyo)', [round(a[0] + ox, 2), round(a[1] + oy, 2)],
+                      [round(b[0] + ox, 2), round(b[1] + oy, 2)], round(S.distance(Point(a)), 2),
+                      round(S.distance(Point(b)), 2))
                 continue
             if clase == 'ventana':
                 m.ventanas += piezas
@@ -410,12 +577,22 @@ def cerrar_fachada(m, piso, zona=None):
                 m.dinteles_extra = list(getattr(m, 'dinteles_extra', [])) + piezas
             if clase != 'abierto':
                 # el dintel de vano que había en ese tramo sobra: ahora hay ventana o muro
+                # (solo el que queda casi entero dentro de la pieza nueva: el dintel de un vano vecino que apenas la
+                # toca con la punta se queda, como el de la boca del pasaje del este junto al muro de la sala)
                 nuevo = unary_union(piezas).buffer(0.05)
-                m.dinteles_extra = [q for q in getattr(m, 'dinteles_extra', []) if not q.intersects(nuevo)]
+                m.dinteles_extra = [h for q in getattr(m, 'dinteles_extra', [])
+                                    if q.intersection(nuevo).area < 0.5 * q.area
+                                    for h in _polis(q.difference(unary_union(piezas))) if h.area > 0.01]
             S = unary_union([S] + piezas)
             cerrados.append(dict(clase=clase, largo=round(L, 2),
                                  desde=[round(a[0] + ox, 2), round(a[1] + oy, 2)],
                                  hasta=[round(b[0] + ox, 2), round(b[1] + oy, 2)]))
+    # dinteles que ya no apoyan en nada (la pieza de al lado se rehízo): fuera, quedarían flotando
+    apoyo = unary_union(_macizos(m) + [t['poligono'] for t in getattr(m, 'tabiques', []) if t.get('poligono') is not None])
+    antes_d = len(getattr(m, 'dinteles_extra', []))
+    m.dinteles_extra = [q for q in getattr(m, 'dinteles_extra', []) if apoyo.distance(q) <= 0.2]
+    if len(m.dinteles_extra) < antes_d:
+        print(piso, 'dinteles sin apoyo quitados:', antes_d - len(m.dinteles_extra))
     tot = collections.Counter()
     for c in cerrados:
         tot[c['clase']] += c['largo']
@@ -705,13 +882,23 @@ def cerrar_fachada_vieja(esc, m, zona):
             macizo_viejo = unary_union([g.buffer(0.001) for g in caras if not g.is_empty]).buffer(-0.001)
     muros_n = [affinity.translate(q, ox, oy) for q in m.muros] + [affinity.translate(q, ox, oy) for q in m.columnas]
     vent_n = [affinity.translate(q, ox, oy) for q in m.ventanas]
-    nuevos_m, nuevos_v, abiertos, dinteles_v = [], [], [], []
+    # líneas del plano (marco de la web) para los tramos que el modelo nuevo no cierra: machones dibujados en otras
+    # capas (Rebars, a los lados del Acceso 1). Sin AY: en la fachada vieja el borde de la losa no es un muro
+    segs_web = [(c, affinity.translate(l, ox, oy))
+                for c, l in _segmentos_dxf(m, (CAPAS_MURO - {'AY'}) | CAPAS_VENTANA, None)]
+    arbol_web = shapely.STRtree([l for _, l in segs_web])
+    nuevos_m, nuevos_v, abiertos, dinteles_v, del_plano = [], [], [], [], []
+    zona_cerca = zona.buffer(0.5)
+    shapely.prepare(zona_cerca)
+    shapely.prepare(borde)
     anillos = [q.exterior for q in _polis(H)] + [h for q in _polis(H) for h in q.interiors if Polygon(h).area >= 2]
     from shapely.geometry.polygon import orient
     for k, an in enumerate(anillos):
         r = orient(Polygon(an), 1.0 if k < len(_polis(H)) else -1.0).exterior
         L = r.length
-        n = max(1, int(L / 0.5))
+        # (cada 10 cm: cada 50 cm se saltaban los machones de 40 cm entre ventana y ventana de la fachada norte, y un
+        # tramo de un solo punto no se cerraba)
+        n = max(1, int(L / 0.1))
         libres = []
         for i in range(n):
             s = (i + 0.5) * L / n
@@ -720,7 +907,7 @@ def cerrar_fachada_vieja(esc, m, zona):
             dx, dy = b_.x - a_.x, b_.y - a_.y
             ln = math.hypot(dx, dy) or 1
             nx, ny = -dy / ln, dx / ln
-            if borde.distance(p) > 0.8 or zona.buffer(0.5).contains(p):
+            if borde.distance(p) > 0.8 or zona_cerca.contains(p):
                 libres.append(None)
                 continue
             rayo = LineString([(p.x - nx, p.y - ny), (p.x + nx * 0.5, p.y + ny * 0.5)])
@@ -750,8 +937,30 @@ def cerrar_fachada_vieja(esc, m, zona):
             if pm or pv:
                 nuevos_m += pm
                 nuevos_v += pv
-            else:
-                abiertos.append(t)
+                continue
+            # el modelo nuevo no trae nada ahí: lo que dibuja el plano a lo largo del tramo (machón o ventana)
+            a, b = t.coords[0], t.coords[-1]
+            # (solo tramos a lo largo de la fachada: los lados de una muesca entre dos cuartos, en perpendicular a
+            # ella, no son fachada aunque lleguen a menos de 0,8 m del contorno)
+            a_lo_largo = False
+            if math.dist(a, b) >= 0.15:
+                bl = min(getattr(borde, 'geoms', [borde]), key=lambda g: g.distance(t))
+                s0 = bl.project(t.interpolate(0.5, normalized=True))
+                q1, q2 = bl.interpolate(max(0.0, s0 - 0.5)), bl.interpolate(min(bl.length, s0 + 0.5))
+                ang = math.degrees(math.atan2(q2.y - q1.y, q2.x - q1.x) - math.atan2(b[1] - a[1], b[0] - a[0]))
+                a_lo_largo = abs((ang + 90) % 180 - 90) < 20
+            if a_lo_largo:
+                # (los puntos van cada 10 cm: el tramo se alarga hasta las piezas viejas de los lados)
+                ua = ((b[0] - a[0]) / math.dist(a, b), (b[1] - a[1]) / math.dist(a, b))
+                a, b = (a[0] - ua[0] * 0.12, a[1] - ua[1] * 0.12), (b[0] + ua[0] * 0.12, b[1] + ua[1] * 0.12)
+                cerca = [segs_web[int(j)] for j in arbol_web.query(t.buffer(0.6))]
+                clase, g = franja_del_plano(cerca, a, b)
+                if clase is not None:
+                    piezas = [q for q in _polis(g.difference(macizo_viejo.buffer(0.01))) if q.area > 0.01]
+                    (nuevos_m if clase == 'muro' else nuevos_v).extend(piezas)
+                    del_plano.append((clase, round(a[0], 1), round(a[1], 1), round(math.dist(a, b), 1)))
+                    continue
+            abiertos.append(t)
     # muros del DWG 2025 que la planta vieja no trae (los mismos que se suman al 2D en unir_pb.MUROS_VIEJA)
     import unir_pb
     nuevos_m += [g for q in unir_pb.MUROS_VIEJA for g in _polis(q.difference(macizo_viejo.buffer(0.01)))
@@ -762,7 +971,8 @@ def cerrar_fachada_vieja(esc, m, zona):
                  [prisma(sim(q), H_DINTEL_VENTANA, ALTURA) for q in nuevos_v + dinteles_v])
     n_t += _sumar(esc, 'muros|0.303', [prisma(sim(q), H_ANTEPECHO, H_DINTEL_VENTANA) for q in nuevos_v])
     print('planta baja vieja: fachada cerrada con el modelo nuevo:', len(nuevos_m), 'muros,', len(nuevos_v),
-          'ventanas,', len(dinteles_v), 'dinteles,', n_t, 'triángulos; tramos abiertos sin nada en el plano:',
+          'ventanas,', len(dinteles_v), 'dinteles,', n_t, 'triángulos; cerrados con las líneas del plano:', del_plano,
+          '; tramos abiertos sin nada en el plano:',
           [(round(t.coords[0][0], 1), round(t.coords[0][1], 1), round(t.length, 1)) for t in abiertos])
 
 
