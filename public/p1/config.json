@@ -519,6 +519,10 @@
     102.58
    ],
    "ventanilla": true
+  },
+  "a92": {
+   "si": "Utileria Limpia",
+   "nombre": "Utilería Limpia"
   }
  },
  "lugares": [
@@ -600,6 +604,14 @@
      83.6
     ]
    ]
+  }
+ ],
+ "letreros": [
+  {
+   "nombre": "Zona 6",
+   "x": 88.26,
+   "y": 74.24,
+   "zona": true
   }
  ]
 }

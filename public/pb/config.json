@@ -123,6 +123,36 @@
    "x": 52.6,
    "y": 82.7,
    "cat": "espera"
+  },
+  {
+   "nombre": "Zona 3",
+   "x": 94.73,
+   "y": 81.92,
+   "zona": true
+  },
+  {
+   "nombre": "Zona 4",
+   "x": 141.04,
+   "y": 80.3,
+   "zona": true
+  },
+  {
+   "nombre": "Zona 4A",
+   "x": 146.79,
+   "y": 43.64,
+   "zona": true
+  },
+  {
+   "nombre": "Zona 5",
+   "x": 109.49,
+   "y": 22.55,
+   "zona": true
+  },
+  {
+   "nombre": "Zona 10",
+   "x": 81.81,
+   "y": -18.02,
+   "zona": true
   }
  ],
  "ajustes": {
@@ -136,7 +166,8 @@
   },
   "a322": {
    "si": "Seleccion Donantes",
-   "personal": true
+   "personal": true,
+   "nombre": "Selección Donantes"
   },
   "a332": {
    "si": "Baño",
@@ -423,6 +454,10 @@
    "nombre": "Hospitalización de Medicina Nuclear",
    "cat": "circulacion"
   },
+  "a299": {
+   "si": "",
+   "nombre": "Hospitalización de Medicina Nuclear"
+  },
   "a149": {
    "si": "Microbiología Bacteriologia",
    "nombre": "Microbiología · Bacteriología · Micología"
@@ -441,11 +476,13 @@
   },
   "a343": {
    "si": "Estacion",
-   "personal": true
+   "personal": true,
+   "nombre": "Estación"
   },
   "a122": {
    "si": "Clinica de Heridas",
-   "cat": "espera"
+   "cat": "espera",
+   "nombre": "Clínica de Heridas"
   },
   "a123": {
    "si": "Hab. 1",
@@ -474,7 +511,8 @@
   },
   "a316": {
    "si": "Medicos",
-   "personal": true
+   "personal": true,
+   "nombre": "Médicos"
   },
   "a333": {
    "si": "",
@@ -683,6 +721,154 @@
     26.42
    ],
    "ventanilla": true
+  },
+  "a112": {
+   "si": "Espera Quimioterapia Patologia",
+   "nombre": "Espera Quimioterapia Patología"
+  },
+  "a113": {
+   "si": "Circulacion Tecnica",
+   "nombre": "Circulación Técnica"
+  },
+  "a119": {
+   "si": "Circulacion Blanca",
+   "nombre": "Circulación Blanca"
+  },
+  "a127": {
+   "si": "Recuperacion",
+   "nombre": "Recuperación"
+  },
+  "a130": {
+   "si": "Archivo Estadistica",
+   "nombre": "Archivo Estadística"
+  },
+  "a139": {
+   "si": "Citotecnologia · Micro Fotog.",
+   "nombre": "Citotecnología · Micro Fotog."
+  },
+  "a140": {
+   "si": "Laboratorio Genetica-bio Banco",
+   "nombre": "Laboratorio Genética-bio Banco"
+  },
+  "a148": {
+   "si": "Quirofano 05",
+   "nombre": "Quirófano 05"
+  },
+  "a150": {
+   "si": "Quirofano 06",
+   "nombre": "Quirófano 06"
+  },
+  "a152": {
+   "si": "Quirofano 02",
+   "nombre": "Quirófano 02"
+  },
+  "a169": {
+   "si": "Recepcion",
+   "nombre": "Recepción"
+  },
+  "a178": {
+   "si": "Reunion Docencia",
+   "nombre": "Reunión Docencia"
+  },
+  "a182": {
+   "si": "Psiocologia Laboral",
+   "nombre": "Psicología Laboral"
+  },
+  "a185": {
+   "si": "Infectologia",
+   "nombre": "Infectología"
+  },
+  "a186": {
+   "si": "Resonancia Magnetica",
+   "nombre": "Resonancia Magnética"
+  },
+  "a188": {
+   "si": "Auditoria Medica",
+   "nombre": "Auditoría Médica"
+  },
+  "a189": {
+   "si": "Flebotomia",
+   "nombre": "Flebotomía"
+  },
+  "a197": {
+   "si": "Deposito General",
+   "nombre": "Depósito General"
+  },
+  "a201": {
+   "si": "Abastecimiento · Estacion",
+   "nombre": "Abastecimiento · Estación"
+  },
+  "a202": {
+   "si": "Recepcion Esteril",
+   "nombre": "Recepción Estéril"
+  },
+  "a203": {
+   "si": "Investigacion",
+   "nombre": "Investigación"
+  },
+  "a214": {
+   "si": "Coordinacion Citología",
+   "nombre": "Coordinación Citología"
+  },
+  "a222": {
+   "si": "Area Inmunohistoquimica",
+   "nombre": "Área Inmunohistoquímica"
+  },
+  "a226": {
+   "si": "Cuarto Critico",
+   "nombre": "Cuarto Crítico"
+  },
+  "a229": {
+   "si": "Estacion Enfermería",
+   "nombre": "Estación Enfermería"
+  },
+  "a240": {
+   "si": "Seleccion Donantes",
+   "nombre": "Selección Donantes"
+  },
+  "a254": {
+   "si": "Esterilizacion",
+   "nombre": "Esterilización"
+  },
+  "a255": {
+   "si": "Utileria",
+   "nombre": "Utilería"
+  },
+  "a259": {
+   "si": "Utileria",
+   "nombre": "Utilería"
+  },
+  "a267": {
+   "si": "Biologia Molecular",
+   "nombre": "Biología Molecular"
+  },
+  "a271": {
+   "si": "Coordinacion Genetica",
+   "nombre": "Coordinación Genética"
+  },
+  "a281": {
+   "si": "Citogenetica Convencional",
+   "nombre": "Citogenética Convencional"
+  },
+  "a297": {
+   "si": "Mamografia 1",
+   "nombre": "Mamografía 1"
+  },
+  "a308": {
+   "si": "Utileria · Limpieza",
+   "nombre": "Utilería · Limpieza"
+  },
+  "a311": {
+   "si": "Cuarto de Maquinas",
+   "nombre": "Cuarto de Máquinas"
+  },
+  "a338": {
+   "si": "Genomica",
+   "nombre": "Genómica"
+  },
+  "a372": {
+   "si": "Deposito",
+   "nombre": "Depósito"
   }
  },
  "lugares": [

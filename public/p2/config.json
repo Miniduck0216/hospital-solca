@@ -314,6 +314,10 @@
     101.7
    ],
    "ventanilla": true
+  },
+  "a32": {
+   "si": "Sala Medicos",
+   "nombre": "Sala Médicos"
   }
  },
  "lugares": [
@@ -326,5 +330,13 @@
    "personal": false
   }
  ],
- "pasos": []
+ "pasos": [],
+ "letreros": [
+  {
+   "nombre": "Zona 6",
+   "x": 86.6,
+   "y": 78.05,
+   "zona": true
+  }
+ ]
 }
