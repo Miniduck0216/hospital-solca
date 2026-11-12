@@ -125,7 +125,6 @@ AJUSTES = {
         ('Pasillo', (93.7, 69.6), {'nombre': 'Imagen', 'cat': 'circulacion'}),            # el pasillo lleva el rótulo de la zona
         ('Pasillo', (123.8, 60.6), {'nombre': 'Circulación Gris', 'cat': 'circulacion'}),  # centro quirúrgico
         ('', (150.59, 63.4), {'nombre': 'Hospitalización de Medicina Nuclear', 'cat': 'circulacion'}),   # el área abierta
-        ('', (144.32, 40.77), {'nombre': 'Hospitalización de Medicina Nuclear'}),   # rótulo del DXF dentro del cuarto
         ('Microbiología Bacteriologia', (109.1, 3.4), {'nombre': 'Microbiología · Bacteriología · Micología'}),
         ('Toma Muestras', (106.2, 22.7), {'nombre': 'Toma Muestras · Cultivos'}),          # laboratorio de genética
         ('Espera · Secretaría', (89.2, 59.9), {'nombre': 'Espera · Secretaría · Información'}),
