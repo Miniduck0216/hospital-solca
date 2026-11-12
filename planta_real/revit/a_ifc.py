@@ -135,7 +135,14 @@ class Escritor:
         def poli(pts):
             pts = list(pts) + [pts[0]]
             return f.createIfcPolyline([f.createIfcCartesianPoint(p) for p in pts])
-        ext = anillo_limpio(pg.exterior) or anillo_limpio(pg.convex_hull.exterior)
+        ext = anillo_limpio(pg.exterior)
+        if ext is None:
+            # contorno que redondeado se cruza: primero la pieza mayor en la rejilla de 0,5 mm (ver piezas_perfil);
+            # la envolvente convexa, solo como último recurso (en piezas en L o en U tapaba los cuartos)
+            import shapely
+            ps = poligonos(shapely.set_precision(pg, 0.0005))
+            ext = anillo_limpio(max(ps, key=lambda q: q.area).exterior) if ps else None
+        ext = ext or anillo_limpio(pg.convex_hull.exterior)
         huecos = [h for h in (anillo_limpio(i) for i in pg.interiors) if h]
         if huecos:
             return f.createIfcArbitraryProfileDefWithVoids('AREA', None, poli(ext), [poli(h) for h in huecos])
@@ -192,7 +199,9 @@ def trozos(pg, paso=8.0):
     # un polígono inválido (un hueco suelto que toca el borde) hacía fallar la intersección; se arregla antes
     if not pg.is_valid:
         from shapely import make_valid
-        pg = unary_union([q.buffer(0) for q in lista_polis(make_valid(pg))])   # sin perder piezas (buffer(0) solo, sí)
+        # (poligonos y no lista_polis: make_valid suele devolver una colección con un multipolígono dentro, que
+        # lista_polis no abre, y el muro entero se perdía con «área 0.0»)
+        pg = unary_union([q.buffer(0) for q in poligonos(make_valid(pg))])   # sin perder piezas (buffer(0) solo, sí)
         print('trozos: polígono inválido arreglado, área', round(pg.area, 2), [round(v, 1) for v in pg.bounds] if not pg.is_empty else '')
     if pg.is_empty:
         return []
@@ -201,8 +210,30 @@ def trozos(pg, paso=8.0):
     for gx in np.arange(math.floor(x0 / paso) * paso, x1, paso):
         for gy in np.arange(math.floor(y0 / paso) * paso, y1, paso):
             c = pg.intersection(box(gx, gy, gx + paso, gy + paso))
-            out += [q for q in lista_polis(c) if q.area > 0.003]
+            out += [p for q in lista_polis(c) if q.area > 0.003 for p in piezas_perfil(q)]
     return out
+
+
+def poligonos(g):
+    """Todos los polígonos de g, también los de una colección que trae multipolígonos dentro (make_valid)."""
+    if g is None or g.is_empty:
+        return []
+    if isinstance(g, Polygon):
+        return [g]
+    return [p for h in getattr(g, 'geoms', []) for p in poligonos(h)]
+
+
+def piezas_perfil(q):
+    """La pieza tal cual si su contorno sirve de perfil; si no, sus piezas en una rejilla de 0,5 mm.
+    anillo_limpio redondea a 0,1 mm y descarta el contorno que, redondeado, se cruza consigo mismo (dos caras de muro
+    a menos de 0,1 mm); entonces perfil() usaba la envolvente convexa y en el 3D salían bloques de muro que tapaban
+    cuartos enteros (subsuelo: 46 piezas, p. ej. 2,2 m² de muro que pasaban a 30 m² junto a la Bodega, x 92, y 11).
+    En la rejilla el contorno ya no se toca y el área no cambia."""
+    if anillo_limpio(limpiar(q).exterior) is not None:
+        return [q]
+    import shapely
+    ps = [p for p in poligonos(shapely.set_precision(limpiar(q), 0.0005)) if p.area > 0.001]
+    return ps or [q]
 
 
 def texto_poligonos(texto, alto):

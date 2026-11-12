@@ -623,7 +623,8 @@ def puertas_de_arco(m):
     import numpy as np
     from shapely.prepared import prep
     ox, oy = m.origen
-    muro = prep(unary_union([m.muros_raw] + m.columnas + [t['poligono'] for t in m.tabiques]).buffer(0.03))
+    muro_l = unary_union([m.muros_raw] + m.columnas + [t['poligono'] for t in m.tabiques]).buffer(0.03)
+    muro = prep(muro_l)
     mids = [Point(*((np.array(p['a']) + np.array(p['b'])) / 2)) for p in m.puertas]
     nuevas = []
     for e in m.planos:
@@ -654,8 +655,12 @@ def puertas_de_arco(m):
         for p in (np.array(p0), np.array(p1)):
             d = (p - c) / r
             sc = muro.contains(Point(*(c - d * 0.2))) + muro.contains(Point(*(p + d * 0.15)))
-            if mejor is None or sc > mejor[0]:
-                mejor = (sc, p)
+            # empate: la hoja cerrada cruza el vano (espacio libre); la hoja abierta, que el dibujo pone a 90°,
+            # queda pegada a la pared. En el subsuelo, junto al baño a164 (x 103, y 42), la puerta salía tendida
+            # sobre la pared del baño y el corte de vano de abajo lo dejaba abierto al pasillo
+            tapa = muro_l.intersection(LineString([tuple(c + d * 0.1 * r), tuple(c + d * 0.9 * r)])).length / (0.8 * r)
+            if mejor is None or (sc, -tapa) > (mejor[0], -mejor[2]):
+                mejor = (sc, p, tapa)
         if mejor[0] < 1:
             continue
         b = mejor[1]
