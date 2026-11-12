@@ -235,6 +235,101 @@ class ModeloPiso(MOD.Modelo):
         """Desplazamiento (m) del marco del modelo al marco de la planta baja."""
         return self.x0 / 1000.0, self.y0 / 1000.0
 
+    # Puertas «-PDE» (hoja con arco, como P-DE): el modelo de la planta baja vieja no las conocía y quedaban sin puerta
+    # (centrales de gases de la U.C.I.). Se leen como una P-DE más, sin tocar la lista de revit/modelo.py.
+    def _puertas(self):
+        pde = [b for b in self.bloques if b['nombre'].startswith('-PDE')]
+        for b in pde:
+            b['nombre'] = 'P-DE' + b['nombre']
+        try:
+            MOD.Modelo._puertas(self)
+        finally:
+            for b in pde:
+                b['nombre'] = b['nombre'][4:]
+        for p in self.puertas:
+            if p['tipo'].startswith('P-DE-PDE'):
+                p['tipo'] = p['tipo'][4:]
+
+    # Bandas de la capa VE, como en revit/modelo.py, pero sin descartar las ventanas chicas: allí el mínimo era
+    # 0,08 m², y una ventana de 1,1 m en un tabique de 7 cm (0,077 m²) se perdía y quedaba como pared. Aquí basta
+    # con 0,03 m² y medio metro de largo.
+    def _ventanas(self):
+        import numpy as np
+        from scipy import ndimage
+        tr = [p for c, _, p, _ in self.planos if c == 'VE']
+        lineas = self.lz.dibujar(tr, 1)
+        cuad = np.ones((3, 3), bool)
+        banda = ndimage.binary_opening(ndimage.binary_closing(lineas, structure=cuad, iterations=8), iterations=2)
+        polis = M.contornos_a_poligonos(banda, self.lz)
+        ve = unary_union([p for p in polis if p.area > 0.03])
+        ve = ve.intersection(self.muros_raw.buffer(0.03))
+        ve = ve.difference(unary_union(self.columnas).buffer(0.02))
+
+        def largo(q):
+            c = list(q.minimum_rotated_rectangle.exterior.coords)
+            return max(MOD.math.dist(c[0], c[1]), MOD.math.dist(c[1], c[2]))
+        self.ventanas = [p for p in MOD.lista_polis(ve.buffer(-0.005).buffer(0.005))
+                         if p.area > 0.08 or (p.area > 0.03 and largo(p) >= 0.5)]
+
+    # Ventanas interiores. El modelo de la planta baja vieja pasaba a muro toda banda de la capa VE que quedara entre
+    # dos ambientes («las ventanas están en la fachada»). En el DWG 2025 hay ventanas entre cuartos y hacia los
+    # pasillos (consultorios, laboratorios, estaciones de enfermería, quirófanos): salían como pared ciega. Aquí la
+    # banda sigue siendo ventana cuando el dibujo trae el símbolo de ventana completo, es decir, las dos caras del
+    # muro y al menos una línea de vidrio entre ellas (tres o más líneas paralelas a lo largo de la banda). Con solo
+    # dos líneas es un muro dibujado en la capa de vidrios y se queda como muro, igual que antes.
+    def _ventanas_interiores(self):
+        import math
+        import numpy as np
+        from shapely.geometry import Point
+        from shapely.strtree import STRtree
+        amb = unary_union([a['poligono'] for a in self.ambientes])
+        segs = [s for s in self._segmentos({'VE'}) if s.length >= 0.3]
+        arbol = STRtree(segs) if segs else None
+        quedan, self.ventanas_interiores, self.bandas_ve_muro = [], [], []
+        for v in self.ventanas:
+            r = v.minimum_rotated_rectangle
+            c = list(r.exterior.coords)
+            l1, l2 = math.dist(c[0], c[1]), math.dist(c[1], c[2])
+            a_, b_ = (c[0], c[1]) if l1 >= l2 else (c[1], c[2])
+            u = np.array(b_) - np.array(a_)
+            L = np.linalg.norm(u)
+            u = u / L
+            n = np.array([-u[1], u[0]])
+            w = min(l1, l2)
+            ctr = np.array(r.centroid.coords[0])
+            lados = []
+            for lado in (1, -1):
+                pts = [Point(*(ctr + u * L * f + n * lado * (w / 2 + 0.45))) for f in (-0.4, -0.2, 0, 0.2, 0.4)]
+                lados.append(sum(amb.contains(p_) for p_ in pts) / len(pts))
+            if min(lados) < 0.6:
+                quedan.append(v)        # fachada: ventana, como siempre
+                continue
+            # líneas de la capa VE a lo largo de la banda: distancias distintas al eje (a más de 1,5 cm una de otra)
+            cerca = r.buffer(0.04, join_style=2)
+            dist = []
+            for i in (arbol.query(cerca) if arbol is not None else []):
+                s = segs[int(i)]
+                (x0, y0), (x1, y1) = s.coords[0], s.coords[-1]
+                d = np.array([x1 - x0, y1 - y0]) / s.length
+                if abs(abs(float(d @ u)) - 1) > 0.01:
+                    continue
+                dentro = s.intersection(cerca).length
+                if dentro < max(0.3, 0.4 * L):
+                    continue
+                dist.append(float((np.array(s.interpolate(0.5, normalized=True).coords[0]) - ctr) @ n))
+            dist.sort()
+            lineas = [d for k, d in enumerate(dist) if k == 0 or d - dist[k - 1] > 0.015]
+            # (dos líneas a menos de 10 cm son un vidrio sin muro alrededor: mampara o ventana de un tabique delgado)
+            if len(lineas) >= 3 or (len(lineas) == 2 and w <= 0.10):
+                quedan.append(v)
+                self.ventanas_interiores.append(v)
+            else:
+                self.muros.append(v)
+                self.bandas_ve_muro.append((v, len(lineas), round(float(L), 2), round(float(w), 2)))
+        self.ventanas = quedan
+        print(self.piso, 'ventanas interiores', len(self.ventanas_interiores), '; bandas VE que quedan como muro',
+              len(self.bandas_ve_muro))
+
 
 if __name__ == '__main__':
     piso = sys.argv[1]

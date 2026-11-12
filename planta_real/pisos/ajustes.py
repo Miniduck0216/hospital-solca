@@ -198,6 +198,58 @@ AJUSTES = {
            ('Apoyo', (73.49, 66.67), 'personal')],
 }
 
+# tildes y erratas de los nombres del DWG: el nombre del plano (sin tilde) → el nombre correcto. Solo se aplica a
+# los cuartos que no tienen otro nombre en AJUSTES.
+TILDES = {
+    'SB': {'Area Equipos': 'Área Equipos', 'Bodega Patologia': 'Bodega Patología', 'Camara': 'Cámara',
+           'Camara Gamma': 'Cámara Gamma', 'Camara de Transformacion': 'Cámara de Transformación',
+           'Comando · Lavabo Quirurgico': 'Comando · Lavabo Quirúrgico', 'Frigorifico': 'Frigorífico',
+           'Oficina Economo': 'Oficina Ecónomo', 'Planificacion': 'Planificación',
+           'Planificacion Bqt. Mdr Curietron': 'Planificación Bqt. Mdr Curietron',
+           'Planificacion Terapia Externa y Hdr': 'Planificación Terapia Externa y Hdr',
+           'Recepcion': 'Recepción', 'Subestacion Casa de Maquinas Tableros': 'Subestación Casa de Máquinas Tableros',
+           'Termodesinfectadoras · Area Roja Lavado': 'Termodesinfectadoras · Área Roja Lavado'},
+    'PB': {'Abastecimiento · Estacion': 'Abastecimiento · Estación', 'Archivo Estadistica': 'Archivo Estadística',
+           'Area Inmunohistoquimica': 'Área Inmunohistoquímica', 'Area Patologos': 'Área Patólogos',
+           'Auditoria Medica': 'Auditoría Médica',
+           'Biologia Molecular': 'Biología Molecular', 'Cafeteria': 'Cafetería',
+           'Circulacion Blanca': 'Circulación Blanca', 'Circulacion Tecnica': 'Circulación Técnica',
+           'Citogenetica Convencional': 'Citogenética Convencional',
+           'Citotecnologia · Micro Fotog.': 'Citotecnología · Micro Fotog.',
+           'Clinica de Heridas': 'Clínica de Heridas', 'Coordinacion Genetica': 'Coordinación Genética',
+           'Cuarto Critico': 'Cuarto Crítico', 'Cuarto de Maquinas': 'Cuarto de Máquinas', 'Deposito': 'Depósito',
+           'Deposito General': 'Depósito General', 'Espera Quimioterapia Patologia': 'Espera Quimioterapia Patología',
+           'Estacion': 'Estación', 'Estacion Enfermería': 'Estación Enfermería', 'Esterilizacion': 'Esterilización',
+           'Flebotomia': 'Flebotomía', 'Genomica': 'Genómica', 'Infectologia': 'Infectología',
+           'Investigacion': 'Investigación', 'Laboratorio Genetica-bio Banco': 'Laboratorio Genética-bio Banco',
+           'Laboratorio · Coagulacion': 'Laboratorio · Coagulación', 'Lavachatas · Utileria Sucia': 'Lavachatas · Utilería Sucia',
+           'Mamografia 1': 'Mamografía 1', 'Mamografia 2 · V': 'Mamografía 2 · V', 'Medicos': 'Médicos',
+           'Psiocologia Laboral': 'Psicología Laboral', 'Quirofano': 'Quirófano', 'Quirofano 02': 'Quirófano 02',
+           'Quirofano 05': 'Quirófano 05', 'Quirofano 06': 'Quirófano 06', 'Recepcion': 'Recepción',
+           'Recepcion Esteril': 'Recepción Estéril', 'Recuperacion': 'Recuperación',
+           'Resonancia Magnetica': 'Resonancia Magnética', 'Reunion Docencia': 'Reunión Docencia',
+           'Seleccion Donantes': 'Selección Donantes', 'Utileria': 'Utilería', 'Utileria Sucia': 'Utilería Sucia',
+           'Utileria · Limpieza': 'Utilería · Limpieza', 'Coordinacion Citología': 'Coordinación Citología'},
+    'P1': {'Serologia': 'Serología', 'Utileria Limpia': 'Utilería Limpia'},
+    'P2': {'Sala Medicos': 'Sala Médicos'},
+    'P3': {},
+}
+
+# letreros de zona (config.json → letreros): se agregan o reemplazan por nombre. Dentro de la huella del piso: en el
+# punto del DXF si ya está dentro; si no, 3 m hacia adentro desde el punto más cercano, sobre un pasillo o espera si
+# hay uno a menos de 10 m
+LETREROS = {
+    'SB': [{'nombre': 'Zona 7', 'x': 51.71, 'y': 40.25, 'zona': True}, {'nombre': 'Zona 8', 'x': 91.88, 'y': 30.21, 'zona': True},
+           {'nombre': 'Zona 9', 'x': 150.75, 'y': 37.8, 'zona': True}, {'nombre': 'Zona 10', 'x': 99.61, 'y': 5.02, 'zona': True}],
+    'PB': [{'nombre': 'Zona 1', 'x': 59.1, 'y': 45.0, 'zona': True}, {'nombre': 'Zona 2', 'x': 30.94, 'y': 91.01, 'zona': True},
+           {'nombre': 'Zona 3', 'x': 94.73, 'y': 81.92, 'zona': True}, {'nombre': 'Zona 4', 'x': 144.45, 'y': 69.55, 'zona': True},
+           {'nombre': 'Zona 4A', 'x': 146.79, 'y': 43.64, 'zona': True}, {'nombre': 'Zona 5', 'x': 109.49, 'y': 22.55, 'zona': True},
+           {'nombre': 'Zona 10', 'x': 77.52, 'y': 14.42, 'zona': True}],
+    'P1': [{'nombre': 'Zona 6', 'x': 73.98, 'y': 75.27, 'zona': True}],
+    'P2': [{'nombre': 'Zona 6', 'x': 74.02, 'y': 77.22, 'zona': True}],
+    'P3': [{'nombre': 'Zona 6', 'x': 74.0, 'y': 62.19, 'zona': True}],
+}
+
 
 # lugares sin cuarto propio (puntos con nombre): mostradores y zonas dentro de un hall, cuartos que el dibujo no cierra
 # pasos abiertos (puertas que el dibujo no tiene): [punto, punto] a través del muro
@@ -504,12 +556,17 @@ def main():
         for i, c in nombres_pdf(piso, d).items():
             aj.setdefault(i, c)
         banos_y_huecos(d, aj, piso in BANOS_PACIENTES, cfg.get('soloPersonal', []))
+        for a in d['ambientes']:
+            if a['nombre'] in TILDES.get(piso, {}) and 'nombre' not in aj.get(a['id'], {}):
+                aj[a['id']] = {**aj.get(a['id'], {}), 'si': a['nombre'], 'nombre': TILDES[piso][a['nombre']]}
         lug = []
         for l in LUGARES.get(piso, []):
             lid, nombre, cat, (x, y) = l[:4]
             lug.append({'id': lid, 'nombre': nombre, 'cat': cat, 'x': x, 'y': y, 'personal': bool(l[4]) if len(l) > 4 else False})
         cfg['lugares'] = lug
         cfg['pasos'] = [{'tipo': 'abrir', 'puntos': pp} for pp in PASOS.get(piso, [])]
+        nuevos = {z['nombre']: z for z in LETREROS.get(piso, [])}
+        cfg['letreros'] = [nuevos.pop(l['nombre'], l) for l in (cfg.get('letreros') or [])] + list(nuevos.values())
         cfg['ajustes'] = aj
         json.dump(cfg, open(cfg_p, 'w'), ensure_ascii=False, indent=1)
         print(piso, len(aj), 'ajustes')

@@ -36,7 +36,41 @@ def limpiar(pg):
     g = max(piezas, key=lambda q: q.area).simplify(TOL * 0.6, preserve_topology=True)
     if not g.is_valid:
         g = max(lista_polis(make_valid(g)) or [g.convex_hull], key=lambda q: q.area)
+    # grietas: un contorno que vuelve sobre sí mismo a menos de 4 mm (dos muros pegados sin llegar a unirse) es válido
+    # para shapely, pero IfcOpenShell lo triangula a medias y el muro salía incompleto en el 3D (piso 3: los muros
+    # entre las habitaciones 321 y 323 y sus baños). Se cierra la grieta; el contorno casi no cambia.
+    if casi_se_toca(g):
+        for r in (0.003, 0.006, 0.012):
+            h = lista_polis(g.buffer(r, join_style=2).buffer(-r, join_style=2))
+            if not h:
+                continue
+            h = max(h, key=lambda q: q.area)
+            if h.is_valid and not casi_se_toca(h):
+                g = h
+                break
     return g
+
+
+def casi_se_toca(pg, tol=0.004):
+    """True si algún vértice de un anillo queda a menos de `tol` de un tramo no vecino del mismo anillo."""
+    from shapely.geometry import LineString, Point
+    from shapely.strtree import STRtree
+    for anillo in [pg.exterior] + list(pg.interiors):
+        pts = list(anillo.coords)[:-1]
+        n = len(pts)
+        if n < 5:
+            continue
+        segs = [LineString([pts[j], pts[(j + 1) % n]]) for j in range(n)]
+        arbol = STRtree(segs)
+        for i, p in enumerate(pts):
+            P = Point(p)
+            for j in arbol.query(P.buffer(tol)):
+                j = int(j)
+                if j in (i, (i - 1) % n):
+                    continue
+                if segs[j].distance(P) < tol:
+                    return True
+    return False
 
 
 def anillo_limpio(anillo):
@@ -101,7 +135,14 @@ class Escritor:
         def poli(pts):
             pts = list(pts) + [pts[0]]
             return f.createIfcPolyline([f.createIfcCartesianPoint(p) for p in pts])
-        ext = anillo_limpio(pg.exterior) or anillo_limpio(pg.convex_hull.exterior)
+        ext = anillo_limpio(pg.exterior)
+        if ext is None:
+            # contorno que redondeado se cruza: primero la pieza mayor en la rejilla de 0,5 mm (ver piezas_perfil);
+            # la envolvente convexa, solo como último recurso (en piezas en L o en U tapaba los cuartos)
+            import shapely
+            ps = poligonos(shapely.set_precision(pg, 0.0005))
+            ext = anillo_limpio(max(ps, key=lambda q: q.area).exterior) if ps else None
+        ext = ext or anillo_limpio(pg.convex_hull.exterior)
         huecos = [h for h in (anillo_limpio(i) for i in pg.interiors) if h]
         if huecos:
             return f.createIfcArbitraryProfileDefWithVoids('AREA', None, poli(ext), [poli(h) for h in huecos])
@@ -155,13 +196,81 @@ class Escritor:
 
 def trozos(pg, paso=8.0):
     """Divide un polígono grande en piezas de una retícula para que Revit las procese sin problemas."""
+    # un polígono inválido (un hueco suelto que toca el borde) hacía fallar la intersección; se arregla antes
+    if not pg.is_valid:
+        from shapely import make_valid
+        # (poligonos y no lista_polis: make_valid suele devolver una colección con un multipolígono dentro, que
+        # lista_polis no abre, y el muro entero se perdía con «área 0.0»)
+        pg = unary_union([q.buffer(0) for q in poligonos(make_valid(pg))])   # sin perder piezas (buffer(0) solo, sí)
+        print('trozos: polígono inválido arreglado, área', round(pg.area, 2), [round(v, 1) for v in pg.bounds] if not pg.is_empty else '')
+    if pg.is_empty:
+        return []
     x0, y0, x1, y1 = pg.bounds
     out = []
     for gx in np.arange(math.floor(x0 / paso) * paso, x1, paso):
         for gy in np.arange(math.floor(y0 / paso) * paso, y1, paso):
             c = pg.intersection(box(gx, gy, gx + paso, gy + paso))
-            out += [q for q in lista_polis(c) if q.area > 0.003]
+            out += [p for q in lista_polis(c) if q.area > 0.003 for p in piezas_perfil(q)]
     return out
+
+
+_GEOM = None
+
+
+def area_tapa(el):
+    """Área de la cara de arriba de la malla que IfcOpenShell arma para el elemento (0 si no la arma)."""
+    import ifcopenshell.geom
+    global _GEOM
+    if _GEOM is None:
+        _GEOM = ifcopenshell.geom.settings()
+        _GEOM.set('use-world-coords', True)
+    try:
+        g = ifcopenshell.geom.create_shape(_GEOM, el).geometry
+    except Exception:
+        return 0.0
+    v = np.array(g.verts, np.float64).reshape(-1, 3)
+    t = v[np.array(g.faces, np.int64).reshape(-1, 3)]
+    if not len(t):
+        return 0.0
+    t = t[np.all(np.abs(t[:, :, 2] - v[:, 2].max()) < 1e-4, axis=1)]
+    a, b, c = t[:, 0, :2], t[:, 1, :2], t[:, 2, :2]
+    return float(np.abs((b[:, 0] - a[:, 0]) * (c[:, 1] - a[:, 1]) - (b[:, 1] - a[:, 1]) * (c[:, 0] - a[:, 0])).sum() / 2)
+
+
+def muro_completo(E, q, estilo, paso=2.0):
+    """Muro de la pieza q; si IfcOpenShell lo triangula a medias, se rehace en piezas de una retícula más fina.
+    Con un contorno que casi se toca a sí mismo (grietas de más de 4 mm que limpiar() no cierra) la malla salía con
+    una parte del muro: en el piso 3, 5,6 m² de muro de las habitaciones 319 a 323 quedaban en 1,8 m² en el 3D."""
+    el = E.elemento('IfcWall', 'Muro', [E.extrusion(q, 0, ALTURA)], estilo, 'STANDARD')
+    a = limpiar(q).area
+    if el is None or paso < 0.5 or area_tapa(el) >= a - 0.02 - 0.02 * a:
+        return
+    ifcopenshell.api.run('root.remove_product', E.f, product=el)
+    E.cuenta['IfcWall'] -= 1
+    for r in trozos(q, paso):
+        muro_completo(E, r, estilo, paso / 2)
+
+
+def poligonos(g):
+    """Todos los polígonos de g, también los de una colección que trae multipolígonos dentro (make_valid)."""
+    if g is None or g.is_empty:
+        return []
+    if isinstance(g, Polygon):
+        return [g]
+    return [p for h in getattr(g, 'geoms', []) for p in poligonos(h)]
+
+
+def piezas_perfil(q):
+    """La pieza tal cual si su contorno sirve de perfil; si no, sus piezas en una rejilla de 0,5 mm.
+    anillo_limpio redondea a 0,1 mm y descarta el contorno que, redondeado, se cruza consigo mismo (dos caras de muro
+    a menos de 0,1 mm); entonces perfil() usaba la envolvente convexa y en el 3D salían bloques de muro que tapaban
+    cuartos enteros (subsuelo: 46 piezas, p. ej. 2,2 m² de muro que pasaban a 30 m² junto a la Bodega, x 92, y 11).
+    En la rejilla el contorno ya no se toca y el área no cambia."""
+    if anillo_limpio(limpiar(q).exterior) is not None:
+        return [q]
+    import shapely
+    ps = [p for p in poligonos(shapely.set_precision(limpiar(q), 0.0005)) if p.area > 0.001]
+    return ps or [q]
 
 
 def texto_poligonos(texto, alto):
@@ -277,7 +386,7 @@ def escribir(m, salida, web=False):
     # muros
     for i, pg in enumerate(m.muros):
         for q in trozos(pg):
-            E.elemento('IfcWall', 'Muro', [E.extrusion(q, 0, ALTURA)], gris, 'STANDARD')
+            muro_completo(E, q, gris)
     # dinteles y puertas
     for p in m.puertas:
         rect = p['rect']

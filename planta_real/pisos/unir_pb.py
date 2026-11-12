@@ -465,6 +465,12 @@ def main():
              trazos_puertas=geo['trazos_puertas'], trazos=geo['trazos'], muebles=geo['muebles'],
              gradas=list(v['gradas']) + [g for g in n['gradas'] if not zona_v.contains(LineString(g).centroid)],
              entradas=entradas, nav=nav)
+    # los cuartos de la parte nueva toman ids por orden (a{len(amb)}): si el modelo cambia el orden, los ids se
+    # cruzaban entre cuartos (auditoría nov 2026: «Toma de Muestras 03» pasaba de a277 a a275 y los ajustes se
+    # corrían). Como en los demás pisos, cada cuarto que ya estaba en el datos.json anterior conserva su id.
+    sys.path.insert(0, AQUI)
+    from exportar_piso import conservar_ids
+    conservar_ids(d, SALIDA)
     with open(SALIDA, 'w') as f:
         json.dump(d, f, ensure_ascii=False, separators=(',', ':'))
     print('PB unida', SALIDA, round(os.path.getsize(SALIDA) / 1e6, 2), 'MB', len(amb), 'ambientes', len(entradas), 'entradas',

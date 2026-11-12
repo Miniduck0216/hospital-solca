@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.join(RAIZ, 'planta_real', 'web'))
 sys.path.insert(0, AQUI)
 
 import math  # noqa: E402
-from shapely.geometry import Polygon, Point, LineString, MultiPoint, box  # noqa: E402
+from shapely.geometry import Polygon, Point, LineString, MultiPoint, MultiPolygon, box  # noqa: E402
 from shapely.ops import unary_union  # noqa: E402
 from shapely import affinity  # noqa: E402
 import exportar_piso as EP  # noqa: E402
@@ -120,7 +120,8 @@ def muros_de_pares(m, zona, capas, dmin=0.12, dmax=0.25, minimo=0.25):
 def _polis(g):
     if g.is_empty:
         return []
-    return [g] if isinstance(g, Polygon) else [p for p in getattr(g, 'geoms', []) if isinstance(p, Polygon) and not p.is_empty]
+    # (también abre las colecciones con multipolígonos dentro que devuelve make_valid: antes esas piezas se perdían)
+    return [g] if isinstance(g, Polygon) else [p for h in getattr(g, 'geoms', []) for p in _polis(h)]
 
 
 def _macizos(m, con_muros=True):
@@ -246,11 +247,27 @@ def arreglar(m, piso):
         if q.area > 0.001:
             al_muro.append(q)
     # (cierre de 4 mm: el relleno queda al ras del muro, sin escalones que solo suman vértices)
-    juntos = unary_union(list(m.muros) + al_muro).buffer(0.004, join_style=2).buffer(-0.004, join_style=2)
+    # (cada pieza se valida antes de unir: con un muro inválido —un hueco suelto que deja el corte de una ventana
+    # interior— la unión salía mal sin avisar y en el subsuelo se perdían 9 m² de muros alrededor de Medicina Nuclear)
+    from shapely import make_valid
+    validos = [q for g in list(m.muros) + al_muro for q in _polis(make_valid(g) if not g.is_valid else g)]
+    # (el cierre se hace pieza por pieza y nunca deja una pieza más chica que antes: hecho sobre toda la unión, el
+    # buffer negativo de GEOS perdía en el subsuelo 9 m² de muros —Oficina, Mantenimiento, Medicina Nuclear,
+    # x 102-150, y 32-41— que sí estaban en datos.json y no salían en el 3D)
+    cerr = []
+    for g in _polis(unary_union(validos)):
+        h = g.buffer(0.004, join_style=2).buffer(-0.004, join_style=2)
+        cerr += _polis(h) if h.is_valid and h.area >= g.area - 1e-4 else [g]
+    try:
+        juntos = unary_union(cerr)
+    except Exception:      # (GEOS: «unable to assign free hole to a shell»): las piezas ya son disjuntas
+        juntos = MultiPolygon(cerr)
     m.muros = [g for g in _polis(juntos) if g.area > 0.005 or any(g.intersects(q) for q in al_muro)]
     print(piso, 'rendijas: a muros', len(al_muro), ', a ventanas', n_vent)
     # 4. losa: la huella más el pie de la fachada (la huella sale de los ambientes y se quedaba 5 a 10 cm adentro)
-    pie = unary_union(list(m.muros) + [otros]).intersection(huella.buffer(0.5, join_style=2))
+    # (buffer(0): con las ventanas interiores y los vanos de arco de la auditoría de nov 2026 algún muro del subsuelo
+    # quedaba con un hueco suelto y la unión fallaba con «unable to assign free hole to a shell»)
+    pie = unary_union([w.buffer(0) for w in m.muros] + [otros.buffer(0)]).intersection(huella.buffer(0.5, join_style=2))
     losa = unary_union([huella, pie]).buffer(0.03, join_style=2).buffer(-0.03, join_style=2).simplify(0.01)
     m.huella = unary_union([Polygon(q.exterior, [h for h in q.interiors if Polygon(h).area >= 2.0])
                             for q in _polis(losa)])

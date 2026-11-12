@@ -608,6 +608,13 @@ def rellenar_banos(m):
 
 
 PUERTAS_ARCO = {'PB'}   # pisos donde las puertas dibujadas solo con su arco (sin bloque) también cuentan
+# auditoría del plano (nov 2026): en los demás pisos también hay puertas dibujadas solo con arco y hoja en la capa PU
+# o «P0 - Puertas» (baños del bloque central de la torre, vestidores y consultorios del subsuelo); quedaban sin puerta
+PUERTAS_ARCO |= {'SB', 'P1', 'P2', 'P3'}
+# en esos pisos solo cuentan los arcos de las capas de puertas: en las demás capas hay esquinas de muro redondeadas
+# y muebles con arcos de 90° (en la planta baja se revisaron uno por uno y se dejan todas las capas, como estaba)
+CAPAS_PUERTA_ARCO = {'PU', 'P0 - Puertas', '23-DOOR'}
+CAPAS_MURO_ARCO = {'PA', 'P0 - Paredes'}   # arcos de estas capas: esquinas de muro redondeadas, nunca puertas
 
 
 def puertas_de_arco(m):
@@ -616,11 +623,19 @@ def puertas_de_arco(m):
     import numpy as np
     from shapely.prepared import prep
     ox, oy = m.origen
-    muro = prep(unary_union([m.muros_raw] + m.columnas + [t['poligono'] for t in m.tabiques]).buffer(0.03))
+    muro_l = unary_union([m.muros_raw] + m.columnas + [t['poligono'] for t in m.tabiques]).buffer(0.03)
+    muro = prep(muro_l)
     mids = [Point(*((np.array(p['a']) + np.array(p['b'])) / 2)) for p in m.puertas]
     nuevas = []
     for e in m.planos:
         if e[1] != 'ARC' or len(e[2]) < 3:
+            continue
+        if getattr(m, 'piso', 'PB') != 'PB' and e[0] not in CAPAS_PUERTA_ARCO:
+            continue
+        # los arcos de la capa de muros (PA) son esquinas redondeadas de muro, no puertas: en la planta baja salían
+        # 16 puertas falsas de 0,5 m junto a las columnas del bloque este (x 125-141, y 46-66) y, con el corte de
+        # vano de abajo, abrían huecos en esos muros; también la esquina curva de la fachada oeste (x 8, y 94)
+        if e[0] in CAPAS_MURO_ARCO:
             continue
         pts = [(x / 1000 - ox, y / 1000 - oy) for x, y in e[2]]
         p0, pm, p1 = pts[0], pts[len(pts) // 2], pts[-1]
@@ -640,8 +655,12 @@ def puertas_de_arco(m):
         for p in (np.array(p0), np.array(p1)):
             d = (p - c) / r
             sc = muro.contains(Point(*(c - d * 0.2))) + muro.contains(Point(*(p + d * 0.15)))
-            if mejor is None or sc > mejor[0]:
-                mejor = (sc, p)
+            # empate: la hoja cerrada cruza el vano (espacio libre); la hoja abierta, que el dibujo pone a 90°,
+            # queda pegada a la pared. En el subsuelo, junto al baño a164 (x 103, y 42), la puerta salía tendida
+            # sobre la pared del baño y el corte de vano de abajo lo dejaba abierto al pasillo
+            tapa = muro_l.intersection(LineString([tuple(c + d * 0.1 * r), tuple(c + d * 0.9 * r)])).length / (0.8 * r)
+            if mejor is None or (sc, -tapa) > (mejor[0], -mejor[2]):
+                mejor = (sc, p, tapa)
         if mejor[0] < 1:
             continue
         b = mejor[1]
@@ -651,6 +670,17 @@ def puertas_de_arco(m):
         mids.append(mid)
         nuevas.append(puerta_nueva(tuple(c), tuple(b), False))
     m.puertas += nuevas
+    # si el dibujo pasa el muro de largo por el vano (la puerta va dibujada encima), el vano corta el muro, igual que
+    # con PUERTAS_EXTRA; en el 2D ya salía cortado y en el 3D la hoja quedaba metida en la pared
+    cortes = 0
+    for p in nuevas:
+        if p['rect'].intersection(m.muros_raw).area > 0.3 * p['rect'].area:
+            hueco = p['rect'].buffer(0.12, cap_style=2, join_style=2)
+            m.muros_raw = m.muros_raw.difference(hueco)
+            m.muros = [q for w in m.muros for q in lista_polis(w.difference(hueco)) if q.area > 0.005]
+            cortes += 1
+    if cortes:
+        print('puertas de arco que cortan muro', cortes)
     return len(nuevas)
 
 
@@ -858,6 +888,13 @@ def preparar(m, piso):
                                  < 0.5 * a['poligono'].area else [])
                        if q.area > 0.5]
         dentro = t.buffer(-0.12, join_style=2)
+        # los muros de la capa PA que el plano dibuja dentro del aspa se quedan: en el subsuelo el aspa de
+        # x 57.8-62.8, y 27.6-33.6 cubre un núcleo octogonal de muro de 60 cm que se borraba entero
+        pa = [LineString([(x / 1000 - ox, y / 1000 - oy) for x, y in e[2]]) for e in m.planos
+              if e[0] in CAPAS_MURO_ARCO and e[1] != 'ARC' and len(e[2]) >= 2]
+        pa = unary_union([l for l in pa if l.intersects(dentro)])
+        if not pa.is_empty and pa.intersection(dentro).length > 3.0:
+            dentro = dentro.difference(pa.buffer(0.35, cap_style=2, join_style=2))
         m.muros_raw = m.muros_raw.difference(dentro)
         m.muros = [q for w in m.muros for q in lista_polis(w.difference(dentro)) if q.area > 0.005]
         m.tabiques = [dict(tb, poligono=q) for tb in m.tabiques for q in lista_polis(tb['poligono'].difference(dentro))

@@ -121,7 +121,8 @@
   "a70": {
    "si": "Comando · Lavabo Quirurgico",
    "personal": false,
-   "cat": "circulacion"
+   "cat": "circulacion",
+   "nombre": "Comando · Lavabo Quirúrgico"
   },
   "a172": {
    "si": "Baño",
@@ -146,7 +147,8 @@
     102.15,
     28.05
    ],
-   "ventanilla": true
+   "ventanilla": true,
+   "nombre": "Recepción"
   },
   "a75": {
    "si": "",
@@ -187,7 +189,8 @@
   },
   "a88": {
    "si": "Oficina Economo",
-   "personal": true
+   "personal": true,
+   "nombre": "Oficina Ecónomo"
   },
   "a112": {
    "si": "Oficina",
@@ -397,6 +400,46 @@
     44.16
    ],
    "ventanilla": true
+  },
+  "a24": {
+   "si": "Planificacion",
+   "nombre": "Planificación"
+  },
+  "a31": {
+   "si": "Camara Gamma",
+   "nombre": "Cámara Gamma"
+  },
+  "a35": {
+   "si": "Camara de Transformacion",
+   "nombre": "Cámara de Transformación"
+  },
+  "a37": {
+   "si": "Frigorifico",
+   "nombre": "Frigorífico"
+  },
+  "a43": {
+   "si": "Planificacion Terapia Externa y Hdr",
+   "nombre": "Planificación Terapia Externa y Hdr"
+  },
+  "a60": {
+   "si": "Camara",
+   "nombre": "Cámara"
+  },
+  "a62": {
+   "si": "Planificacion Bqt. Mdr Curietron",
+   "nombre": "Planificación Bqt. Mdr Curietron"
+  },
+  "a80": {
+   "si": "Bodega Patologia",
+   "nombre": "Bodega Patología"
+  },
+  "a83": {
+   "si": "Termodesinfectadoras · Area Roja Lavado",
+   "nombre": "Termodesinfectadoras · Área Roja Lavado"
+  },
+  "a87": {
+   "si": "Subestacion Casa de Maquinas Tableros",
+   "nombre": "Subestación Casa de Máquinas Tableros"
   }
  },
  "lugares": [
@@ -729,5 +772,31 @@
    "personal": true
   }
  ],
- "pasos": []
+ "pasos": [],
+ "letreros": [
+  {
+   "nombre": "Zona 7",
+   "x": 51.71,
+   "y": 40.25,
+   "zona": true
+  },
+  {
+   "nombre": "Zona 8",
+   "x": 91.88,
+   "y": 30.21,
+   "zona": true
+  },
+  {
+   "nombre": "Zona 9",
+   "x": 150.75,
+   "y": 37.8,
+   "zona": true
+  },
+  {
+   "nombre": "Zona 10",
+   "x": 99.61,
+   "y": 5.02,
+   "zona": true
+  }
+ ]
 }
