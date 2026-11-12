@@ -612,6 +612,56 @@ def pergola_pb():
     return cubierta, costillas
 
 
+def _corte_alineado(q, zt):
+    """Parte de la pieza `q` (muro o ventana del modelo nuevo) que cae en la franja `zt` del tramo abierto. La franja
+    sigue el contorno de la planta vieja, que en algunos tramos va en diagonal respecto de la fachada nueva: cortada
+    con ella, la pieza quedaba con la punta sesgada y se veía girada (la ventana de x 77, y 7,5, junto a Secretaría
+    Información, salía girada 11°). Si la pieza es alargada, se corta en perpendicular a su eje, a lo largo de todo lo
+    que la franja toca de ella."""
+    import numpy as np
+    g = q.intersection(zt)
+    if g.is_empty:
+        return g
+    r = list(q.minimum_rotated_rectangle.exterior.coords)
+    l1, l2 = math.dist(r[0], r[1]), math.dist(r[1], r[2])
+    if min(l1, l2) < 1e-6 or max(l1, l2) / min(l1, l2) < 3:
+        return g
+    a_, b_ = (r[0], r[1]) if l1 >= l2 else (r[1], r[2])
+    u = (np.array(b_) - np.array(a_)) / max(l1, l2)
+    n = np.array([-u[1], u[0]])
+    pts = np.array([c for p in _polis(g) for c in p.exterior.coords])
+    s = (pts - np.array(a_)) @ u
+    s0, s1 = float(s.min()), float(s.max())
+    o = np.array(a_)
+    w = max(l1, l2) + min(l1, l2) + 1.0
+    franja = Polygon([tuple(o + u * s0 - n * w), tuple(o + u * s1 - n * w), tuple(o + u * s1 + n * w),
+                      tuple(o + u * s0 + n * w)])
+    return q.intersection(franja)
+
+
+def _piezas_alineadas(q, zt, macizo):
+    """Piezas de `q` para el tramo `zt` sin lo que ya es macizo en el modelo viejo. Restar el macizo viejo (su sección
+    tiene esquinas en diagonal donde la fachada vieja quiebra) también dejaba puntas sesgadas: cada pieza de una
+    pieza alargada se rehace como la franja de `q` a lo largo de su eje; si esa franja se encima con el macizo viejo,
+    la punta sobra (el viejo ya cierra ahí) y se descarta."""
+    base = _corte_alineado(q, zt)
+    piezas = [g for g in _polis(base.difference(macizo.buffer(0.01))) if g.area > 0.01]
+    r = list(q.minimum_rotated_rectangle.exterior.coords)
+    l1, l2 = math.dist(r[0], r[1]), math.dist(r[1], r[2])
+    if min(l1, l2) < 1e-6 or max(l1, l2) / min(l1, l2) < 3:
+        return piezas
+    out = []
+    for g in piezas:
+        a = _corte_alineado(q, g.buffer(0.001))
+        if a.is_empty:
+            continue
+        if a.intersection(macizo).area < 0.02:
+            out += [h for h in _polis(a) if h.area > 0.01]
+        elif g.area > 0.6 * a.area:
+            out.append(g)
+    return out
+
+
 def cerrar_fachada_vieja(esc, m, zona):
     """Fachada de la planta baja vieja (solca_pb.glb, modelo fijo de antes del DWG 2025): los tramos de su contorno
     sin muro, ventana ni puerta (rayo de 1 m fuera a 0,5 m dentro, a 0,5 / 1,5 / 3,0 m de alto) se cierran con las
@@ -695,10 +745,8 @@ def cerrar_fachada_vieja(esc, m, zona):
                 dinteles_v.append(t.buffer(0.1, cap_style=2))
                 continue
             zt = t.buffer(0.7, cap_style=2)
-            pm = [q.intersection(zt) for q in muros_n if q.intersects(zt)]
-            pv = [q.intersection(zt) for q in vent_n if q.intersects(zt)]
-            pm = [g for q in pm for g in _polis(q.difference(macizo_viejo.buffer(0.01))) if g.area > 0.01]
-            pv = [g for q in pv for g in _polis(q.difference(macizo_viejo.buffer(0.01))) if g.area > 0.01]
+            pm = [g for q in muros_n if q.intersects(zt) for g in _piezas_alineadas(q, zt, macizo_viejo)]
+            pv = [g for q in vent_n if q.intersects(zt) for g in _piezas_alineadas(q, zt, macizo_viejo)]
             if pm or pv:
                 nuevos_m += pm
                 nuevos_v += pv
@@ -716,6 +764,103 @@ def cerrar_fachada_vieja(esc, m, zona):
     print('planta baja vieja: fachada cerrada con el modelo nuevo:', len(nuevos_m), 'muros,', len(nuevos_v),
           'ventanas,', len(dinteles_v), 'dinteles,', n_t, 'triángulos; tramos abiertos sin nada en el plano:',
           [(round(t.coords[0][0], 1), round(t.coords[0][1], 1), round(t.length, 1)) for t in abiertos])
+
+
+def _malla_nueva(esc, nombre, rgb, prismas, transparencia=0.0):
+    """Agrega una malla propia (nombre «grupo|r,g,b|t», como las que exporta exportar_glb) con estos prismas; si ya
+    hay una con ese nombre, los suma a ella."""
+    import trimesh
+    import numpy as np
+    if not prismas:
+        return 0
+    if nombre in esc.geometry:
+        return _sumar(esc, nombre, prismas)
+    V, F, base = [], [], 0
+    for v, f in prismas:
+        V.append(v)
+        F.append(f + base)
+        base += len(v)
+    g = trimesh.Trimesh(np.vstack(V), np.vstack(F), process=False)
+    mat = trimesh.visual.material.PBRMaterial(baseColorFactor=[*rgb, 1.0 - transparencia], metallicFactor=0.0,
+                                              roughnessFactor=0.8, alphaMode='BLEND' if transparencia else 'OPAQUE')
+    g.visual = trimesh.visual.TextureVisuals(material=mat)
+    esc.add_geometry(g, geom_name=nombre, node_name=nombre)
+    return sum(len(f) for _, f in prismas)
+
+
+# perfiles de aluminio de las mamparas (gris claro; en la web, grupo «muebles», sin el tono de los muros)
+ALUMINIO = 'muebles|0.780,0.790,0.810|0.00'
+# hojas de vidrio de las puertas de las mamparas, cerradas: en el piso que se mira la web las oculta y dibuja las suyas
+# (corredizas; Vista3D.HOJAS_VIDRIO)
+HOJAS_VIDRIO = 'muros|0.611,0.765,0.867|0.60'
+
+
+def mamparas_vieja(esc):
+    """Mamparas de vidrio de las entradas principales de la planta vieja (unir_pb.MAMPARAS, marco de la web): fuera
+    las piezas viejas del frente (antepecho y ventana, hojas de madera, marcos, dinteles) y en su lugar paños de vidrio
+    de piso a dintel con perfiles de aluminio, montante sobre las puertas y el muro de encima. Las hojas de vidrio de
+    las puertas van cerradas y la web las cambia por las suyas, corredizas, en el piso que se mira."""
+    import shapely
+    import unir_pb
+    from modelo import ALTURA
+    try:
+        puertas = json.load(open(os.path.join(RAIZ, 'public', 'pb', 'datos.json'), encoding='utf-8'))['puertas']
+    except (OSError, KeyError, ValueError):
+        puertas = []
+    H_DINTEL, H_PUERTA_V = 2.40, 2.10
+    total = 0
+    for mp in unir_pb.MAMPARAS:
+        c = mp['c']
+
+        def R(t0, t1, e):   # rectángulo del frente entre t0 y t1, de espesor e
+            return box(c - e / 2, t0, c + e / 2, t1) if mp['eje'] == 'y' else box(t0, c - e / 2, t1, c + e / 2)
+        tmin, tmax = min(t[0] for t in mp['tramos']), max(t[1] for t in mp['tramos'])
+        zona = R(tmin, tmax, mp['espesor'] + 0.12)
+        quitadas = 0
+        for nombre, g in list(esc.geometry.items()):
+            if not (nombre.startswith('muros') or nombre.startswith('muebles')) or not hasattr(g, 'faces') \
+                    or not len(g.faces):
+                continue
+            cc = g.triangles_center
+            dentro = shapely.contains_xy(zona, cc[:, 0], -cc[:, 2]) & (cc[:, 1] > -0.01) & (cc[:, 1] < ALTURA + 0.01)
+            if dentro.any():
+                quitadas += int(dentro.sum())
+                g.update_faces(~dentro)
+                g.remove_unreferenced_vertices()
+        vid, alu, hojas, muro = [], [], [], [prisma(R(tmin, tmax, mp['espesor']), H_DINTEL, ALTURA)]
+        alu.append(prisma(R(tmin, tmax, 0.10), H_DINTEL - 0.05, H_DINTEL))          # perfil de arriba
+        for t0, t1, tipo in mp['tramos']:
+            if tipo == 'jamba':
+                alu.append(prisma(R(t0, t1, 0.12), 0, H_DINTEL))
+            elif tipo == 'fijo':
+                n = max(1, round((t1 - t0) / 1.0))                                   # paños de ~1 m
+                cortes = [t0 + (t1 - t0) * k / n for k in range(n + 1)]
+                for k, t in enumerate(cortes):
+                    a_, b_ = (t, t + 0.05) if k == 0 else ((t - 0.05, t) if k == n else (t - 0.025, t + 0.025))
+                    alu.append(prisma(R(a_, b_, 0.10), 0, H_DINTEL))
+                alu.append(prisma(R(t0, t1, 0.10), 0, 0.10))                         # zócalo
+                alu.append(prisma(R(t0, t1, 0.06), 1.05, 1.10))                      # travesaño
+                vid.append(prisma(R(t0 + 0.02, t1 - 0.02, 0.024), 0.10, H_DINTEL - 0.05))
+            else:
+                alu.append(prisma(R(t0, t1, 0.10), H_PUERTA_V, H_PUERTA_V + 0.05))  # travesaño sobre las puertas
+                hojas.append(prisma(R(t0 + 0.02, t1 - 0.02, 0.02), 0.01, H_PUERTA_V - 0.02))   # hojas, cerradas
+                vid.append(prisma(R(t0, t1, 0.024), H_PUERTA_V + 0.05, H_DINTEL - 0.05))
+                # montantes del vano: en las jambas y entre las puertas, del travesaño al perfil de arriba
+                ts = {round(t0, 3), round(t1, 3)}
+                L = LineString([(c, t0), (c, t1)] if mp['eje'] == 'y' else [(t0, c), (t1, c)])
+                for p in puertas:
+                    mid = Point((p['a'][0] + p['b'][0]) / 2, (p['a'][1] + p['b'][1]) / 2)
+                    if L.distance(mid) < 0.15:
+                        k = 1 if mp['eje'] == 'y' else 0
+                        ts |= {round(p['a'][k], 3), round(p['b'][k], 3)}
+                for t in sorted(ts):
+                    if t0 + 0.04 < t < t1 - 0.04:
+                        alu.append(prisma(R(t - 0.03, t + 0.03, 0.10), H_PUERTA_V, H_DINTEL))
+        total += _sumar(esc, 'muros|0.902', muro) + _sumar(esc, 'muros|0.303', vid) + \
+            _malla_nueva(esc, ALUMINIO, (0.78, 0.79, 0.81), alu) + \
+            _malla_nueva(esc, HOJAS_VIDRIO, (0.611, 0.765, 0.867), hojas, transparencia=0.6)
+        print('mampara', mp['nombre'], ':', quitadas, 'caras viejas fuera;', len(vid), 'vidrios,', len(alu), 'perfiles')
+    return total
 
 
 def recortar_vieja(zona, m=None):
@@ -775,9 +920,45 @@ def recortar_vieja(zona, m=None):
               'triángulos; pérgola', 0 if cubierta is None else len(costillas), 'costillas,', n_p, 'triángulos')
         # envolvente: tramos de la fachada vieja sin cerramiento, con las piezas del DWG 2025
         cerrar_fachada_vieja(esc, m, zona)
+        # entradas con mampara de vidrio (Puerta 1 y Puerta 4)
+        mamparas_vieja(esc)
     salida = os.path.join(RAIZ, 'public', 'pb', 'solca_pb.glb')
     esc.export(salida)
     print('GLB vieja recortada', salida, round(os.path.getsize(salida) / 1e6, 2), 'MB')
+
+
+# Marquesinas exteriores (marco de la planta baja). Puerta 5 (emergencia, junto a Espera Familiares): el DWG 2025
+# dibuja delante de la puerta la zona «AMBULANCIA» con la cubierta en la capa AY: dos bordes laterales desde la
+# fachada (x 115,44 y 128,64, de y 107,75 a 113,75) y al frente una franja de 1,2 m con las puntas redondeadas
+# (x 115,04 a 129,04, y 113,35 a 114,55), sobre tres columnas de 40 cm (-COL40- en x 115,64, 122,04 y 128,44,
+# y 113,95). No es un cuarto: va solo en el 3D (ni en datos.json ni en las rutas). El plano no trae su altura: losa
+# de 25 cm con la cara de abajo a 3,25 m, viga de borde de 55 cm en la franja del frente y vigas laterales de 20 cm.
+MARQUESINAS = {
+    'PB': [dict(nombre='Puerta 5 (ambulancias)',
+                losa=unary_union([box(115.44, 107.75, 128.64, 113.75), box(115.34, 113.65, 128.74, 114.25).buffer(0.3)]),
+                viga=box(115.34, 113.65, 128.74, 114.25).buffer(0.3),
+                vigas=[box(115.44, 107.75, 115.64, 113.4), box(128.44, 107.75, 128.64, 113.4)],
+                columnas=[(115.64, 113.95), (122.04, 113.95), (128.44, 113.95)], lado=0.4,
+                z_losa=(3.25, 3.50), z_viga=2.95, z_vigas=3.0)],
+}
+
+
+def marquesinas(esc, piso, ox, oy):
+    """Marquesinas de MARQUESINAS en el GLB (marco del modelo, antes del traslado): losa y vigas con las viseras
+    (en la web se ven con los muros completos, como las demás viseras) y columnas con los muros."""
+    T = lambda g: affinity.translate(g, -ox, -oy)  # noqa: E731
+    for mq in MARQUESINAS.get(piso, []):
+        z0, z1 = mq['z_losa']
+        losa = [prisma(T(mq['losa']).simplify(0.005), z0, z1)]
+        vigas = [prisma(T(mq['viga']).simplify(0.005), mq['z_viga'], z0, tapa=False)] + \
+            [prisma(T(v), mq['z_vigas'], z0, tapa=False) for v in mq['vigas']]
+        h = mq['lado'] / 2
+        cols = [prisma(T(box(x - h, y - h, x + h, y + h)), 0, mq['z_viga'], tapa=False) for x, y in mq['columnas']]
+        n = _sumar(esc, 'viseras', losa + vigas) if any(k.startswith('viseras') for k in esc.geometry) else \
+            _malla_nueva(esc, 'viseras|0.740,0.740,0.706|0.00', (0.74, 0.74, 0.706), losa + vigas)
+        n += _sumar(esc, 'muros|0.902', cols) if any(k.startswith('muros|0.902') for k in esc.geometry) else \
+            _malla_nueva(esc, 'muros|0.902,0.884,0.810|0.00', (0.902, 0.884, 0.81), cols)
+        print('marquesina', mq['nombre'], n, 'triángulos')
 
 
 def main():
@@ -811,6 +992,8 @@ def main():
     m.zona_recorte = zona if fuera else None
     # cierres de fachada (caja de escalera, dinteles de vano, rendijas, losa)
     arreglar(m, piso)
+    # hormigón macizo de los búnkeres (modelo_piso.CORRECCIONES, tipo «macizo»): sin losa debajo (ver a_ifc.escribir)
+    m.sin_losa = EP.macizos(m)
     from a_ifc import escribir
     ifc = f'/tmp/solca_{piso.lower()}.ifc'
     escribir(m, ifc, web=True)
@@ -820,6 +1003,8 @@ def main():
     # al marco de la planta baja: plano (x, y) -> glTF (x, z, -y)
     import trimesh
     esc = trimesh.load(salida, force='scene')
+    if MARQUESINAS.get(piso) and fuera:
+        marquesinas(esc, piso, ox, oy)
     esc.apply_translation([ox, 0.0, -oy])
     esc.export(salida)
     print('GLB', salida, round(os.path.getsize(salida) / 1e6, 2), 'MB; desplazado', round(ox, 3), round(oy, 3))

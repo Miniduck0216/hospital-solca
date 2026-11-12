@@ -105,7 +105,7 @@
    "nombre": "Comedor Personal"
   },
   "a3": {
-   "si": "Bodega · Control 2",
+   "si": "Control 2 · Control 1",
    "nombre": "Radioterapia"
   },
   "a5": {
@@ -309,8 +309,8 @@
    "si": "SS.HH.",
    "personal": false,
    "dest": [
-    144.53,
-    63.11
+    134.11,
+    52.22
    ],
    "ventanilla": true
   },
@@ -339,8 +339,8 @@
    "si": "SS.HH.",
    "personal": false,
    "dest": [
-    144.53,
-    63.11
+    134.11,
+    52.22
    ],
    "ventanilla": true
   },
@@ -348,8 +348,8 @@
    "si": "SS.HH.",
    "personal": false,
    "dest": [
-    144.53,
-    63.11
+    134.11,
+    52.22
    ],
    "ventanilla": true
   },
@@ -379,8 +379,8 @@
    "si": "SS.HH.",
    "personal": false,
    "dest": [
-    144.53,
-    63.11
+    134.11,
+    52.22
    ],
    "ventanilla": true
   },
@@ -388,8 +388,8 @@
    "si": "SS.HH.",
    "personal": false,
    "dest": [
-    144.53,
-    63.11
+    134.11,
+    52.22
    ],
    "ventanilla": true
   },
@@ -397,26 +397,8 @@
    "si": "SS.HH.",
    "personal": false,
    "dest": [
-    144.53,
-    63.11
-   ],
-   "ventanilla": true
-  },
-  "a173": {
-   "si": "Baño",
-   "personal": false,
-   "dest": [
-    144.53,
-    63.11
-   ],
-   "ventanilla": true
-  },
-  "a174": {
-   "si": "Baño",
-   "personal": false,
-   "dest": [
-    144.53,
-    63.11
+    134.11,
+    52.22
    ],
    "ventanilla": true
   },
@@ -424,8 +406,26 @@
    "si": "Baño",
    "personal": false,
    "dest": [
-    144.53,
-    63.11
+    134.11,
+    52.22
+   ],
+   "ventanilla": true
+  },
+  "a173": {
+   "si": "Baño",
+   "personal": false,
+   "dest": [
+    134.11,
+    52.22
+   ],
+   "ventanilla": true
+  },
+  "a174": {
+   "si": "Baño",
+   "personal": false,
+   "dest": [
+    134.11,
+    52.22
    ],
    "ventanilla": true
   },

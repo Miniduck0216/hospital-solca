@@ -57,9 +57,23 @@ CORRECCIONES = {
         dict(tipo='pares', zona=box(0, -45, 200, 130), capas={'NO', 'TA'}, dmin=0.06, dmax=0.3, minimo=0.5),
     ],
     'SB': [
+        # búnkeres de los aceleradores lineales 1, 2 y 3: el blindaje de hormigón va dibujado en la capa de columnas
+        # (contorno exterior y caras interiores) con el forro en la capa PA. Los muros de más de 0,6 m (el muro entre
+        # los aceleradores 1 y 2, de 2,4 m; los muros del laberinto, de 0,8 a 1,1 m) quedaban como «cuartos» angostos
+        # entre dos líneas, y los pares de líneas de abajo cerraban con tapas sueltas el paso del laberinto. Aquí todo lo
+        # que está dentro del contorno del búnker y no es el recinto de un acelerador (con su laberinto y su entrada) es
+        # hormigón macizo, de la cara interior a la exterior.
+        dict(tipo='macizo', zona=Polygon([(141.29, 60.5), (165.54, 60.5), (165.54, 70.15), (159.24, 70.15),
+                                          (159.24, 72.6), (141.29, 72.6)]),
+             capas={'COL', 'PA'}, textos=('ACELERADOR',),
+             # el muro entre los aceleradores 1 y 2 llega al muro norte: el dibujo deja sin línea el tramo entre el
+             # bloque central (y 69,95) y el forro del muro norte, y los dos recintos se juntaban por ahí
+             cierres=[((149.64, 69.9), (149.64, 72.65)), ((150.74, 69.9), (150.74, 72.65))]),
         # búnkeres de los aceleradores, del tomógrafo y de radioterapia: muros de hormigón de 0,3 a 2,4 m dibujados como
-        # pares de líneas en la capa de columnas (el modelo solo empareja muros delgados)
-        dict(tipo='pares', zona=box(128, 28, 173, 73), capas={'COL'}, dmin=0.25, dmax=2.5),
+        # pares de líneas en la capa de columnas (el modelo solo empareja muros delgados); sin los de los aceleradores,
+        # que van macizos (arriba)
+        dict(tipo='pares', zona=box(128, 28, 173, 73), capas={'COL'}, dmin=0.25, dmax=2.5,
+             excluir=box(141.25, 60.45, 165.6, 72.65)),
         # tabique de una línea (capa NO) entre el comedor del personal y la cafetería
         dict(tipo='lineas_muro', zona=box(96.3, 27.0, 97.3, 43.2), capas={'TA', 'NO'}, minimo=0.8),
         # vanos del auditorio hacia el hall (sin bloque de puerta: se cierran y van como puertas en PUERTAS_EXTRA)
@@ -72,11 +86,57 @@ CORRECCIONES = {
 }
 
 
+# separadores de ambientes (marco de la planta baja), como modelo.SEPARADORES: aberturas sin puerta que en el plano
+# dividen dos espacios. En el subsuelo, la entrada del laberinto de cada acelerador (el vano de 2,1 m del muro sur del
+# búnker): sin ellos el recinto del acelerador se juntaba con el pasillo de radioterapia en un solo ambiente
+SEPARADORES_PB = {
+    'SB': [((146.79, 60.5), (148.89, 60.5)), ((151.54, 60.5), (153.64, 60.5)), ((159.24, 60.5), (161.34, 60.5))],
+}
+# muros macizos de cada piso (polígonos en metros del marco de la planta baja) que deja corregir(): se suman rellenos
+# a los muros del modelo (el contorno dibujado solo cierra muros de hasta 0,6 m)
+MACIZOS = {}
+
+
+def macizo(c, planos, textos):
+    """Hormigón de un recinto blindado: la zona (contorno exterior) menos las caras libres que contienen uno de los
+    rótulos (el recinto con su laberinto y su entrada). Las caras salen de poligonizar las líneas de las capas dadas
+    recortadas a la zona, junto con el borde de la zona."""
+    from shapely.geometry import LineString as LS, Point as PT
+    from shapely.ops import polygonize
+    import numpy as np
+    z = c['zona']
+    ls = [z.exterior] + [LS(q).intersection(z) for q in c.get('cierres', [])]
+    for e in planos:
+        if e[0] in c['capas'] and len(e[2]) >= 2:
+            pts = [np.array((x / 1000, y / 1000)) for x, y in e[2]]
+            for a_, b_ in zip(pts[:-1], pts[1:]):
+                d = np.linalg.norm(b_ - a_)
+                if d < 1e-4:
+                    continue
+                # cada tramo se alarga 3 cm por punta: el dibujo deja juntas de milímetros que no cierran las caras
+                u = (b_ - a_) / d * 0.03
+                l = LS([tuple(a_ - u), tuple(b_ + u)])
+                if l.intersects(z):
+                    ls.append(l.intersection(z))
+    caras = list(polygonize(unary_union(ls)))
+    rot = [PT(t[2] / 1000, t[3] / 1000) for t in textos
+           if any(r in str(t[1]).upper() for r in c['textos'])]
+    libres = [q for q in caras if any(q.contains(p) for p in rot)]
+    sol = z.difference(unary_union(libres)) if libres else Polygon()
+    return [q for q in getattr(sol, 'geoms', [sol]) if not q.is_empty and q.area > 0.01], len(libres)
+
+
 def corregir(piso, planos, bloques, textos):
     import pdf_zonas
     from shapely.geometry import LineString as LS, Point as PT
+    MACIZOS[piso] = []
     for c in CORRECCIONES.get(piso, []):
         z = c['zona']
+        if c['tipo'] == 'macizo':
+            sol, n = macizo(c, planos, textos)
+            MACIZOS[piso] += sol
+            print(piso, 'macizo', n, 'recintos', round(sum(q.area for q in sol), 1), 'm²')
+            continue
         if c['tipo'] in ('pares', 'lineas_muro'):
             ls = []
             for e in planos:
@@ -84,7 +144,8 @@ def corregir(piso, planos, bloques, textos):
                     pts = [(x / 1000, y / 1000) for x, y in e[2]]
                     for a_, b_ in zip(pts[:-1], pts[1:]):
                         l = LS([a_, b_])
-                        if z.contains(l) and l.length >= c.get('minimo', 0.5):
+                        if z.contains(l) and l.length >= c.get('minimo', 0.5) \
+                                and not ('excluir' in c and c['excluir'].contains(l)):
                             ls.append(l)
             nuevos = []
             if c['tipo'] == 'lineas_muro':
@@ -221,6 +282,12 @@ class ModeloPiso(MOD.Modelo):
         self.textos = list(dict.fromkeys(self.textos))
         polis, self.lz, *_ = M.extraer(self.planos, self.bloques)
         self.x0, self.y0 = self.lz.x0, self.lz.y0
+        o = (self.x0 / 1000.0, self.y0 / 1000.0)
+        MOD.SEPARADORES = list(MOD.SEPARADORES) + [((a[0] - o[0], a[1] - o[1]), (b[0] - o[0], b[1] - o[1]))
+                                                   for a, b in SEPARADORES_PB.get(piso, [])]
+        from shapely import affinity
+        polis = list(polis) + [affinity.translate(q, -self.x0 / 1000.0, -self.y0 / 1000.0)
+                               for q in MACIZOS.get(piso, [])]
         self.muros_raw = unary_union(polis)
         self.fallos = []
         for paso in PASOS:

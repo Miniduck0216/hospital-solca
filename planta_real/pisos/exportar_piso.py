@@ -191,6 +191,14 @@ VENTANAS_EN_MURO = {
 VENTANAS_EXTRA = {
     'P1': [box(50.28, 74.0, 58.86, 74.12), box(58.74, 74.0, 58.86, 77.2), box(50.28, 74.0, 50.4, 77.15)],
 }
+# ventanillas de atención que el dibujo no trae como bloque «Ventanilla» (marco de la planta baja): antepecho macizo
+# hasta 1,0 m, vidrio hasta 2,1 m y muro encima (a_ifc.py, como las del bloque). Toma de Muestras de la planta baja,
+# junto al Laboratorio de Genética: las ventanillas V6 y V7 hacia los dos cubículos de Cultivos son tabiques de 15 cm
+# dibujados con su contorno en la capa AY y dos líneas de vidrio (VE) por dentro; el modelo no las leía (ni muro ni
+# ventana) y quedaban abiertas de piso a techo
+VENTANILLAS_EXTRA = {
+    'PB': [box(107.19, 26.07, 108.79, 26.22), box(107.19, 24.13, 108.95, 24.28)],
+}
 # barandas de 1 m (no dejan pasar, no son muros): eje de la escalera de emergencia del ala oeste, borde de la escalera
 # del Bloque A hacia la sala del balcón, borde de la terraza junto a Almacén
 BARANDAS_EXTRA = {
@@ -207,8 +215,10 @@ PUERTAS_EXTRA = {
            ((147.35, 32.22), (147.35, 33.22), False)],   # cuarto C3-L1-01, desde el comedor
     # subsuelo: vanos del auditorio hacia el hall
     'SB': [((62.9, 51.45), (62.9, 53.0), True), ((62.9, 46.3), (62.9, 48.0), True), ((62.9, 40.4), (62.9, 41.85), True),
-           # laberinto del Acelerador Lineal 2: puerta blindada desde el pasillo y paso hacia el búnker
-           ((157.35, 61.3), (158.1, 62.05), False), ((156.2, 64.15), (157.9, 64.15), True)],
+           # laberinto del Acelerador Lineal 2: antes iban aquí una puerta en el ochave del laberinto y otra entre el
+           # muro del laberinto y el del búnker; con el hormigón macizo (modelo_piso.CORRECCIONES) el ochave es muro
+           # y el laberinto es parte del recinto del acelerador, como en el plano
+           ],
     'P1': [((48.2, 87.1), (48.2, 89.1), True), ((57.6, 85.83), (57.6, 87.85), True),
            ((52.18, 77.2), (53.47, 77.2), True),
            ((54.87, 95.42), (55.84, 95.42), False),    # oficina, desde la recepción
@@ -457,10 +467,24 @@ def unir_partes(libre, res, columnas, salto=3.0, minimo=12.0):
     return main
 
 
+def macizos(m):
+    """Hormigón macizo del piso (modelo_piso.CORRECCIONES, tipo «macizo»: los búnkeres de los aceleradores), en el
+    marco del modelo."""
+    if not hasattr(m, '_macizos'):
+        import modelo_piso
+        ox, oy = m.origen
+        m._macizos = [affinity.translate(q, -ox, -oy) for c in modelo_piso.CORRECCIONES.get(getattr(m, 'piso', ''), [])
+                      if c['tipo'] == 'macizo' for q in modelo_piso.macizo(c, m.planos, m.textos)[0]]
+    return m._macizos
+
+
 def huella_real(m):
     """Contorno del edificio en este piso: unión de los ambientes (no el contorno de la losa de abajo, que en
-    los pisos altos viene dibujado alrededor de la torre). Se quedan las partes de 50 m² o más."""
-    g = unary_union([a['poligono'].buffer(0.35, join_style=2) for a in m.ambientes]).buffer(-0.2, join_style=2)
+    los pisos altos viene dibujado alrededor de la torre). Se quedan las partes de 50 m² o más. Los muros macizos
+    también son piso: el de 2,4 m entre los aceleradores 1 y 2 quedaba como un hueco de la huella (sin losa, y el 3D
+    recortaba el muro por dentro y se veía el suelo a través)."""
+    g = unary_union([a['poligono'].buffer(0.35, join_style=2) for a in m.ambientes] +
+                    [q.buffer(0.2, join_style=2) for q in macizos(m)]).buffer(-0.2, join_style=2)
     partes = [q for q in lista_polis(g) if q.area >= 50]
     return unary_union([Polygon(q.exterior) for q in partes])
 
@@ -573,6 +597,12 @@ def obra(m, piso):
         g = T(g)
         m.ventanas = [q for v in m.ventanas for q in lista_polis(v.difference(g)) if q.area > 0.01]
     m.ventanas = list(m.ventanas) + [T(g) for g in VENTANAS_EXTRA.get(piso, [])]
+    for g in VENTANILLAS_EXTRA.get(piso, []):
+        g = T(g)
+        quitar = g.buffer(0.02, join_style=2)
+        m.ventanas = [q for v in m.ventanas for q in lista_polis(v.difference(quitar)) if q.area > 0.01]
+        m.muros = [q for w in m.muros for q in lista_polis(w.difference(quitar)) if q.area > 0.005]
+        m.ventanillas = list(getattr(m, 'ventanillas', [])) + [g]
     m.barandas = list(barandas(m)) + [T(g) for g in BARANDAS_EXTRA.get(piso, [])]
     for a, b, doble in PUERTAS_EXTRA.get(piso, []):
         p = puerta_nueva(np.array(a) - (ox, oy), np.array(b) - (ox, oy), doble)
@@ -1183,6 +1213,20 @@ def conservar_ids(d, salida):
         if k not in asignado and i not in usados:
             asignado[k] = i
             usados.add(i)
+    # mismo nombre y mismo lugar aunque la forma cambió más (el recinto de un acelerador ahora con su laberinto):
+    # se solapan en más del 30 % y el cuarto viejo queda casi entero dentro del nuevo
+    nombre_viejo = {a['id']: a.get('nombre') for a in viejo}
+    for k, a in enumerate(d['ambientes']):
+        p = pol(a)
+        if k in asignado or not a.get('nombre') or p is None or p.area == 0:
+            continue
+        for i, q in vp:
+            if i in usados or nombre_viejo.get(i) != a['nombre'] or not p.intersects(q):
+                continue
+            if p.intersection(q).area / max(p.area, q.area) > 0.3 and p.intersection(q).area > 0.8 * q.area:
+                asignado[k] = i
+                usados.add(i)
+                break
     sig = max([int(i[1:]) for i, _ in vp if i[1:].isdigit()] + [len(d['ambientes'])]) + 1
     for k, a in enumerate(d['ambientes']):
         if k in asignado:

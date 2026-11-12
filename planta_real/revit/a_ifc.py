@@ -375,7 +375,15 @@ def escribir(m, salida, web=False):
 
     # losa de piso
     h_losa = H_ENTREPISO if web else 0.20
-    for q in (lista_polis(m.huella) if web else trozos(m.huella, 12.0)):
+    losa = m.huella
+    # muros macizos de hormigón (búnkeres, ver glb_piso.py): la losa no pasa por debajo. Con la losa y la base del muro
+    # en el mismo plano (z = 0), al cortar la vista a media altura el interior del muro grueso parpadeaba entre la losa
+    # clara y la tapa oscura, a franjas; la losa queda 1 cm bajo el borde del muro para no dejar rendija
+    sin_losa = getattr(m, 'sin_losa', None)
+    if sin_losa:
+        from shapely.ops import unary_union
+        losa = losa.difference(unary_union(sin_losa).buffer(-0.01, join_style=2))
+    for q in (lista_polis(losa) if web else trozos(losa, 12.0)):
         E.elemento('IfcSlab', 'Losa de piso', [E.extrusion(q, -h_losa, h_losa)], piso, 'FLOOR')
     # acabado de piso de cada ambiente con el color de su categoría (1 cm)
     for a in m.ambientes:
