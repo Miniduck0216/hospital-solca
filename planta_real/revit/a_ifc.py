@@ -189,6 +189,13 @@ class Escritor:
 
 def trozos(pg, paso=8.0):
     """Divide un polígono grande en piezas de una retícula para que Revit las procese sin problemas."""
+    # un polígono inválido (un hueco suelto que toca el borde) hacía fallar la intersección; se arregla antes
+    if not pg.is_valid:
+        from shapely import make_valid
+        pg = unary_union([q.buffer(0) for q in lista_polis(make_valid(pg))])   # sin perder piezas (buffer(0) solo, sí)
+        print('trozos: polígono inválido arreglado, área', round(pg.area, 2), [round(v, 1) for v in pg.bounds] if not pg.is_empty else '')
+    if pg.is_empty:
+        return []
     x0, y0, x1, y1 = pg.bounds
     out = []
     for gx in np.arange(math.floor(x0 / paso) * paso, x1, paso):

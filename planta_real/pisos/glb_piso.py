@@ -246,11 +246,17 @@ def arreglar(m, piso):
         if q.area > 0.001:
             al_muro.append(q)
     # (cierre de 4 mm: el relleno queda al ras del muro, sin escalones que solo suman vértices)
-    juntos = unary_union(list(m.muros) + al_muro).buffer(0.004, join_style=2).buffer(-0.004, join_style=2)
+    # (cada pieza se valida antes de unir: con un muro inválido —un hueco suelto que deja el corte de una ventana
+    # interior— la unión salía mal sin avisar y en el subsuelo se perdían 9 m² de muros alrededor de Medicina Nuclear)
+    from shapely import make_valid
+    validos = [q for g in list(m.muros) + al_muro for q in _polis(make_valid(g) if not g.is_valid else g)]
+    juntos = unary_union(validos).buffer(0.004, join_style=2).buffer(-0.004, join_style=2)
     m.muros = [g for g in _polis(juntos) if g.area > 0.005 or any(g.intersects(q) for q in al_muro)]
     print(piso, 'rendijas: a muros', len(al_muro), ', a ventanas', n_vent)
     # 4. losa: la huella más el pie de la fachada (la huella sale de los ambientes y se quedaba 5 a 10 cm adentro)
-    pie = unary_union(list(m.muros) + [otros]).intersection(huella.buffer(0.5, join_style=2))
+    # (buffer(0): con las ventanas interiores y los vanos de arco de la auditoría de nov 2026 algún muro del subsuelo
+    # quedaba con un hueco suelto y la unión fallaba con «unable to assign free hole to a shell»)
+    pie = unary_union([w.buffer(0) for w in m.muros] + [otros.buffer(0)]).intersection(huella.buffer(0.5, join_style=2))
     losa = unary_union([huella, pie]).buffer(0.03, join_style=2).buffer(-0.03, join_style=2).simplify(0.01)
     m.huella = unary_union([Polygon(q.exterior, [h for h in q.interiors if Polygon(h).area >= 2.0])
                             for q in _polis(losa)])

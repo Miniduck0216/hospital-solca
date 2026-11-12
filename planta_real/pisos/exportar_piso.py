@@ -883,6 +883,13 @@ def preparar(m, piso):
                                  < 0.5 * a['poligono'].area else [])
                        if q.area > 0.5]
         dentro = t.buffer(-0.12, join_style=2)
+        # los muros de la capa PA que el plano dibuja dentro del aspa se quedan: en el subsuelo el aspa de
+        # x 57.8-62.8, y 27.6-33.6 cubre un núcleo octogonal de muro de 60 cm que se borraba entero
+        pa = [LineString([(x / 1000 - ox, y / 1000 - oy) for x, y in e[2]]) for e in m.planos
+              if e[0] in CAPAS_MURO_ARCO and e[1] != 'ARC' and len(e[2]) >= 2]
+        pa = unary_union([l for l in pa if l.intersects(dentro)])
+        if not pa.is_empty and pa.intersection(dentro).length > 3.0:
+            dentro = dentro.difference(pa.buffer(0.35, cap_style=2, join_style=2))
         m.muros_raw = m.muros_raw.difference(dentro)
         m.muros = [q for w in m.muros for q in lista_polis(w.difference(dentro)) if q.area > 0.005]
         m.tabiques = [dict(tb, poligono=q) for tb in m.tabiques for q in lista_polis(tb['poligono'].difference(dentro))
