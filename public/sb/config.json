@@ -58,11 +58,11 @@
   },
   "a7": {
    "si": "Reloj",
-   "nombre": "Despacho · Recepción · Reloj"
+   "nombre": "Despacho · Recepción · Reloj 2 · Subsuelo"
   },
   "a125": {
    "si": "Reloj",
-   "nombre": "Despacho · Recepción · Reloj"
+   "nombre": "Despacho · Recepción · Reloj 1 · Subsuelo"
   },
   "a17": {
    "si": "Vestidor",
@@ -152,7 +152,7 @@
   },
   "a75": {
    "si": "",
-   "nombre": "Consultorio",
+   "nombre": "Consultorio 2 · Subsuelo",
    "cat": "consulta"
   },
   "a59": {
@@ -194,7 +194,8 @@
   },
   "a112": {
    "si": "Oficina",
-   "personal": true
+   "personal": true,
+   "nombre": "Oficina 3 · Subsuelo"
   },
   "a128": {
    "si": "Aire Acondic.",
@@ -207,6 +208,102 @@
   "a147": {
    "si": "SS.HH.",
    "personal": true
+  },
+  "a129": {
+   "si": "Bodega",
+   "nombre": "Bodega 1 · Subsuelo"
+  },
+  "a36": {
+   "si": "Bodega",
+   "nombre": "Bodega 2 · Subsuelo"
+  },
+  "a34": {
+   "si": "Bodega",
+   "nombre": "Bodega 3 · Subsuelo"
+  },
+  "a25": {
+   "si": "Bodega",
+   "nombre": "Bodega 4 · Subsuelo"
+  },
+  "a177": {
+   "si": "Bodega",
+   "nombre": "Bodega 5 · Subsuelo"
+  },
+  "a183": {
+   "si": "Bodega",
+   "nombre": "Bodega 6 · Subsuelo"
+  },
+  "a56": {
+   "si": "Bodega Estadística",
+   "nombre": "Bodega Estadística 1 · Subsuelo"
+  },
+  "a58": {
+   "si": "Bodega Estadística",
+   "nombre": "Bodega Estadística 2 · Subsuelo"
+  },
+  "a65": {
+   "si": "Consultorio",
+   "nombre": "Consultorio 1 · Subsuelo"
+  },
+  "a76": {
+   "si": "Consultorio",
+   "nombre": "Consultorio 3 · Subsuelo"
+  },
+  "a61": {
+   "si": "Consultorio",
+   "nombre": "Consultorio 4 · Subsuelo"
+  },
+  "a96": {
+   "si": "Consultorio",
+   "nombre": "Consultorio 5 · Subsuelo"
+  },
+  "a91": {
+   "si": "Oficina",
+   "nombre": "Oficina 1 · Subsuelo"
+  },
+  "a63": {
+   "si": "Oficina",
+   "nombre": "Oficina 2 · Subsuelo"
+  },
+  "a137": {
+   "si": "Oficina",
+   "nombre": "Oficina 4 · Subsuelo"
+  },
+  "a118": {
+   "si": "Oficina",
+   "nombre": "Oficina 5 · Subsuelo"
+  },
+  "a107": {
+   "si": "Oficina",
+   "nombre": "Oficina 6 · Subsuelo"
+  },
+  "a104": {
+   "si": "Oficina",
+   "nombre": "Oficina 7 · Subsuelo"
+  },
+  "a113": {
+   "si": "Vestidores",
+   "nombre": "Vestidores 1 · Subsuelo"
+  },
+  "a40": {
+   "si": "Vestidores",
+   "nombre": "Vestidores 2 · Subsuelo"
+  },
+  "a143": {
+   "si": "Vestidor",
+   "nombre": "Vestidor 1 · Subsuelo"
+  },
+  "a101": {
+   "si": "Vestidor",
+   "nombre": "Vestidor 2 · Subsuelo"
+  },
+  "a102": {
+   "si": "Control",
+   "nombre": "Control 1 · Subsuelo"
+  },
+  "a145": {
+   "si": "Control",
+   "nombre": "Control 2 · Subsuelo"
   },
   "a68": {
    "si": "SS.HH.",
@@ -798,5 +895,6 @@
    "y": 5.02,
    "zona": true
   }
- ]
+ ],
+ "puertasAuto": []
 }

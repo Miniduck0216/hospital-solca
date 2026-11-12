@@ -55,7 +55,7 @@
   },
   "a33": {
    "si": "",
-   "nombre": "Dormitorio Residente",
+   "nombre": "Dormitorio Residente 1 · Piso 2",
    "personal": true
   },
   "a34": {
@@ -65,6 +65,22 @@
   "a3": {
    "si": "Usados",
    "nombre": "Usados · Camillas"
+  },
+  "a35": {
+   "si": "Dormitorio Residente",
+   "nombre": "Dormitorio Residente 2 · Piso 2"
+  },
+  "a40": {
+   "si": "L.ch. · U.U.",
+   "personal": true
+  },
+  "a44": {
+   "si": "Ductos",
+   "personal": true
+  },
+  "a46": {
+   "si": "Sanitario · Ducto",
+   "personal": true
   },
   "a37": {
    "si": "Ascensores",

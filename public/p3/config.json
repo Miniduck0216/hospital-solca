@@ -55,6 +55,55 @@
    "si": "Apoyo",
    "personal": true
   },
+  "a31": {
+   "si": "Dormitorio Residente",
+   "nombre": "Dormitorio Residente 1 · Piso 3"
+  },
+  "a34": {
+   "si": "Dormitorio Residente",
+   "nombre": "Dormitorio Residente 2 · Piso 3"
+  },
+  "a54": {
+   "si": "Ducto Agua y Sanit. · Ducto",
+   "personal": true
+  },
+  "a45": {
+   "si": "",
+   "nombre": "Sanitario · Ducto",
+   "personal": true
+  },
+  "a48": {
+   "si": "U.L.",
+   "nombre": "U.L. 1 · Piso 3"
+  },
+  "a51": {
+   "si": "U.L.",
+   "nombre": "U.L. 2 · Piso 3"
+  },
+  "a53": {
+   "si": "U.U.",
+   "nombre": "U.U. 1 · Piso 3"
+  },
+  "a52": {
+   "si": "U.U.",
+   "nombre": "U.U. 2 · Piso 3"
+  },
+  "a59": {
+   "si": "Filtro",
+   "nombre": "Filtro 1 · Piso 3"
+  },
+  "a60": {
+   "si": "Filtro",
+   "nombre": "Filtro 2 · Piso 3"
+  },
+  "a61": {
+   "si": "Filtro",
+   "nombre": "Filtro 3 · Piso 3"
+  },
+  "a62": {
+   "si": "Filtro",
+   "nombre": "Filtro 4 · Piso 3"
+  },
   "a38": {
    "si": "Ascensores",
    "personal": true
@@ -357,5 +406,6 @@
    "y": 62.19,
    "zona": true
   }
- ]
+ ],
+ "puertasAuto": []
 }

@@ -52,7 +52,8 @@
   },
   "a57": {
    "si": "Terraza",
-   "personal": true
+   "personal": true,
+   "nombre": "Terraza 2 · Piso 1"
   },
   "a60": {
    "si": "Preparación Médica",
@@ -141,6 +142,46 @@
   },
   "a109": {
    "si": "SS.HH.",
+   "personal": true
+  },
+  "a56": {
+   "si": "Dormitorio Residente",
+   "nombre": "Dormitorio Residente 1 · Piso 1"
+  },
+  "a62": {
+   "si": "Dormitorio Residente",
+   "nombre": "Dormitorio Residente 2 · Piso 1"
+  },
+  "a64": {
+   "si": "Oficina",
+   "nombre": "Oficina 1 · Piso 1"
+  },
+  "a65": {
+   "si": "Oficina",
+   "nombre": "Oficina 2 · Piso 1"
+  },
+  "a81": {
+   "si": "Bodega",
+   "nombre": "Bodega 1 · Piso 1"
+  },
+  "a77": {
+   "si": "Bodega",
+   "nombre": "Bodega 2 · Piso 1"
+  },
+  "a54": {
+   "si": "Terraza",
+   "nombre": "Terraza 1 · Piso 1"
+  },
+  "a70": {
+   "si": "L.ch. · U.U.",
+   "personal": true
+  },
+  "a75": {
+   "si": "Ductos",
+   "personal": true
+  },
+  "a80": {
+   "si": "Sanitario · Ducto",
    "personal": true
   },
   "a68": {
