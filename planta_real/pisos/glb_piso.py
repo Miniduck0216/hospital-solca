@@ -612,6 +612,56 @@ def pergola_pb():
     return cubierta, costillas
 
 
+def _corte_alineado(q, zt):
+    """Parte de la pieza `q` (muro o ventana del modelo nuevo) que cae en la franja `zt` del tramo abierto. La franja
+    sigue el contorno de la planta vieja, que en algunos tramos va en diagonal respecto de la fachada nueva: cortada
+    con ella, la pieza quedaba con la punta sesgada y se veía girada (la ventana de x 77, y 7,5, junto a Secretaría
+    Información, salía girada 11°). Si la pieza es alargada, se corta en perpendicular a su eje, a lo largo de todo lo
+    que la franja toca de ella."""
+    import numpy as np
+    g = q.intersection(zt)
+    if g.is_empty:
+        return g
+    r = list(q.minimum_rotated_rectangle.exterior.coords)
+    l1, l2 = math.dist(r[0], r[1]), math.dist(r[1], r[2])
+    if min(l1, l2) < 1e-6 or max(l1, l2) / min(l1, l2) < 3:
+        return g
+    a_, b_ = (r[0], r[1]) if l1 >= l2 else (r[1], r[2])
+    u = (np.array(b_) - np.array(a_)) / max(l1, l2)
+    n = np.array([-u[1], u[0]])
+    pts = np.array([c for p in _polis(g) for c in p.exterior.coords])
+    s = (pts - np.array(a_)) @ u
+    s0, s1 = float(s.min()), float(s.max())
+    o = np.array(a_)
+    w = max(l1, l2) + min(l1, l2) + 1.0
+    franja = Polygon([tuple(o + u * s0 - n * w), tuple(o + u * s1 - n * w), tuple(o + u * s1 + n * w),
+                      tuple(o + u * s0 + n * w)])
+    return q.intersection(franja)
+
+
+def _piezas_alineadas(q, zt, macizo):
+    """Piezas de `q` para el tramo `zt` sin lo que ya es macizo en el modelo viejo. Restar el macizo viejo (su sección
+    tiene esquinas en diagonal donde la fachada vieja quiebra) también dejaba puntas sesgadas: cada pieza de una
+    pieza alargada se rehace como la franja de `q` a lo largo de su eje; si esa franja se encima con el macizo viejo,
+    la punta sobra (el viejo ya cierra ahí) y se descarta."""
+    base = _corte_alineado(q, zt)
+    piezas = [g for g in _polis(base.difference(macizo.buffer(0.01))) if g.area > 0.01]
+    r = list(q.minimum_rotated_rectangle.exterior.coords)
+    l1, l2 = math.dist(r[0], r[1]), math.dist(r[1], r[2])
+    if min(l1, l2) < 1e-6 or max(l1, l2) / min(l1, l2) < 3:
+        return piezas
+    out = []
+    for g in piezas:
+        a = _corte_alineado(q, g.buffer(0.001))
+        if a.is_empty:
+            continue
+        if a.intersection(macizo).area < 0.02:
+            out += [h for h in _polis(a) if h.area > 0.01]
+        elif g.area > 0.6 * a.area:
+            out.append(g)
+    return out
+
+
 def cerrar_fachada_vieja(esc, m, zona):
     """Fachada de la planta baja vieja (solca_pb.glb, modelo fijo de antes del DWG 2025): los tramos de su contorno
     sin muro, ventana ni puerta (rayo de 1 m fuera a 0,5 m dentro, a 0,5 / 1,5 / 3,0 m de alto) se cierran con las
@@ -695,10 +745,8 @@ def cerrar_fachada_vieja(esc, m, zona):
                 dinteles_v.append(t.buffer(0.1, cap_style=2))
                 continue
             zt = t.buffer(0.7, cap_style=2)
-            pm = [q.intersection(zt) for q in muros_n if q.intersects(zt)]
-            pv = [q.intersection(zt) for q in vent_n if q.intersects(zt)]
-            pm = [g for q in pm for g in _polis(q.difference(macizo_viejo.buffer(0.01))) if g.area > 0.01]
-            pv = [g for q in pv for g in _polis(q.difference(macizo_viejo.buffer(0.01))) if g.area > 0.01]
+            pm = [g for q in muros_n if q.intersects(zt) for g in _piezas_alineadas(q, zt, macizo_viejo)]
+            pv = [g for q in vent_n if q.intersects(zt) for g in _piezas_alineadas(q, zt, macizo_viejo)]
             if pm or pv:
                 nuevos_m += pm
                 nuevos_v += pv
