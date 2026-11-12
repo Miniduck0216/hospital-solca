@@ -214,6 +214,43 @@ def trozos(pg, paso=8.0):
     return out
 
 
+_GEOM = None
+
+
+def area_tapa(el):
+    """Área de la cara de arriba de la malla que IfcOpenShell arma para el elemento (0 si no la arma)."""
+    import ifcopenshell.geom
+    global _GEOM
+    if _GEOM is None:
+        _GEOM = ifcopenshell.geom.settings()
+        _GEOM.set('use-world-coords', True)
+    try:
+        g = ifcopenshell.geom.create_shape(_GEOM, el).geometry
+    except Exception:
+        return 0.0
+    v = np.array(g.verts, np.float64).reshape(-1, 3)
+    t = v[np.array(g.faces, np.int64).reshape(-1, 3)]
+    if not len(t):
+        return 0.0
+    t = t[np.all(np.abs(t[:, :, 2] - v[:, 2].max()) < 1e-4, axis=1)]
+    a, b, c = t[:, 0, :2], t[:, 1, :2], t[:, 2, :2]
+    return float(np.abs((b[:, 0] - a[:, 0]) * (c[:, 1] - a[:, 1]) - (b[:, 1] - a[:, 1]) * (c[:, 0] - a[:, 0])).sum() / 2)
+
+
+def muro_completo(E, q, estilo, paso=2.0):
+    """Muro de la pieza q; si IfcOpenShell lo triangula a medias, se rehace en piezas de una retícula más fina.
+    Con un contorno que casi se toca a sí mismo (grietas de más de 4 mm que limpiar() no cierra) la malla salía con
+    una parte del muro: en el piso 3, 5,6 m² de muro de las habitaciones 319 a 323 quedaban en 1,8 m² en el 3D."""
+    el = E.elemento('IfcWall', 'Muro', [E.extrusion(q, 0, ALTURA)], estilo, 'STANDARD')
+    a = limpiar(q).area
+    if el is None or paso < 0.5 or area_tapa(el) >= a - 0.02 - 0.02 * a:
+        return
+    ifcopenshell.api.run('root.remove_product', E.f, product=el)
+    E.cuenta['IfcWall'] -= 1
+    for r in trozos(q, paso):
+        muro_completo(E, r, estilo, paso / 2)
+
+
 def poligonos(g):
     """Todos los polígonos de g, también los de una colección que trae multipolígonos dentro (make_valid)."""
     if g is None or g.is_empty:
@@ -349,7 +386,7 @@ def escribir(m, salida, web=False):
     # muros
     for i, pg in enumerate(m.muros):
         for q in trozos(pg):
-            E.elemento('IfcWall', 'Muro', [E.extrusion(q, 0, ALTURA)], gris, 'STANDARD')
+            muro_completo(E, q, gris)
     # dinteles y puertas
     for p in m.puertas:
         rect = p['rect']
