@@ -80,7 +80,9 @@ function capas(d) {
     trazos: lineas(d.trazos || []),
     arcos: lineas(d.trazos_puertas || []),
     // puertas (vista 2D): el segmento del vano, de jamba a jamba
-    puertas: lineas((d.puertas || []).map((p) => [p.a, p.b])),
+    puertas: lineas((d.puertas || []).filter((p) => !p.vidrio).map((p) => [p.a, p.b])),
+    // puertas de las mamparas de vidrio (entradas principales): la línea del vidrio en el vano, en 2D y en Plano
+    mamparas: lineas((d.puertas || []).filter((p) => p.vidrio).map((p) => [p.a, p.b])),
     ventanas: polis(d.ventanas || []),
   }
 }
@@ -283,6 +285,8 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
       map.addLayer({ id: 'muros-borde', type: 'line', source: 'muros', minzoom: 17, paint: { 'line-color': '#6B7686', 'line-width': ['interpolate', ['linear'], ['zoom'], 17, 0.8, 21, 1.2], 'line-opacity': 1 } })
       // puertas: una raya oscura en el vano, solo de cerca
       map.addLayer({ id: 'puertas', type: 'line', source: 'puertas', minzoom: 18.5, paint: { 'line-color': '#4B5563', 'line-width': ['interpolate', ['linear'], ['zoom'], 18.5, 1, 21, 2.5] } })
+      // mamparas de vidrio: el vano abierto con su línea de vidrio (en 2D y en Plano)
+      map.addLayer({ id: 'mamparas', type: 'line', source: 'mamparas', minzoom: 17.5, paint: { 'line-color': '#6E9CC4', 'line-width': ['interpolate', ['linear'], ['zoom'], 17.5, 1, 21, 3] } })
       map.addLayer({ id: 'barandas', type: 'fill-extrusion', source: 'barandas', paint: { 'fill-extrusion-color': '#B8C2D0', 'fill-extrusion-height': 1.0, 'fill-extrusion-base': 0, 'fill-extrusion-opacity': 1 } })
       map.addLayer({ id: 'viseras-3d', type: 'fill-extrusion', source: 'viseras', paint: { 'fill-extrusion-color': '#E9ECF1', 'fill-extrusion-height': 4.2, 'fill-extrusion-base': 3.7, 'fill-extrusion-opacity': 0.6 } })
       // ruta: una línea azul continua con filete blanco, quieta; lo ya caminado en el recorrido queda gris encima

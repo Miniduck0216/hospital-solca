@@ -129,7 +129,10 @@ const nombreDe = (o) => {
   return n.includes('.') ? n : n.replace(/(^|[|,])(\d)(\d{2,3})(?=[|,]|$)/g, '$1$2.$3')
 }
 const HOJAS_MADERA = ['muros|0.360,0.160,0.053', 'muros|0.562,0.026,0.014']
-const OCULTOS = [...HOJAS_MADERA, 'muebles|0.672,0.672,0.706']
+// hojas de vidrio de las mamparas de las entradas principales (glb_piso.mamparas_vieja): igual que las de madera, en
+// el piso que se mira las dibuja la página (corredizas)
+const HOJAS_VIDRIO = 'muros|0.611,0.765,0.867'
+const OCULTOS = [...HOJAS_MADERA, HOJAS_VIDRIO, 'muebles|0.672,0.672,0.706']
 
 // altura de un piso a otro (muros de 3,84 m + losa) y cuánto suben los pisos de arriba al mirar uno de abajo
 export const H_PISO = 4.2
@@ -501,7 +504,7 @@ function Puertas({ puertas, plano, persona, ruta, recorrer, corte }) {
         const eje = [h[0] + nl[0] * off, h[1] + nl[1] * off]
         // sin ruta, el símbolo abre hacia la cara donde está montada la hoja (las dos hojas de una doble, al mismo lado)
         const abre0 = (p.c || 0) < -0.01 ? -lado : lado
-        out.push({ h, eje, a, b, u: [ux, uy], L: p.doble ? L - 0.005 : L - 0.1, ini: p.doble ? 0.005 : 0.05, th: Math.atan2(uy, ux), nl, abre0: abre0 >= 0 ? 1 : -1, ducto: p.ducto, mid })
+        out.push({ h, eje, a, b, u: [ux, uy], L: p.doble ? L - 0.005 : L - 0.1, ini: p.doble ? 0.005 : 0.05, th: Math.atan2(uy, ux), nl, abre0: abre0 >= 0 ? 1 : -1, ducto: p.ducto, vidrio: !!p.vidrio, mid })
       }
     }
     return out
@@ -535,11 +538,14 @@ function Puertas({ puertas, plano, persona, ruta, recorrer, corte }) {
     const cara = (c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.85 })
     const clara = cara('#E4E1DB'), ducto = cara('#B9A9A6')
     // caja: +x, -x, +y, -y son los cantos; +z y -z, las caras de la hoja
-    return { canto, clara, ducto, hoja: [canto, canto, canto, canto, clara, clara], hojaDucto: [canto, canto, canto, canto, ducto, ducto],
+    // puertas de las mamparas de vidrio (entradas principales): hoja de vidrio con perfiles de aluminio
+    const vidrio = new THREE.MeshStandardMaterial({ color: '#9CC3DD', roughness: 0.15, transparent: true, opacity: 0.35, depthWrite: false })
+    const aluminio = new THREE.MeshStandardMaterial({ color: '#C9CDD3', roughness: 0.5, metalness: 0.3 })
+    return { canto, clara, ducto, vidrio, aluminio, hoja: [canto, canto, canto, canto, clara, clara], hojaDucto: [canto, canto, canto, canto, ducto, ducto],
       manija: new THREE.MeshStandardMaterial({ color: '#8A8F98', roughness: 0.4, metalness: 0.4 }),
       linea: new THREE.MeshBasicMaterial({ color: '#4B5563', side: THREE.DoubleSide, toneMapped: false, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 }) }
   }, [])
-  useEffect(() => { for (const m of [mats.canto, mats.clara, mats.ducto, mats.manija]) m.clippingPlanes = [plano] }, [mats, plano])
+  useEffect(() => { for (const m of [mats.canto, mats.clara, mats.ducto, mats.manija, mats.vidrio, mats.aluminio]) m.clippingPlanes = [plano] }, [mats, plano])
   // símbolo de plano de todas las puertas en una sola malla: la hoja abierta (4 cm) y el arco que recorre al abrir
   const geoSimbolo = useMemo(() => {
     if (!simbolo) return null
@@ -557,6 +563,8 @@ function Puertas({ puertas, plano, persona, ruta, recorrer, corte }) {
       const s = r ? Math.sign(r.abre) : hj.abre0
       const w = [hj.nl[0] * s, hj.nl[1] * s]   // hacia donde queda la hoja abierta
       const R = hj.ini + hj.L
+      // hoja corrediza de vidrio: el símbolo es la línea del vidrio en el vano, sin arco
+      if (hj.vidrio) { cinta([hj.eje, [hj.eje[0] + hj.u[0] * R, hj.eje[1] + hj.u[1] * R]], 0.015); return }
       cinta([hj.eje, [hj.eje[0] + w[0] * R, hj.eje[1] + w[1] * R]], 0.03)
       if (hj.ducto) return
       const arco = []
@@ -592,6 +600,13 @@ function Puertas({ puertas, plano, persona, ruta, recorrer, corte }) {
         // en el recorrido la hoja gira de verdad (rápido); con movimiento reducido cambia de golpe
         ang.current[k] = REDUCIR ? meta : ang.current[k] + (meta - ang.current[k]) * (1 - Math.exp(-Math.min(dt, 0.1) * 8))
       } else ang.current[k] = r ? r.abre : 0   // fuera del recorrido: las de la ruta, abiertas; sin ola ni giro
+      if (hj.vidrio) {
+        // corrediza: no gira; se desliza hacia su jamba (detrás del paño fijo) lo que giraría la de madera
+        const s = (Math.abs(ang.current[k]) / (Math.PI / 2)) * hj.L * 0.9
+        g.position.set(hj.eje[0] - hj.u[0] * s, 0, -(hj.eje[1] - hj.u[1] * s))
+        g.rotation.y = hj.th
+        return
+      }
       g.rotation.y = hj.th + ang.current[k]
     })
   })
@@ -601,11 +616,30 @@ function Puertas({ puertas, plano, persona, ruta, recorrer, corte }) {
       {hojas.map((hj, k) => (
         <group key={k} ref={(el) => { grupos.current[k] = el }} position={E(hj.eje, 0)} rotation-y={hj.th}>
           {/* local +x = a lo largo de la hoja; la normal del plano (nl) es -z local */}
-          <mesh position={[hj.ini + hj.L / 2, 0.01 + ALTO_HOJA / 2, 0]} material={hj.ducto ? mats.hojaDucto : mats.hoja} castShadow>
-            <boxGeometry args={[hj.L, ALTO_HOJA, 0.04]} />
-          </mesh>
+          {hj.vidrio ? (
+            <>
+              {/* hoja de vidrio de la mampara, con perfil de aluminio a los lados y arriba y abajo */}
+              <mesh position={[hj.ini + hj.L / 2, 0.01 + ALTO_HOJA / 2, 0]} material={mats.vidrio}>
+                <boxGeometry args={[hj.L, ALTO_HOJA, 0.02]} />
+              </mesh>
+              {[hj.ini + 0.025, hj.ini + hj.L - 0.025].map((x) => (
+                <mesh key={x} position={[x, 0.01 + ALTO_HOJA / 2, 0]} material={mats.aluminio}>
+                  <boxGeometry args={[0.05, ALTO_HOJA, 0.05]} />
+                </mesh>
+              ))}
+              {[0.04, ALTO_HOJA - 0.02].map((y) => (
+                <mesh key={y} position={[hj.ini + hj.L / 2, y, 0]} material={mats.aluminio}>
+                  <boxGeometry args={[hj.L, y < 1 ? 0.08 : 0.05, 0.05]} />
+                </mesh>
+              ))}
+            </>
+          ) : (
+            <mesh position={[hj.ini + hj.L / 2, 0.01 + ALTO_HOJA / 2, 0]} material={hj.ducto ? mats.hojaDucto : mats.hoja} castShadow>
+              <boxGeometry args={[hj.L, ALTO_HOJA, 0.04]} />
+            </mesh>
+          )}
           {/* manija: una barra corta a cada cara de la hoja (en el tótem no se dibuja: son 2 mallas más por puerta) */}
-          {!hj.ducto && !LIGERO && [0.035, -0.035].map((z) => (
+          {!hj.ducto && !hj.vidrio && !LIGERO && [0.035, -0.035].map((z) => (
             <mesh key={z} position={[hj.ini + hj.L - 0.12, 1.0, z]} material={mats.manija}>
               <boxGeometry args={[0.12, 0.02, 0.03]} />
             </mesh>

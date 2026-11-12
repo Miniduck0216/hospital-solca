@@ -33,6 +33,54 @@ from shapely.geometry import box as _caja  # noqa: E402
 MUROS_VIEJA = [_caja(59.99, 99.75, 62.79, 99.95), _caja(66.89, 107.95, 69.59, 108.25),
                _caja(42.19, 86.6, 43.59, 86.7), _caja(50.99, 55.0, 51.14, 56.25)]
 
+# Entradas principales que en el DWG 2025 son mamparas de vidrio (marco de la web): un frente de vidrio con paños
+# fijos y puertas dobles de vidrio al centro, no puertas de madera en un muro. Puerta 1 (hall de Información): el
+# plano dibuja la fachada de x 48,1 entera en la capa de vidrios (VE) de y 45,5 a 53,3, con dos puertas dobles (-MP1,
+# entrada y salida, de 1,8 m cada una) entre jambas de 30 cm; 7,8 m de frente. Puerta 4 (norte, junto a las gradas de
+# emergencia): puerta doble (-MP1, 1,4 m) pegada al muro cortina del hall de la torre. Las demás puertas y accesos
+# (Puerta 5, 6, 7 y los accesos de servicio) son puertas comunes en un muro.
+#   eje: 'y' si el frente corre a lo largo de y (fachada x = c); 'x' si corre a lo largo de x (fachada y = c)
+#   tramos: (desde, hasta, tipo) a lo largo del frente; tipo: 'fijo' (paño de vidrio), 'jamba' o 'puertas'
+# Las puertas de los tramos 'puertas' van con vidrio=True en datos.json: la web las dibuja como hojas de vidrio
+# correderas (3D) y como línea de vidrio (2D y Plano), sin los arcos de las hojas; el 3D de la mampara lo arma
+# glb_piso.mamparas_vieja.
+MAMPARAS = [
+    dict(nombre='Puerta 1', eje='y', c=48.09, espesor=0.2,
+         tramos=[(45.6, 47.2, 'fijo'), (47.2, 47.5, 'jamba'), (47.5, 51.1, 'puertas'), (51.1, 51.4, 'jamba'),
+                 (51.4, 53.25, 'fijo')]),
+    dict(nombre='Puerta 4', eje='x', c=104.25, espesor=0.18,
+         tramos=[(70.15, 70.43, 'jamba'), (70.43, 71.86, 'puertas')]),
+]
+
+
+def tramo_mampara(mp, t0, t1):
+    """Segmento del frente de la mampara entre t0 y t1 (a lo largo de su eje), marco de la web."""
+    return LineString([(mp['c'], t0), (mp['c'], t1)] if mp['eje'] == 'y' else [(t0, mp['c']), (t1, mp['c'])])
+
+
+def mamparas(geo):
+    """Marca las puertas de las mamparas (vidrio=True) y quita los arcos de sus hojas del dibujo del plano."""
+    zonas = []
+    for mp in MAMPARAS:
+        for t0, t1, tipo in mp['tramos']:
+            if tipo == 'puertas':
+                zonas.append(tramo_mampara(mp, t0, t1))
+    n = 0
+    hojas = []
+    for p in geo['puertas']:
+        mid = Point((p['a'][0] + p['b'][0]) / 2, (p['a'][1] + p['b'][1]) / 2)
+        if any(z.distance(mid) < 0.15 for z in zonas):
+            p['vidrio'] = True
+            n += 1
+            ancho = math.dist(p['a'], p['b'])
+            hojas.append(LineString([p['a'], p['b']]).buffer((ancho / 2 if p.get('doble') else ancho) + 0.1))
+    antes = len(geo['trazos_puertas'])
+    if hojas:
+        H = unary_union(hojas)
+        geo['trazos_puertas'][:] = [t for t in geo['trazos_puertas'] if len(t) < 2 or not H.contains(LineString(t))]
+    print('mamparas:', n, 'puertas de vidrio;', antes - len(geo['trazos_puertas']), 'trazos de hojas quitados')
+
+
 # Zonas de la planta vieja que se rehacen con el DWG 2025: el plano viejo no traía sus tabiques (la dirección era un
 # solo espacio, la farmacia también). Dentro de cada zona mandan los muros, ventanas, puertas y muebles del DWG; los
 # cuartos salen de esos muros (cortados en cada puerta) y se nombran con los rótulos del plano. Cada id viejo de la
@@ -445,6 +493,8 @@ def main():
     rehacer(amb, n, geo, capas, gx0, gy0, RES)
     # muros del DWG 2025 que la planta vieja no trae (también van al 3D, ver glb_piso.cerrar_fachada_vieja)
     geo['muros'][:] = a_lista(pgs(geo['muros']).union(unary_union(MUROS_VIEJA)).buffer(0))
+    # entradas con mampara de vidrio: puertas de vidrio, sin arcos de hojas en el plano
+    mamparas(geo)
     # vereda: franja de 1,5 m alrededor de la huella completa (por fuera)
     hu_r = ras(huella)
     vereda = ndimage.binary_dilation(hu_r, iterations=int(round(1.5 / RES))) & ~hu_r

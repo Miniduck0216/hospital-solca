@@ -766,6 +766,103 @@ def cerrar_fachada_vieja(esc, m, zona):
           [(round(t.coords[0][0], 1), round(t.coords[0][1], 1), round(t.length, 1)) for t in abiertos])
 
 
+def _malla_nueva(esc, nombre, rgb, prismas, transparencia=0.0):
+    """Agrega una malla propia (nombre «grupo|r,g,b|t», como las que exporta exportar_glb) con estos prismas; si ya
+    hay una con ese nombre, los suma a ella."""
+    import trimesh
+    import numpy as np
+    if not prismas:
+        return 0
+    if nombre in esc.geometry:
+        return _sumar(esc, nombre, prismas)
+    V, F, base = [], [], 0
+    for v, f in prismas:
+        V.append(v)
+        F.append(f + base)
+        base += len(v)
+    g = trimesh.Trimesh(np.vstack(V), np.vstack(F), process=False)
+    mat = trimesh.visual.material.PBRMaterial(baseColorFactor=[*rgb, 1.0 - transparencia], metallicFactor=0.0,
+                                              roughnessFactor=0.8, alphaMode='BLEND' if transparencia else 'OPAQUE')
+    g.visual = trimesh.visual.TextureVisuals(material=mat)
+    esc.add_geometry(g, geom_name=nombre, node_name=nombre)
+    return sum(len(f) for _, f in prismas)
+
+
+# perfiles de aluminio de las mamparas (gris claro; en la web, grupo «muebles», sin el tono de los muros)
+ALUMINIO = 'muebles|0.780,0.790,0.810|0.00'
+# hojas de vidrio de las puertas de las mamparas, cerradas: en el piso que se mira la web las oculta y dibuja las suyas
+# (corredizas; Vista3D.HOJAS_VIDRIO)
+HOJAS_VIDRIO = 'muros|0.611,0.765,0.867|0.60'
+
+
+def mamparas_vieja(esc):
+    """Mamparas de vidrio de las entradas principales de la planta vieja (unir_pb.MAMPARAS, marco de la web): fuera
+    las piezas viejas del frente (antepecho y ventana, hojas de madera, marcos, dinteles) y en su lugar paños de vidrio
+    de piso a dintel con perfiles de aluminio, montante sobre las puertas y el muro de encima. Las hojas de vidrio de
+    las puertas van cerradas y la web las cambia por las suyas, corredizas, en el piso que se mira."""
+    import shapely
+    import unir_pb
+    from modelo import ALTURA
+    try:
+        puertas = json.load(open(os.path.join(RAIZ, 'public', 'pb', 'datos.json'), encoding='utf-8'))['puertas']
+    except (OSError, KeyError, ValueError):
+        puertas = []
+    H_DINTEL, H_PUERTA_V = 2.40, 2.10
+    total = 0
+    for mp in unir_pb.MAMPARAS:
+        c = mp['c']
+
+        def R(t0, t1, e):   # rectángulo del frente entre t0 y t1, de espesor e
+            return box(c - e / 2, t0, c + e / 2, t1) if mp['eje'] == 'y' else box(t0, c - e / 2, t1, c + e / 2)
+        tmin, tmax = min(t[0] for t in mp['tramos']), max(t[1] for t in mp['tramos'])
+        zona = R(tmin, tmax, mp['espesor'] + 0.12)
+        quitadas = 0
+        for nombre, g in list(esc.geometry.items()):
+            if not (nombre.startswith('muros') or nombre.startswith('muebles')) or not hasattr(g, 'faces') \
+                    or not len(g.faces):
+                continue
+            cc = g.triangles_center
+            dentro = shapely.contains_xy(zona, cc[:, 0], -cc[:, 2]) & (cc[:, 1] > -0.01) & (cc[:, 1] < ALTURA + 0.01)
+            if dentro.any():
+                quitadas += int(dentro.sum())
+                g.update_faces(~dentro)
+                g.remove_unreferenced_vertices()
+        vid, alu, hojas, muro = [], [], [], [prisma(R(tmin, tmax, mp['espesor']), H_DINTEL, ALTURA)]
+        alu.append(prisma(R(tmin, tmax, 0.10), H_DINTEL - 0.05, H_DINTEL))          # perfil de arriba
+        for t0, t1, tipo in mp['tramos']:
+            if tipo == 'jamba':
+                alu.append(prisma(R(t0, t1, 0.12), 0, H_DINTEL))
+            elif tipo == 'fijo':
+                n = max(1, round((t1 - t0) / 1.0))                                   # paños de ~1 m
+                cortes = [t0 + (t1 - t0) * k / n for k in range(n + 1)]
+                for k, t in enumerate(cortes):
+                    a_, b_ = (t, t + 0.05) if k == 0 else ((t - 0.05, t) if k == n else (t - 0.025, t + 0.025))
+                    alu.append(prisma(R(a_, b_, 0.10), 0, H_DINTEL))
+                alu.append(prisma(R(t0, t1, 0.10), 0, 0.10))                         # zócalo
+                alu.append(prisma(R(t0, t1, 0.06), 1.05, 1.10))                      # travesaño
+                vid.append(prisma(R(t0 + 0.02, t1 - 0.02, 0.024), 0.10, H_DINTEL - 0.05))
+            else:
+                alu.append(prisma(R(t0, t1, 0.10), H_PUERTA_V, H_PUERTA_V + 0.05))  # travesaño sobre las puertas
+                hojas.append(prisma(R(t0 + 0.02, t1 - 0.02, 0.02), 0.01, H_PUERTA_V - 0.02))   # hojas, cerradas
+                vid.append(prisma(R(t0, t1, 0.024), H_PUERTA_V + 0.05, H_DINTEL - 0.05))
+                # montantes del vano: en las jambas y entre las puertas, del travesaño al perfil de arriba
+                ts = {round(t0, 3), round(t1, 3)}
+                L = LineString([(c, t0), (c, t1)] if mp['eje'] == 'y' else [(t0, c), (t1, c)])
+                for p in puertas:
+                    mid = Point((p['a'][0] + p['b'][0]) / 2, (p['a'][1] + p['b'][1]) / 2)
+                    if L.distance(mid) < 0.15:
+                        k = 1 if mp['eje'] == 'y' else 0
+                        ts |= {round(p['a'][k], 3), round(p['b'][k], 3)}
+                for t in sorted(ts):
+                    if t0 + 0.04 < t < t1 - 0.04:
+                        alu.append(prisma(R(t - 0.03, t + 0.03, 0.10), H_PUERTA_V, H_DINTEL))
+        total += _sumar(esc, 'muros|0.902', muro) + _sumar(esc, 'muros|0.303', vid) + \
+            _malla_nueva(esc, ALUMINIO, (0.78, 0.79, 0.81), alu) + \
+            _malla_nueva(esc, HOJAS_VIDRIO, (0.611, 0.765, 0.867), hojas, transparencia=0.6)
+        print('mampara', mp['nombre'], ':', quitadas, 'caras viejas fuera;', len(vid), 'vidrios,', len(alu), 'perfiles')
+    return total
+
+
 def recortar_vieja(zona, m=None):
     """public/pb/solca_pb.glb = el 3D de la planta baja vieja (solca_pb_vieja.glb) sin las caras dentro de `zona`
     (marco de la web; en glTF el plano (x, y) es (x, -z)). Con el modelo nuevo de la planta baja (`m`) se corrigen
@@ -823,6 +920,8 @@ def recortar_vieja(zona, m=None):
               'triángulos; pérgola', 0 if cubierta is None else len(costillas), 'costillas,', n_p, 'triángulos')
         # envolvente: tramos de la fachada vieja sin cerramiento, con las piezas del DWG 2025
         cerrar_fachada_vieja(esc, m, zona)
+        # entradas con mampara de vidrio (Puerta 1 y Puerta 4)
+        mamparas_vieja(esc)
     salida = os.path.join(RAIZ, 'public', 'pb', 'solca_pb.glb')
     esc.export(salida)
     print('GLB vieja recortada', salida, round(os.path.getsize(salida) / 1e6, 2), 'MB')
