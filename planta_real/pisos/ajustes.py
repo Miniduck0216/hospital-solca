@@ -235,16 +235,19 @@ TILDES = {
     'P3': {},
 }
 
-# letreros de zona (config.json → letreros): se agregan si no están ya por nombre
+# letreros de zona (config.json → letreros): se agregan o reemplazan por nombre. Dentro de la huella del piso: en el
+# punto del DXF si ya está dentro; si no, 3 m hacia adentro desde el punto más cercano, sobre un pasillo o espera si
+# hay uno a menos de 10 m
 LETREROS = {
-    'SB': [{'nombre': 'Zona 7', 'x': 42.67, 'y': 33.37, 'zona': True}, {'nombre': 'Zona 8', 'x': 91.88, 'y': 30.21, 'zona': True},
-           {'nombre': 'Zona 9', 'x': 147.49, 'y': 37.38, 'zona': True}, {'nombre': 'Zona 10', 'x': 89.58, 'y': -34.13, 'zona': True}],
-    'PB': [{'nombre': 'Zona 3', 'x': 94.73, 'y': 81.92, 'zona': True}, {'nombre': 'Zona 4', 'x': 141.04, 'y': 80.3, 'zona': True},
+    'SB': [{'nombre': 'Zona 7', 'x': 51.71, 'y': 40.25, 'zona': True}, {'nombre': 'Zona 8', 'x': 91.88, 'y': 30.21, 'zona': True},
+           {'nombre': 'Zona 9', 'x': 150.75, 'y': 37.8, 'zona': True}, {'nombre': 'Zona 10', 'x': 99.61, 'y': 5.02, 'zona': True}],
+    'PB': [{'nombre': 'Zona 1', 'x': 59.1, 'y': 45.0, 'zona': True}, {'nombre': 'Zona 2', 'x': 30.94, 'y': 91.01, 'zona': True},
+           {'nombre': 'Zona 3', 'x': 94.73, 'y': 81.92, 'zona': True}, {'nombre': 'Zona 4', 'x': 144.45, 'y': 69.55, 'zona': True},
            {'nombre': 'Zona 4A', 'x': 146.79, 'y': 43.64, 'zona': True}, {'nombre': 'Zona 5', 'x': 109.49, 'y': 22.55, 'zona': True},
-           {'nombre': 'Zona 10', 'x': 81.81, 'y': -18.02, 'zona': True}],
-    'P1': [{'nombre': 'Zona 6', 'x': 88.26, 'y': 74.24, 'zona': True}],
-    'P2': [{'nombre': 'Zona 6', 'x': 86.6, 'y': 78.05, 'zona': True}],
-    'P3': [{'nombre': 'Zona 6', 'x': 91.55, 'y': 70.26, 'zona': True}],
+           {'nombre': 'Zona 10', 'x': 77.52, 'y': 14.42, 'zona': True}],
+    'P1': [{'nombre': 'Zona 6', 'x': 73.98, 'y': 75.27, 'zona': True}],
+    'P2': [{'nombre': 'Zona 6', 'x': 74.02, 'y': 77.22, 'zona': True}],
+    'P3': [{'nombre': 'Zona 6', 'x': 74.0, 'y': 62.19, 'zona': True}],
 }
 
 
@@ -562,8 +565,8 @@ def main():
             lug.append({'id': lid, 'nombre': nombre, 'cat': cat, 'x': x, 'y': y, 'personal': bool(l[4]) if len(l) > 4 else False})
         cfg['lugares'] = lug
         cfg['pasos'] = [{'tipo': 'abrir', 'puntos': pp} for pp in PASOS.get(piso, [])]
-        letreros = cfg.get('letreros') or []
-        cfg['letreros'] = letreros + [z for z in LETREROS.get(piso, []) if z['nombre'] not in {l['nombre'] for l in letreros}]
+        nuevos = {z['nombre']: z for z in LETREROS.get(piso, [])}
+        cfg['letreros'] = [nuevos.pop(l['nombre'], l) for l in (cfg.get('letreros') or [])] + list(nuevos.values())
         cfg['ajustes'] = aj
         json.dump(cfg, open(cfg_p, 'w'), ensure_ascii=False, indent=1)
         print(piso, len(aj), 'ajustes')
