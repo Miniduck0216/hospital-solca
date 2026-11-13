@@ -172,7 +172,7 @@ QUITAR_VENTANAS = {
     # Esterilización del subsuelo: los dos paños de vidrio entre la Recepción y el Área Roja de Lavado son corredizos
     # (el plano los dibuja en dos carriles, a 10 cm, traslapados 0,42 m) y son el único acceso de la Recepción, que no
     # tiene otra puerta ni vano: van como puerta corrediza de vidrio (PUERTAS_EXTRA y PUERTAS_VIDRIO), no como ventana
-    'SB': [box(104.0, 30.36, 105.9, 30.55)],
+    'SB': [box(104.0, 30.25, 105.9, 30.6)],
 }
 # puertas de vidrio corredizas (vidrio=True en datos.json, como las de las mamparas de las entradas): la web dibuja la
 # línea del vidrio en el vano y, en 3D, hojas de vidrio que se deslizan hacia su jamba. Zonas en el marco de la web
