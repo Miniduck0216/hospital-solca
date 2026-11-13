@@ -1204,6 +1204,8 @@ def main():
     ox, oy = m.origen
     # las mismas correcciones del plano que el 2D (muros, puertas, ventanas, mobiliario, escaleras, ambientes)
     EP.preparar(m, piso)
+    # puertas que el 2D lleva solo como hoja (ver exportar_piso.puertas_de_arco): en el 3D van con su marco
+    m.puertas = list(m.puertas) + list(getattr(m, 'puertas_solo_hoja', []))
     # barandas (barra entre tramos de escalera y las del plano): parapeto de 1 m
     m.parapetos = list(getattr(m, 'parapetos', [])) + list(m.barandas)
     zona = EP.huella_real(m).buffer(0.6, join_style=2)
