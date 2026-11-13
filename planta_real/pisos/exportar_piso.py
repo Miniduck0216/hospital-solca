@@ -169,6 +169,15 @@ QUITAR_MUROS = {
 QUITAR_VENTANAS = {
     'PB': [box(83.9, -8.65, 90.45, -6.25)],   # vidrios del tramo de fachada junto a la Bodega Tics (no existe)
     'P1': [box(3.9, 75.4, 50.7, 75.8), box(16.5, 77.55, 50.3, 77.75), box(45.3, 72.7, 45.7, 75.4)],
+    # Esterilización del subsuelo: los dos paños de vidrio entre la Recepción y el Área Roja de Lavado son corredizos
+    # (el plano los dibuja en dos carriles, a 10 cm, traslapados 0,42 m) y son el único acceso de la Recepción, que no
+    # tiene otra puerta ni vano: van como puerta corrediza de vidrio (PUERTAS_EXTRA y PUERTAS_VIDRIO), no como ventana
+    'SB': [box(104.0, 30.36, 105.9, 30.55)],
+}
+# puertas de vidrio corredizas (vidrio=True en datos.json, como las de las mamparas de las entradas): la web dibuja la
+# línea del vidrio en el vano y, en 3D, hojas de vidrio que se deslizan hacia su jamba. Zonas en el marco de la web
+PUERTAS_VIDRIO = {
+    'SB': [box(104.0, 30.3, 105.9, 30.6)],
 }
 # ventanas que en el plano son muros (doble línea de la capa de vidrios). Antes iban aquí las centrales de gases de la
 # U.C.I. (box(146.5, 76.3, 156.1, 86.5)); en el DWG 2025 su cerramiento es el símbolo de ventana completo (las dos
@@ -215,6 +224,8 @@ PUERTAS_EXTRA = {
            ((147.35, 32.22), (147.35, 33.22), False)],   # cuarto C3-L1-01, desde el comedor
     # subsuelo: vanos del auditorio hacia el hall
     'SB': [((62.9, 51.45), (62.9, 53.0), True), ((62.9, 46.3), (62.9, 48.0), True), ((62.9, 40.4), (62.9, 41.85), True),
+           # Recepción de Esterilización: corrediza de vidrio de dos paños hacia el Área Roja de Lavado (1,76 m)
+           ((104.078, 30.454), (105.84, 30.454), True),
            # laberinto del Acelerador Lineal 2: antes iban aquí una puerta en el ochave del laberinto y otra entre el
            # muro del laberinto y el del búnker; con el hormigón macizo (modelo_piso.CORRECCIONES) el ochave es muro
            # y el laberinto es parte del recinto del acelerador, como en el plano
@@ -1035,6 +1046,13 @@ def exportar(m, piso, salida):
     vent = unary_union(m.ventanas + list(getattr(m, 'vidrios', [])) + list(getattr(m, 'ventanillas', [])))
     puertas = unary_union([p['rect'] for p in m.puertas]) if m.puertas else Polygon()
     muros = duro.difference(vent.buffer(0.005)).difference(puertas.buffer(0.01)).intersection(hu.buffer(0.6))
+    # caja de las gradas de emergencia del norte de la torre: el plano dibuja su muro perimetral con dos líneas de la
+    # capa de tabiques y el modelo no lo tomaba; estaba solo en el 3D (glb_piso.CAJAS_ESCALERA). Aquí va también al
+    # dibujo de los muros, con las mismas piezas. No entra en los cuartos ni en la rejilla, que ya la tenían en cuenta
+    fuera_caja, caja = caja_gradas(m, piso)
+    if caja:
+        muros = muros.difference(fuera_caja).union(unary_union(caja)).difference(puertas.buffer(0.01)).buffer(0)
+        print(piso, 'caja de las gradas de emergencia en el plano:', len(caja), 'tramos de muro')
     vent = vent.intersection(hu.buffer(0.6))
     trazos_p, trazos_s = [], []
     for b in m.bloques:
@@ -1212,6 +1230,10 @@ def exportar(m, piso, salida):
         viseras=[], entradas=ent, nav=nav, parqueos=[], poi=[],
     )
     trasladar(datos, ox, oy)
+    for p in datos['puertas']:
+        if any(z.contains(Point((p['a'][0] + p['b'][0]) / 2, (p['a'][1] + p['b'][1]) / 2))
+               for z in PUERTAS_VIDRIO.get(piso, [])):
+            p['vidrio'] = True
     print(piso, 'puertas con sentido de apertura', sentido_puertas(datos), 'de', len(datos['puertas']))
     conservar_ids(datos, salida)
     os.makedirs(os.path.dirname(salida), exist_ok=True)
@@ -1220,6 +1242,29 @@ def exportar(m, piso, salida):
     print('datos', salida, round(os.path.getsize(salida) / 1e6, 2), 'MB', len(amb), 'ambientes', len(ent), 'entradas',
           'rejilla', W, 'x', H)
     return datos
+
+
+def caja_gradas(m, piso):
+    """Muros de la caja de las gradas de emergencia (marco del modelo), como los arma glb_piso.arreglar para el 3D:
+    devuelve (lo que se quita, por estar corrido respecto del DXF; los tramos de muro)."""
+    import glb_piso as G
+    ox, oy = m.origen
+    quitar, pares = Polygon(), []
+    for c in G.CAJAS_ESCALERA.get(piso, []):
+        if c.get('quitar') is not None:
+            quitar = quitar.union(affinity.translate(c['quitar'], -ox, -oy))
+        pares += G.muros_de_pares(m, c['zona'], c['capas'])
+        if c.get('como'):
+            import __main__
+            import modelo_piso
+            __main__.ModeloPiso = modelo_piso.ModeloPiso
+            ref = pickle.load(open(f"/tmp/modelo_{c['como']}.pkl", 'rb'))
+            rx, ry = ref.origen
+            pares += [affinity.translate(g, rx - ox, ry - oy) for g in G.muros_de_pares(ref, c['zona'], c['capas'])]
+    if not pares:
+        return quitar, []
+    anillo = unary_union(pares).difference(unary_union(m.columnas).buffer(0.001))
+    return quitar, [g for g in lista_polis(anillo) if g.area > 0.005]
 
 
 def sentido_puertas(d):
