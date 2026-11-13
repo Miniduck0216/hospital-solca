@@ -528,7 +528,8 @@ def main():
     # cruzaban entre cuartos (auditoría nov 2026: «Toma de Muestras 03» pasaba de a277 a a275 y los ajustes se
     # corrían). Como en los demás pisos, cada cuarto que ya estaba en el datos.json anterior conserva su id.
     sys.path.insert(0, AQUI)
-    from exportar_piso import conservar_ids
+    from exportar_piso import conservar_ids, sentido_puertas
+    print('puertas con sentido de apertura', sentido_puertas(d), 'de', len(d['puertas']))
     conservar_ids(d, SALIDA)
     with open(SALIDA, 'w') as f:
         json.dump(d, f, ensure_ascii=False, separators=(',', ':'))

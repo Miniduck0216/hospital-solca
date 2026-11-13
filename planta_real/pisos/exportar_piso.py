@@ -1169,6 +1169,7 @@ def exportar(m, piso, salida):
         viseras=[], entradas=ent, nav=nav, parqueos=[], poi=[],
     )
     trasladar(datos, ox, oy)
+    print(piso, 'puertas con sentido de apertura', sentido_puertas(datos), 'de', len(datos['puertas']))
     conservar_ids(datos, salida)
     os.makedirs(os.path.dirname(salida), exist_ok=True)
     with open(salida, 'w') as f:
@@ -1176,6 +1177,51 @@ def exportar(m, piso, salida):
     print('datos', salida, round(os.path.getsize(salida) / 1e6, 2), 'MB', len(amb), 'ambientes', len(ent), 'entradas',
           'rejilla', W, 'x', H)
     return datos
+
+
+def sentido_puertas(d):
+    """Sentido de apertura de cada puerta según el plano. La bisagra ya sale del arco del bloque (punto «a», y «b»
+    en las dobles), pero el lado hacia donde barre la hoja no se guardaba, y la web lo deducía de «c» (la posición del
+    muro respecto de la línea de la hoja): acertaba en una de cada tres. Aquí se lee del propio dibujo de la puerta
+    (trazos_puertas: hoja abierta y arco): los puntos del dibujo que están a un radio de la bisagra quedan todos del
+    lado hacia donde abre. «abre» es +1 o -1 sobre la normal de a → b, (-dy, dx); en las dobles de vaivén, donde el
+    plano dibuja cada hoja hacia un lado, es una lista [hoja de a, hoja de b]. Sin dibujo, no se pone."""
+    from scipy.spatial import cKDTree
+    pts = np.array([q for t in d.get('trazos_puertas', []) for q in t], float).reshape(-1, 2)
+    for p in d['puertas']:
+        p.pop('abre', None)
+    if not len(pts):
+        return 0
+    arbol = cKDTree(pts)
+    n_ok = 0
+    for p in d['puertas']:
+        if p.get('vidrio'):
+            continue
+        a, b = np.array(p['a'], float), np.array(p['b'], float)
+        L = float(np.linalg.norm(b - a))
+        if L < 0.3:
+            continue
+        u = (b - a) / L
+        nrm = np.array([-u[1], u[0]])
+        lados = []
+        for h, w, s in ((a, L / 2, 1), (b, L / 2, -1)) if p.get('doble') else ((a, L, 1),):
+            suma, cuenta = 0.0, 0
+            for i in arbol.query_ball_point(h, w * 1.12):
+                v = pts[i] - h
+                r = float(np.linalg.norm(v))
+                t = float(v @ nrm)
+                # sobre el arco o en la punta de la hoja abierta, y fuera de la línea del vano
+                if r >= 0.85 * w and abs(t) >= 0.3 * w and float(v @ u) * s > -0.15 * w:
+                    suma += t
+                    cuenta += 1
+            lados.append((1 if suma > 0 else -1) if cuenta >= 2 and abs(suma) > 0.4 * w else 0)
+        if not any(lados):
+            continue
+        if len(lados) == 2:
+            lados = [lados[0] or lados[1], lados[1] or lados[0]]
+        p['abre'] = lados[0] if len(set(lados)) == 1 else lados
+        n_ok += 1
+    return n_ok
 
 
 def conservar_ids(d, salida):

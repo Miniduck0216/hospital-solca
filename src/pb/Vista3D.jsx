@@ -490,9 +490,9 @@ function Puertas({ puertas, plano, persona, ruta, recorrer, corte }) {
       const a = p.a, b = p.b
       const mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]
       const tramos = p.doble ? [[a, mid], [b, mid]] : [[a, b]]
-      for (const [h, f] of tramos) {
+      tramos.forEach(([h, f], i) => {
         const dx = f[0] - h[0], dy = f[1] - h[1], L = Math.hypot(dx, dy)
-        if (L < 0.2) continue
+        if (L < 0.2) return
         const ux = dx / L, uy = dy / L
         // la hoja va a "c" metros del eje, sobre la normal de la puerta (calculada con su dirección a -> b)
         const D = [b[0] - a[0], b[1] - a[1]], DL = Math.hypot(...D) || 1
@@ -502,10 +502,12 @@ function Puertas({ puertas, plano, persona, ruta, recorrer, corte }) {
         const off = (p.c || 0) * lado
         // la bisagra va en la cara del muro donde está la hoja (a "c" del eje): así la hoja gira pegada a la jamba
         const eje = [h[0] + nl[0] * off, h[1] + nl[1] * off]
-        // sin ruta, el símbolo abre hacia la cara donde está montada la hoja (las dos hojas de una doble, al mismo lado)
-        const abre0 = (p.c || 0) < -0.01 ? -lado : lado
-        out.push({ h, eje, a, b, u: [ux, uy], L: p.doble ? L - 0.005 : L - 0.1, ini: p.doble ? 0.005 : 0.05, th: Math.atan2(uy, ux), nl, abre0: abre0 >= 0 ? 1 : -1, ducto: p.ducto, vidrio: !!p.vidrio, mid })
-      }
+        // sin ruta, el símbolo abre hacia donde lo dibuja el plano: «abre» (+1 o -1 sobre la normal de a → b; en las
+        // dobles de vaivén, una por hoja). Si el plano no trae el dibujo de la hoja, hacia la cara donde está montada
+        const delPlano = Array.isArray(p.abre) ? p.abre[i] : p.abre
+        const abre0 = delPlano ? delPlano * lado : (p.c || 0) < -0.01 ? -lado : lado
+        out.push({ h, eje, ejeS: delPlano ? h : eje, a, b, u: [ux, uy], L: p.doble ? L - 0.005 : L - 0.1, ini: p.doble ? 0.005 : 0.05, th: Math.atan2(uy, ux), nl, abre0: abre0 >= 0 ? 1 : -1, ducto: p.ducto, vidrio: !!p.vidrio, mid })
+      })
     }
     return out
   }, [puertas])
@@ -565,12 +567,14 @@ function Puertas({ puertas, plano, persona, ruta, recorrer, corte }) {
       const R = hj.ini + hj.L
       // hoja corrediza de vidrio: el símbolo es la línea del vidrio en el vano, sin arco
       if (hj.vidrio) { cinta([hj.eje, [hj.eje[0] + hj.u[0] * R, hj.eje[1] + hj.u[1] * R]], 0.015); return }
-      cinta([hj.eje, [hj.eje[0] + w[0] * R, hj.eje[1] + w[1] * R]], 0.03)
+      // con el sentido del plano, el símbolo sale de la bisagra del plano (la línea de la hoja), no del eje del muro
+      const o = r ? hj.eje : hj.ejeS
+      cinta([o, [o[0] + w[0] * R, o[1] + w[1] * R]], 0.03)
       if (hj.ducto) return
       const arco = []
       for (let i = 0; i <= 8; i++) {
         const t = (i / 8) * (Math.PI / 2), c = Math.cos(t), q = Math.sin(t)
-        arco.push([hj.eje[0] + (hj.u[0] * c + w[0] * q) * R, hj.eje[1] + (hj.u[1] * c + w[1] * q) * R])
+        arco.push([o[0] + (hj.u[0] * c + w[0] * q) * R, o[1] + (hj.u[1] * c + w[1] * q) * R])
       }
       cinta(arco, 0.012)
     })
