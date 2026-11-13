@@ -8,8 +8,8 @@ import { useFrame } from '@react-three/fiber'
 import { CATS } from './datos.js'
 import { LIGERO } from './rendimiento.js'
 
-// los textos del plano que no son un ambiente propio (Zona 1, Zona 2…) vienen de la configuración del piso
-// (public/pb/config.json → letreros)
+// los textos del plano que no son un ambiente propio (Zona 1, Zona 2…) vienen de OM3 (letreros de cada piso,
+// ver datos.js → aplicarCambios → d.letreros)
 const NAVY = '#1E2A4A'
 
 // placa dibujada en un lienzo: blanca, de esquinas apenas redondeadas y borde gris fino, con una franja del color de
@@ -67,7 +67,7 @@ export function Letreros({ d, visibles = true }) {
       out.push({ nombre: a.nombre, x: a.lbl[0], y: a.lbl[1], color, area: a.area, zona: false,
         personal: !!a.personal && !clave, generico, peso: generico ? -1 : clave ? Math.max(a.area, 20) : a.area })
     }
-    for (const e of d.cfg?.letreros || []) out.push({ ...e, color: e.zona ? NAVY : (CATS[e.cat] || CATS.otro).acento, area: e.zona ? 999 : 80, peso: e.zona ? 999 : 80 })
+    for (const e of d.letreros || []) out.push({ ...e, color: e.zona ? NAVY : (CATS[e.cat] || CATS.otro).acento, area: e.zona ? 999 : 80, peso: e.zona ? 999 : 80 })
     // la placa (lienzo y textura) se dibuja la primera vez que el letrero se muestra: con todos los nombres del piso,
     // crearlas de entrada pesaba en el tótem
     return out.map((it) => ({ ...it, t: null, asp: 1 }))
