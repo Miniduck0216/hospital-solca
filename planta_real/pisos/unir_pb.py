@@ -53,6 +53,20 @@ MAMPARAS = [
 ]
 
 
+# Fachadas con vidrio por fuera y tabique por dentro (marco de la web). Sala de Consejo, esquina suroeste de la planta
+# baja: el DWG 2025 dibuja, de fuera adentro, el borde de la losa (AY), dos líneas de vidrio a 5 cm (VE) y, a otros
+# 5 cm, un tabique de 15 cm (TA), de columna a columna: 6,0 m en la fachada oeste y 5,4 m en la sur. No trae el
+# símbolo de ventana en muro de las fachadas vecinas (cuatro líneas de VE en 20 cm). El plano viejo lo tenía como un
+# muro macizo de 40 cm. Van las dos cosas, en el 2D (aquí) y en el 3D (glb_piso.fachadas_vidrio_tabique_vieja)
+FACHADAS_VIDRIO_TABIQUE = [
+    dict(nombre='Sala de Consejo',
+         quitar=[_caja(45.15, 14.801, 45.60, 20.801), _caja(45.59, 14.38, 50.99, 14.82)],
+         vidrio=[_caja(45.34, 14.801, 45.39, 20.801), _caja(45.59, 14.551, 50.99, 14.601)],
+         tabique=[_caja(45.44, 14.801, 45.59, 20.801), _caja(45.59, 14.651, 50.99, 14.801)],
+         columnas=[_caja(45.19, 14.40, 45.59, 14.801), _caja(45.19, 20.801, 45.59, 21.24)]),
+]
+
+
 def tramo_mampara(mp, t0, t1):
     """Segmento del frente de la mampara entre t0 y t1 (a lo largo de su eje), marco de la web."""
     return LineString([(mp['c'], t0), (mp['c'], t1)] if mp['eje'] == 'y' else [(t0, mp['c']), (t1, mp['c'])])
@@ -493,6 +507,12 @@ def main():
     rehacer(amb, n, geo, capas, gx0, gy0, RES)
     # muros del DWG 2025 que la planta vieja no trae (también van al 3D, ver glb_piso.cerrar_fachada_vieja)
     geo['muros'][:] = a_lista(pgs(geo['muros']).union(unary_union(MUROS_VIEJA)).buffer(0))
+    # fachadas con vidrio por fuera y tabique por dentro
+    for fv in FACHADAS_VIDRIO_TABIQUE:
+        mu = pgs(geo['muros']).difference(unary_union(fv['quitar'])).union(unary_union(fv['tabique'] + fv['columnas']))
+        geo['muros'][:] = a_lista(mu.buffer(0))
+        geo['ventanas'][:] = list(geo['ventanas']) + a_lista(unary_union(fv['vidrio']))
+        print('fachada de vidrio y tabique:', fv['nombre'])
     # entradas con mampara de vidrio: puertas de vidrio, sin arcos de hojas en el plano
     mamparas(geo)
     # vereda: franja de 1,5 m alrededor de la huella completa (por fuera)
@@ -528,7 +548,8 @@ def main():
     # cruzaban entre cuartos (auditoría nov 2026: «Toma de Muestras 03» pasaba de a277 a a275 y los ajustes se
     # corrían). Como en los demás pisos, cada cuarto que ya estaba en el datos.json anterior conserva su id.
     sys.path.insert(0, AQUI)
-    from exportar_piso import conservar_ids
+    from exportar_piso import conservar_ids, sentido_puertas
+    print('puertas con sentido de apertura', sentido_puertas(d), 'de', len(d['puertas']))
     conservar_ids(d, SALIDA)
     with open(SALIDA, 'w') as f:
         json.dump(d, f, ensure_ascii=False, separators=(',', ':'))

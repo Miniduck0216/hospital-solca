@@ -82,6 +82,10 @@ CORRECCIONES = {
         dict(tipo='muro', zona=box(62.82, 40.4, 63.0, 41.85)),
         # cierre superior del muro entre los aceleradores 1 y 2 (en el plano llega hasta el muro norte del búnker)
         dict(tipo='muro', zona=box(149.9, 69.9, 150.5, 72.6)),
+        # Esterilización: mampara de vidrio entre el Área Roja de Lavado y la Recepción. El plano la dibuja con dos
+        # paños corredizos de una línea cada uno (x 104,08 a 105,26 y x 104,84 a 105,84): el modelo solo tomaba como
+        # ventana el traslape de 0,4 m y el resto quedaba abierto. Va entera, 1,76 m, desde el muro hasta la esquina
+        dict(tipo='vidrio', zona=box(104.078, 30.404, 105.84, 30.504)),
     ],
 }
 
@@ -199,6 +203,16 @@ def corregir(piso, planos, bloques, textos):
             continue
         if c['tipo'] == 'muro':
             planos.append(('P0 - Paredes', 'LWPOLYLINE', [(x * 1000, y * 1000) for x, y in z.exterior.coords], True))
+            continue
+        if c['tipo'] == 'vidrio':
+            # paño de vidrio de una línea: el rectángulo va como muro (las bandas de ventana se recortan a los muros)
+            # y como ventana, con sus dos caras y la línea del vidrio al medio (así se lee como ventana interior)
+            anillo = [(x * 1000, y * 1000) for x, y in z.exterior.coords]
+            planos.append(('P0 - Paredes', 'LWPOLYLINE', anillo, True))
+            planos.append(('VE', 'LWPOLYLINE', anillo, True))
+            x0_, y0_, x1_, y1_ = z.bounds
+            medio = [(x0_, (y0_ + y1_) / 2), (x1_, (y0_ + y1_) / 2)] if x1_ - x0_ >= y1_ - y0_ else                 [((x0_ + x1_) / 2, y0_), ((x0_ + x1_) / 2, y1_)]
+            planos.append(('VE', 'LINE', [(x * 1000, y * 1000) for x, y in medio], False))
             continue
         if c['tipo'] == 'ventanas_pdf':
             vs = pdf_zonas.bandas_ventana(c['carpeta'], z, c.get('solo'), minimo=1.5, direcciones=(True,))

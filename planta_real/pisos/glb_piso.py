@@ -1026,6 +1026,54 @@ ALUMINIO = 'muebles|0.780,0.790,0.810|0.00'
 HOJAS_VIDRIO = 'muros|0.611,0.765,0.867|0.60'
 
 
+# hojas de madera y manijas que exporta a_ifc para cada puerta (nombres de malla «grupo|r,g,b»)
+HOJAS_MADERA = ('muros|0.360', 'muros|0.562')
+MANIJAS = 'muebles|0.672'
+
+
+def hojas_de_vidrio(esc, m, piso):
+    """Puertas de vidrio del piso (exportar_piso.PUERTAS_VIDRIO, la escena aún está en el marco del modelo). El
+    modelo les pone hoja de madera, como a todas: la web la tapa en el piso que se mira (dibuja sus hojas de vidrio
+    corredizas), pero al mirar otro piso quedaba a la vista la de madera. Aquí se cambia en el propio modelo: fuera la
+    hoja de madera y sus manijas, y en su lugar hojas de vidrio cerradas, con la misma malla que las de las mamparas
+    de las entradas (HOJAS_VIDRIO), que la web ya oculta en el piso activo."""
+    import shapely
+    ox, oy = m.origen
+    zonas = [affinity.translate(z, -ox, -oy) for z in EP.PUERTAS_VIDRIO.get(piso, [])]   # al marco del modelo
+    if not zonas:
+        return 0
+    hojas, n = [], 0
+    for p in m.puertas:
+        a = (float(p['a'][0]), float(p['a'][1]))
+        b = (float(p['b'][0]), float(p['b'][1]))
+        mid = Point((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)
+        if not any(z.contains(mid) for z in zonas):
+            continue
+        n += 1
+        L = math.dist(a, b)
+        ux, uy = (b[0] - a[0]) / L, (b[1] - a[1]) / L
+        c = (p['t0'] + p['t1']) / 2                      # la hoja va en el eje del muro
+        cx, cy = -uy * c, ux * c
+        zona = LineString([a, b]).buffer(0.25, cap_style=2)
+        for nombre, g in list(esc.geometry.items()):
+            if not (nombre.startswith(HOJAS_MADERA) or nombre.startswith(MANIJAS)) or not hasattr(g, 'faces') \
+                    or not len(g.faces):
+                continue
+            cc = g.triangles_center
+            dentro = shapely.contains_xy(zona, cc[:, 0], -cc[:, 2])
+            if dentro.any():
+                g.update_faces(~dentro)
+                g.remove_unreferenced_vertices()
+        tramos = [(0.05, L / 2 - 0.005), (L / 2 + 0.005, L - 0.05)] if p['doble'] else [(0.05, L - 0.05)]
+        for t0, t1 in tramos:
+            eje = LineString([(a[0] + ux * t0 + cx, a[1] + uy * t0 + cy), (a[0] + ux * t1 + cx, a[1] + uy * t1 + cy)])
+            hojas.append(prisma(eje.buffer(0.01, cap_style=2), 0.01, 2.04))
+    if hojas:
+        _malla_nueva(esc, HOJAS_VIDRIO, (0.611, 0.765, 0.867), hojas, transparencia=0.6)
+    print(piso, 'puertas de vidrio en el modelo:', n, 'puertas,', len(hojas), 'hojas')
+    return n
+
+
 def mamparas_vieja(esc):
     """Mamparas de vidrio de las entradas principales de la planta vieja (unir_pb.MAMPARAS, marco de la web): fuera
     las piezas viejas del frente (antepecho y ventana, hojas de madera, marcos, dinteles) y en su lugar paños de vidrio
@@ -1094,6 +1142,56 @@ def mamparas_vieja(esc):
     return total
 
 
+def fachadas_vidrio_tabique_vieja(esc):
+    """Fachadas de la planta vieja que el DWG 2025 dibuja con vidrio por fuera y tabique por dentro
+    (unir_pb.FACHADAS_VIDRIO_TABIQUE, marco de la web): fuera el muro macizo viejo y en su lugar las columnas de las
+    esquinas, el tabique de piso a losa y, delante, el paño de vidrio con zócalo, cabezal y parantes de aluminio."""
+    import shapely
+    import unir_pb
+    from modelo import ALTURA
+    H_VIDRIO = 3.44
+    total = 0
+    for fv in unir_pb.FACHADAS_VIDRIO_TABIQUE:
+        zona = unary_union([q.buffer(0.02, join_style=2) for q in fv['quitar'] + fv['columnas']])
+        x0, y0, x1, y1 = zona.bounds
+        zona = zona.intersection(box(x0, y0, x1 - 0.04, y1 - 0.04))   # las tapas de las piezas vecinas se quedan
+        quitadas = 0
+        for nombre, gm in list(esc.geometry.items()):
+            if not nombre.startswith('muros') or not hasattr(gm, 'faces') or not len(gm.faces):
+                continue
+            cc = gm.triangles_center
+            dentro = shapely.contains_xy(zona, cc[:, 0], -cc[:, 2]) & (cc[:, 1] > -0.01) & (cc[:, 1] < ALTURA + 0.01)
+            if dentro.any():
+                quitadas += int(dentro.sum())
+                gm.update_faces(~dentro)
+                gm.remove_unreferenced_vertices()
+        muro = [prisma(q, 0, ALTURA) for q in fv['columnas'] + fv['tabique']]
+        vid, alu = [], []
+        for v, t in zip(fv['vidrio'], fv['tabique']):
+            a0, b0, a1, b1 = v.bounds
+            largo_x = (a1 - a0) >= (b1 - b0)
+            cx_, cy_ = (a0 + a1) / 2, (b0 + b1) / 2
+
+            def R(t0, t1, e):   # rectángulo a lo largo del paño entre t0 y t1, de espesor e
+                return box(t0, cy_ - e / 2, t1, cy_ + e / 2) if largo_x else box(cx_ - e / 2, t0, cx_ + e / 2, t1)
+            t0, t1 = (a0, a1) if largo_x else (b0, b1)
+            vid.append(prisma(R(t0 + 0.02, t1 - 0.02, 0.024), 0.10, H_VIDRIO))
+            alu.append(prisma(R(t0, t1, 0.08), 0, 0.10))                         # zócalo
+            alu.append(prisma(R(t0, t1, 0.08), H_VIDRIO, H_VIDRIO + 0.06))       # cabezal
+            n = max(1, round((t1 - t0) / 1.5))                                   # paños de ~1,5 m
+            for k in range(n + 1):
+                c = t0 + (t1 - t0) * k / n
+                a_, b_ = (c, c + 0.05) if k == 0 else ((c - 0.05, c) if k == n else (c - 0.025, c + 0.025))
+                alu.append(prisma(R(a_, b_, 0.08), 0.10, H_VIDRIO))
+            # franja de muro sobre el cabezal, del vidrio al tabique, hasta la losa
+            muro.append(prisma(unary_union([v, t]).envelope, H_VIDRIO + 0.06, ALTURA))
+        total += _sumar(esc, 'muros|0.902', muro) + _sumar(esc, 'muros|0.303', vid) + \
+            _malla_nueva(esc, ALUMINIO, (0.78, 0.79, 0.81), alu)
+        print('fachada de vidrio y tabique', fv['nombre'], ':', quitadas, 'caras viejas fuera;', len(vid), 'vidrios,',
+              len(alu), 'perfiles')
+    return total
+
+
 def recortar_vieja(zona, m=None):
     """public/pb/solca_pb.glb = el 3D de la planta baja vieja (solca_pb_vieja.glb) sin las caras dentro de `zona`
     (marco de la web; en glTF el plano (x, y) es (x, -z)). Con el modelo nuevo de la planta baja (`m`) se corrigen
@@ -1153,6 +1251,8 @@ def recortar_vieja(zona, m=None):
         cerrar_fachada_vieja(esc, m, zona)
         # entradas con mampara de vidrio (Puerta 1 y Puerta 4)
         mamparas_vieja(esc)
+        # fachadas con vidrio por fuera y tabique por dentro (Sala de Consejo)
+        fachadas_vidrio_tabique_vieja(esc)
     salida = os.path.join(RAIZ, 'public', 'pb', 'solca_pb.glb')
     esc.export(salida)
     print('GLB vieja recortada', salida, round(os.path.getsize(salida) / 1e6, 2), 'MB')
@@ -1204,6 +1304,8 @@ def main():
     ox, oy = m.origen
     # las mismas correcciones del plano que el 2D (muros, puertas, ventanas, mobiliario, escaleras, ambientes)
     EP.preparar(m, piso)
+    # puertas que el 2D lleva solo como hoja (ver exportar_piso.puertas_de_arco): en el 3D van con su marco
+    m.puertas = list(m.puertas) + list(getattr(m, 'puertas_solo_hoja', []))
     # barandas (barra entre tramos de escalera y las del plano): parapeto de 1 m
     m.parapetos = list(getattr(m, 'parapetos', [])) + list(m.barandas)
     zona = EP.huella_real(m).buffer(0.6, join_style=2)
@@ -1236,6 +1338,7 @@ def main():
     esc = trimesh.load(salida, force='scene')
     if MARQUESINAS.get(piso) and fuera:
         marquesinas(esc, piso, ox, oy)
+    hojas_de_vidrio(esc, m, piso)
     esc.apply_translation([ox, 0.0, -oy])
     esc.export(salida)
     print('GLB', salida, round(os.path.getsize(salida) / 1e6, 2), 'MB; desplazado', round(ox, 3), round(oy, 3))

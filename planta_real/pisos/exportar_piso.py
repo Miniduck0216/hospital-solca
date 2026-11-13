@@ -169,6 +169,15 @@ QUITAR_MUROS = {
 QUITAR_VENTANAS = {
     'PB': [box(83.9, -8.65, 90.45, -6.25)],   # vidrios del tramo de fachada junto a la Bodega Tics (no existe)
     'P1': [box(3.9, 75.4, 50.7, 75.8), box(16.5, 77.55, 50.3, 77.75), box(45.3, 72.7, 45.7, 75.4)],
+    # Esterilización del subsuelo: los dos paños de vidrio entre la Recepción y el Área Roja de Lavado son corredizos
+    # (el plano los dibuja en dos carriles, a 10 cm, traslapados 0,42 m) y son el único acceso de la Recepción, que no
+    # tiene otra puerta ni vano: van como puerta corrediza de vidrio (PUERTAS_EXTRA y PUERTAS_VIDRIO), no como ventana
+    'SB': [box(104.0, 30.25, 105.9, 30.6)],
+}
+# puertas de vidrio corredizas (vidrio=True en datos.json, como las de las mamparas de las entradas): la web dibuja la
+# línea del vidrio en el vano y, en 3D, hojas de vidrio que se deslizan hacia su jamba. Zonas en el marco de la web
+PUERTAS_VIDRIO = {
+    'SB': [box(104.0, 30.3, 105.9, 30.6)],
 }
 # ventanas que en el plano son muros (doble línea de la capa de vidrios). Antes iban aquí las centrales de gases de la
 # U.C.I. (box(146.5, 76.3, 156.1, 86.5)); en el DWG 2025 su cerramiento es el símbolo de ventana completo (las dos
@@ -215,6 +224,8 @@ PUERTAS_EXTRA = {
            ((147.35, 32.22), (147.35, 33.22), False)],   # cuarto C3-L1-01, desde el comedor
     # subsuelo: vanos del auditorio hacia el hall
     'SB': [((62.9, 51.45), (62.9, 53.0), True), ((62.9, 46.3), (62.9, 48.0), True), ((62.9, 40.4), (62.9, 41.85), True),
+           # Recepción de Esterilización: corrediza de vidrio de dos paños hacia el Área Roja de Lavado (1,76 m)
+           ((104.078, 30.454), (105.84, 30.454), True),
            # laberinto del Acelerador Lineal 2: antes iban aquí una puerta en el ochave del laberinto y otra entre el
            # muro del laberinto y el del búnker; con el hormigón macizo (modelo_piso.CORRECCIONES) el ochave es muro
            # y el laberinto es parte del recinto del acelerador, como en el plano
@@ -678,8 +689,27 @@ def puertas_de_arco(m):
     muro = prep(muro_l)
     mids = [Point(*((np.array(p['a']) + np.array(p['b'])) / 2)) for p in m.puertas]
     nuevas = []
+    from modelo import circulo
+    hojas_poli = []
+
+    def _hoja(e):
+        q = [(x / 1000 - ox, y / 1000 - oy) for x, y in e[2]]
+        if math.dist(q[0], q[4]) < 0.01 and 0.5 <= math.dist(q[0], q[1]) <= 1.3                 and math.dist(q[1], q[2]) <= 0.08 and math.dist(q[3], q[0]) <= 0.08:
+            r_ = math.dist(q[0], q[1])
+            if all(abs(math.dist(q[1], v) - r_) < 0.08 for v in q[4:]):
+                return q
+        return None
+    if getattr(m, 'piso', 'PB') == 'PB':
+        hojas_poli = [h for h in (_hoja(e) for e in m.planos if e[1] == 'LWPOLYLINE' and 12 <= len(e[2]) <= 40
+                                  and e[0] not in CAPAS_MURO_ARCO) if h is not None]
     for e in m.planos:
-        if e[1] != 'ARC' or len(e[2]) < 3:
+        hoja_poli = None
+        if e[1] == 'LWPOLYLINE' and 12 <= len(e[2]) <= 40 and e[0] not in CAPAS_MURO_ARCO:
+            # puerta dibujada con una sola polilínea: la hoja abierta (rectángulo de 4 o 5 cm que cierra en su primer
+            # punto) y, a continuación, el arco hasta la punta cerrada. Así están las de Emergencia (Triaje y las
+            # habitaciones de observación, capa NO): quedaban como vanos sin hoja
+            hoja_poli = _hoja(e)
+        if hoja_poli is None and (e[1] != 'ARC' or len(e[2]) < 3):
             continue
         if getattr(m, 'piso', 'PB') != 'PB' and e[0] not in CAPAS_PUERTA_ARCO:
             continue
@@ -688,10 +718,13 @@ def puertas_de_arco(m):
         # vano de abajo, abrían huecos en esos muros; también la esquina curva de la fachada oeste (x 8, y 94)
         if e[0] in CAPAS_MURO_ARCO:
             continue
-        pts = [(x / 1000 - ox, y / 1000 - oy) for x, y in e[2]]
-        p0, pm, p1 = pts[0], pts[len(pts) // 2], pts[-1]
-        from modelo import circulo
-        cx, cy = circulo(p0, pm, p1)
+        if hoja_poli is not None:
+            p0, p1 = hoja_poli[0], hoja_poli[-1]
+            cx, cy = hoja_poli[1]
+        else:
+            pts = [(x / 1000 - ox, y / 1000 - oy) for x, y in e[2]]
+            p0, pm, p1 = pts[0], pts[len(pts) // 2], pts[-1]
+            cx, cy = circulo(p0, pm, p1)
         if cx is None:
             continue
         c = np.array([cx, cy])
@@ -703,7 +736,8 @@ def puertas_de_arco(m):
         if not 75 <= ang <= 105:
             continue
         mejor = None
-        for p in (np.array(p0), np.array(p1)):
+        # (en las de polilínea la punta cerrada es el final del arco: no se elige)
+        for p in ((np.array(p1),) if hoja_poli is not None else (np.array(p0), np.array(p1))):
             d = (p - c) / r
             sc = muro.contains(Point(*(c - d * 0.2))) + muro.contains(Point(*(p + d * 0.15)))
             # empate: la hoja cerrada cruza el vano (espacio libre); la hoja abierta, que el dibujo pone a 90°,
@@ -712,13 +746,31 @@ def puertas_de_arco(m):
             tapa = muro_l.intersection(LineString([tuple(c + d * 0.1 * r), tuple(c + d * 0.9 * r)])).length / (0.8 * r)
             if mejor is None or (sc, -tapa) > (mejor[0], -mejor[2]):
                 mejor = (sc, p, tapa)
-        if mejor[0] < 1:
+        if mejor[0] < 1 and hoja_poli is not None:
+            # hoja de una puerta doble cuya bisagra cae en la punta de un tabique: vale si cierra contra otra hoja
+            # de polilínea (la misma punta cerrada)
+            if not any(math.dist(v[-1], hoja_poli[-1]) < 0.06 and v is not hoja_poli for v in hojas_poli):
+                continue
+        elif mejor[0] < 1:
             continue
+        if hoja_poli is not None:
+            # su dibujo va al plano con las demás hojas (estas capas no se dibujan); en las de vaivén son dos, una
+            # hacia cada lado, para la misma puerta
+            m.trazos_puerta_extra = getattr(m, 'trazos_puerta_extra', []) + [hoja_poli]
         b = mejor[1]
         mid = Point(*((c + b) / 2))
         if any(mid.distance(q) < 0.6 for q in mids):
             continue
         mids.append(mid)
+        if hoja_poli is not None:
+            # estas puertas se agregaron en la relectura final del plano (nov 2026): su vano ya estaba abierto y por él
+            # pasan los cuartos y las rutas. Van aparte, solo como hoja y marco (datos.json y 3D), para no cambiar
+            # qué cuartos son de paso, las entradas ni la rejilla de rutas
+            p = puerta_nueva(tuple(c), tuple(b), False)
+            m.puertas_solo_hoja = getattr(m, 'puertas_solo_hoja', []) + [p]
+            if p['rect'].intersection(m.muros_raw).area > 0.3 * p['rect'].area:
+                print('puerta de polilínea sobre un muro', [round(float(v) + o, 2) for v, o in zip(c, (ox, oy))])
+            continue
         nuevas.append(puerta_nueva(tuple(c), tuple(b), False))
     m.puertas += nuevas
     # si el dibujo pasa el muro de largo por el vano (la puerta va dibujada encima), el vano corta el muro, igual que
@@ -994,6 +1046,13 @@ def exportar(m, piso, salida):
     vent = unary_union(m.ventanas + list(getattr(m, 'vidrios', [])) + list(getattr(m, 'ventanillas', [])))
     puertas = unary_union([p['rect'] for p in m.puertas]) if m.puertas else Polygon()
     muros = duro.difference(vent.buffer(0.005)).difference(puertas.buffer(0.01)).intersection(hu.buffer(0.6))
+    # caja de las gradas de emergencia del norte de la torre: el plano dibuja su muro perimetral con dos líneas de la
+    # capa de tabiques y el modelo no lo tomaba; estaba solo en el 3D (glb_piso.CAJAS_ESCALERA). Aquí va también al
+    # dibujo de los muros, con las mismas piezas. No entra en los cuartos ni en la rejilla, que ya la tenían en cuenta
+    fuera_caja, caja = caja_gradas(m, piso)
+    if caja:
+        muros = muros.difference(fuera_caja).union(unary_union(caja)).difference(puertas.buffer(0.01)).buffer(0)
+        print(piso, 'caja de las gradas de emergencia en el plano:', len(caja), 'tramos de muro')
     vent = vent.intersection(hu.buffer(0.6))
     trazos_p, trazos_s = [], []
     for b in m.bloques:
@@ -1011,6 +1070,7 @@ def exportar(m, piso, salida):
             if ls.length < 0.05 or not hu.buffer(1).intersects(ls):
                 continue
             (trazos_p if es_p else trazos_s).append(ED.anillo(ls.coords))
+    trazos_p += [ED.anillo(q) for q in getattr(m, 'trazos_puerta_extra', [])]
     muebles = []
     for mu in m.muebles:
         if mu['nombre'].startswith('Respaldo') or mu['nombre'] == 'Manija' or not hu.intersects(mu['poligono']):
@@ -1162,13 +1222,19 @@ def exportar(m, piso, salida):
         huella=ED.poli(hu, 0.05), ambientes=amb, muros=ED.poli(muros, 0.015), ventanas=ED.poli(vent, 0.015),
         barandas=ED.poli(unary_union(m.barandas), 0.015) if m.barandas else [],
         puertas=[dict(a=[r2(v) for v in p['a']], b=[r2(v) for v in p['b']], c=round(float((p['t0'] + p['t1']) / 2), 3),
-                      doble=bool(p['doble']), ducto=p['tipo'].startswith('P-DUC')) for p in m.puertas
+                      doble=bool(p['doble']), ducto=p['tipo'].startswith('P-DUC'))
+                 for p in list(m.puertas) + list(getattr(m, 'puertas_solo_hoja', []))
                  # puertas sueltas lejos del edificio (en el piso 2, una 50 m al este)
                  if hu.buffer(2).contains(Point(*((np.array(p['a']) + np.array(p['b'])) / 2)))],
         trazos_puertas=trazos_p, trazos=trazos_s, muebles=muebles, gradas=gradas,
         viseras=[], entradas=ent, nav=nav, parqueos=[], poi=[],
     )
     trasladar(datos, ox, oy)
+    for p in datos['puertas']:
+        if any(z.contains(Point((p['a'][0] + p['b'][0]) / 2, (p['a'][1] + p['b'][1]) / 2))
+               for z in PUERTAS_VIDRIO.get(piso, [])):
+            p['vidrio'] = True
+    print(piso, 'puertas con sentido de apertura', sentido_puertas(datos), 'de', len(datos['puertas']))
     conservar_ids(datos, salida)
     os.makedirs(os.path.dirname(salida), exist_ok=True)
     with open(salida, 'w') as f:
@@ -1176,6 +1242,74 @@ def exportar(m, piso, salida):
     print('datos', salida, round(os.path.getsize(salida) / 1e6, 2), 'MB', len(amb), 'ambientes', len(ent), 'entradas',
           'rejilla', W, 'x', H)
     return datos
+
+
+def caja_gradas(m, piso):
+    """Muros de la caja de las gradas de emergencia (marco del modelo), como los arma glb_piso.arreglar para el 3D:
+    devuelve (lo que se quita, por estar corrido respecto del DXF; los tramos de muro)."""
+    import glb_piso as G
+    ox, oy = m.origen
+    quitar, pares = Polygon(), []
+    for c in G.CAJAS_ESCALERA.get(piso, []):
+        if c.get('quitar') is not None:
+            quitar = quitar.union(affinity.translate(c['quitar'], -ox, -oy))
+        pares += G.muros_de_pares(m, c['zona'], c['capas'])
+        if c.get('como'):
+            import __main__
+            import modelo_piso
+            __main__.ModeloPiso = modelo_piso.ModeloPiso
+            ref = pickle.load(open(f"/tmp/modelo_{c['como']}.pkl", 'rb'))
+            rx, ry = ref.origen
+            pares += [affinity.translate(g, rx - ox, ry - oy) for g in G.muros_de_pares(ref, c['zona'], c['capas'])]
+    if not pares:
+        return quitar, []
+    anillo = unary_union(pares).difference(unary_union(m.columnas).buffer(0.001))
+    return quitar, [g for g in lista_polis(anillo) if g.area > 0.005]
+
+
+def sentido_puertas(d):
+    """Sentido de apertura de cada puerta según el plano. La bisagra ya sale del arco del bloque (punto «a», y «b»
+    en las dobles), pero el lado hacia donde barre la hoja no se guardaba, y la web lo deducía de «c» (la posición del
+    muro respecto de la línea de la hoja): acertaba en una de cada tres. Aquí se lee del propio dibujo de la puerta
+    (trazos_puertas: hoja abierta y arco): los puntos del dibujo que están a un radio de la bisagra quedan todos del
+    lado hacia donde abre. «abre» es +1 o -1 sobre la normal de a → b, (-dy, dx); en las dobles de vaivén, donde el
+    plano dibuja cada hoja hacia un lado, es una lista [hoja de a, hoja de b]. Sin dibujo, no se pone."""
+    from scipy.spatial import cKDTree
+    pts = np.array([q for t in d.get('trazos_puertas', []) for q in t], float).reshape(-1, 2)
+    for p in d['puertas']:
+        p.pop('abre', None)
+    if not len(pts):
+        return 0
+    arbol = cKDTree(pts)
+    n_ok = 0
+    for p in d['puertas']:
+        if p.get('vidrio'):
+            continue
+        a, b = np.array(p['a'], float), np.array(p['b'], float)
+        L = float(np.linalg.norm(b - a))
+        if L < 0.3:
+            continue
+        u = (b - a) / L
+        nrm = np.array([-u[1], u[0]])
+        lados = []
+        for h, w, s in ((a, L / 2, 1), (b, L / 2, -1)) if p.get('doble') else ((a, L, 1),):
+            suma, cuenta = 0.0, 0
+            for i in arbol.query_ball_point(h, w * 1.12):
+                v = pts[i] - h
+                r = float(np.linalg.norm(v))
+                t = float(v @ nrm)
+                # sobre el arco o en la punta de la hoja abierta, y fuera de la línea del vano
+                if r >= 0.85 * w and abs(t) >= 0.3 * w and float(v @ u) * s > -0.15 * w:
+                    suma += t
+                    cuenta += 1
+            lados.append((1 if suma > 0 else -1) if cuenta >= 2 and abs(suma) > 0.4 * w else 0)
+        if not any(lados):
+            continue
+        if len(lados) == 2:
+            lados = [lados[0] or lados[1], lados[1] or lados[0]]
+        p['abre'] = lados[0] if len(set(lados)) == 1 else lados
+        n_ok += 1
+    return n_ok
 
 
 def conservar_ids(d, salida):
