@@ -1,6 +1,6 @@
 // Deja el plano del mapa solo con geometría: toda la información de los ambientes (nombres, íconos, categorías,
 // solo personal, ventanillas, lugares, nombres de las entradas y letreros) sale de la base de OM3
-// (OMN_DBA.OMN_ADM_PLANO_*, GET /api/v1/gestion_hospitalaria/mapa/publicado). Ver README → «Datos del mapa».
+// (OMN_DBA.OMN_ADM_PLANO_*, GET /api/v1/administracion/mapa/publicado). Ver README → «Datos del mapa».
 //
 // Uso: node scripts/vaciar_datos.mjs   (reescribe public/<piso>/datos.json y public/<piso>/config.json)
 // Es idempotente: se puede volver a correr sobre un plano ya vaciado. Antes de vaciar un plano regenerado desde el DWG,

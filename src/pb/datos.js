@@ -7,7 +7,7 @@ export const BASE = import.meta.env?.BASE_URL ?? "/"
 // Configuración publicada en OM3 (GET /mapa/publicado, desde OMN_DBA.OMN_ADM_PLANO_*). El tótem, el celular y el
 // editor la pasan en ?config=; sin parámetro (sitio público) se usa esta. VITE_CONFIG_OM3_URL la cambia al compilar.
 export const CONFIG_OM3_URL = import.meta.env?.VITE_CONFIG_OM3_URL
-  ?? 'https://dev-omniumportal.solcaquito.org.ec/api/v1/gestion_hospitalaria/mapa/publicado'
+  ?? 'https://dev-omniumportal.solcaquito.org.ec/api/v1/administracion/mapa/publicado'
 
 const pedirJson = (url) => fetch(url).then((x) => (x.ok ? x.json() : null)).catch(() => null)
 // la configuración de OM3 es la misma para todos los pisos: al cargarlos juntos se pide una sola vez (dura un minuto,

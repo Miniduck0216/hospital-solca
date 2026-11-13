@@ -17,7 +17,7 @@ mapa 2D sobre las calles y parqueaderos reales, buscador, rutas paso a paso y vi
 ## Datos del mapa: geometría aquí, información en OM3
 
 El plano del repositorio solo trae geometría e ids. Toda la información de los ambientes sale de la base Oracle de OM3
-(`OMN_DBA.OMN_ADM_PLANO_PISO`, `_AMBIENTE`, `_AMBIENTE_HIST`) a través de `GET /api/v1/gestion_hospitalaria/mapa/publicado`.
+(`OMN_DBA.OMN_ADM_PLANO_PISO`, `_AMBIENTE`, `_AMBIENTE_HIST`) a través de `GET /api/v1/administracion/mapa/publicado`.
 
 | Archivo | Qué queda |
 |---|---|
@@ -26,12 +26,12 @@ El plano del repositorio solo trae geometría e ids. Toda la información de los
 | OM3 (`/mapa/publicado`) | Por ambiente: `nombre`, `cat`, `icono`, `personal`, `oculto`, `ventanilla`, `dest`. Además `lugares`, el nombre de cada entrada (`entradas`), los `letreros` y los pasos del editor. |
 
 - De dónde se lee: `?config=<url>` (tótem, celular y editor de OM3) o, sin parámetro, `VITE_CONFIG_OM3_URL` al compilar
-  (por defecto `https://dev-omniumportal.solcaquito.org.ec/api/v1/gestion_hospitalaria/mapa/publicado`).
+  (por defecto `https://dev-omniumportal.solcaquito.org.ec/api/v1/administracion/mapa/publicado`).
 - Si no llega o viene vacía, el mapa dibuja el plano y traza rutas igual, sin nombres, con el aviso «No se pudo cargar la
   información del hospital». En el navegador queda guardada la última que llegó (service worker).
 - `npm run vaciar` deja el plano solo con geometría (`scripts/vaciar_datos.mjs`). `npm run comparar-om3` compara el mapa
   vaciado + `tests/fixtures/config-om3.json` con el mapa de antes del vaciado (commit `2c6eb6e`).
-- La semilla de la base y `tests/fixtures/config-om3.json` se generan en `OMNIUM_MS_GESTION_HOSPITALARIA`:
+- La semilla de la base y `tests/fixtures/config-om3.json` se generan en `OMNIUM_MS_ADMINISTRACION`:
   `npm run plano:semilla -- <carpeta de hospital-solca> --ref 2c6eb6e --json <carpeta>/tests/fixtures/config-om3.json`.
 
 ## Prototipo anterior (/prototipo/)

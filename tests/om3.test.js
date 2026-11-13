@@ -14,7 +14,7 @@ import { TIPOS_ESTRUCTURALES } from '../scripts/vaciar_datos.mjs'
 const PUB = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'public')
 const leer = (rel) => JSON.parse(fs.readFileSync(path.join(PUB, rel), 'utf8'))
 const edificio = leer('edificio.json')
-const SIN_OM3 = { cambiosUrl: 'https://om3-caido.test/api/v1/gestion_hospitalaria/mapa/otra' }
+const SIN_OM3 = { cambiosUrl: 'https://om3-caido.test/api/v1/administracion/mapa/otra' }
 
 test('el plano no trae nombres, íconos, ventanillas, lugares ni letreros: solo geometría e ids', () => {
   for (const p of edificio.pisos.filter((x) => x.disponible)) {
@@ -32,7 +32,7 @@ test('el plano no trae nombres, íconos, ventanillas, lugares ni letreros: solo 
 })
 
 test('sin parámetro ?config= se usa la configuración de OM3 por defecto (DEV)', () => {
-  assert.equal(CONFIG_OM3_URL, 'https://dev-omniumportal.solcaquito.org.ec/api/v1/gestion_hospitalaria/mapa/publicado')
+  assert.equal(CONFIG_OM3_URL, 'https://dev-omniumportal.solcaquito.org.ec/api/v1/administracion/mapa/publicado')
 })
 
 test('con OM3: nombres, categorías, íconos, ventanillas, entradas y letreros llegan de la configuración', async () => {
