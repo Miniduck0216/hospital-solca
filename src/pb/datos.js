@@ -1,8 +1,29 @@
 // Datos de la planta baja real (exportados desde el plano del hospital) y georreferencia sobre el mapa.
+// El plano (public/<piso>/datos.json y config.json) solo trae geometría e ids: los nombres, categorías, íconos, solo
+// personal, ventanillas, lugares, nombres de las entradas y letreros vienen de OM3 (ver CONFIG_OM3_URL).
 // (en las pruebas con node no hay import.meta.env: se usa la raíz)
 export const BASE = import.meta.env?.BASE_URL ?? "/"
 
+// Configuración publicada en OM3 (GET /mapa/publicado, desde OMN_DBA.OMN_ADM_PLANO_*). El tótem, el celular y el
+// editor la pasan en ?config=; sin parámetro (sitio público) se usa esta. VITE_CONFIG_OM3_URL la cambia al compilar.
+export const CONFIG_OM3_URL = import.meta.env?.VITE_CONFIG_OM3_URL
+  ?? 'https://dev-omniumportal.solcaquito.org.ec/api/v1/administracion/mapa/publicado'
+
 const pedirJson = (url) => fetch(url).then((x) => (x.ok ? x.json() : null)).catch(() => null)
+// la configuración de OM3 es la misma para todos los pisos: al cargarlos juntos se pide una sola vez (dura un minuto,
+// como la caché del servidor); si no llegó, se vuelve a pedir en la siguiente carga
+const configsPedidas = new Map()
+const pedirConfig = (url) => {
+  const previa = configsPedidas.get(url)
+  if (previa && Date.now() - previa.t < 60000) return previa.p
+  // si OM3 no contesta en 8 s, el mapa sigue sin la información (no se queda cargando)
+  const ctl = typeof AbortController === 'undefined' ? null : new AbortController()
+  const plazo = ctl && setTimeout(() => ctl.abort(), 8000)
+  const p = fetch(url, ctl ? { signal: ctl.signal } : undefined).then((x) => (x.ok ? x.json() : null)).catch(() => null)
+    .then((c) => { clearTimeout(plazo); if (!c) configsPedidas.delete(url); return c })
+  configsPedidas.set(url, { t: Date.now(), p })
+  return p
+}
 
 // Edificio: pisos disponibles, conectores verticales (ascensores y escaleras) y tiempos para las rutas entre pisos
 const EDIFICIO_RESPALDO = {
@@ -17,8 +38,10 @@ export async function cargarEdificio() {
   return edificioCache
 }
 
-// Reglas propias de cada piso (antes escritas en el código): pasillos solo de personal, ventanillas, puertas que se
-// abren solas, nombres corregidos y letreros extra. Ver public/pb/config.json.
+// Reglas propias de cada piso. En public/<piso>/config.json quedan solo las geométricas: pasos (muros y pasos
+// trazados) y puertasAuto (ids de los cuartos cuya puerta el plano no dibuja). Las demás (soloPersonal, ventanillas,
+// renombres, ajustes, lugares, letreros) ya no vienen en el plano: esa información llega de OM3; se siguen leyendo
+// si alguna vez se ponen en el config.json de un piso.
 export function compilarConfig(c = {}) {
   const patrones = (c.soloPersonal || []).map((p) => new RegExp(p))
   return {
@@ -39,7 +62,10 @@ export function compilarConfig(c = {}) {
  * Carga un piso: su plano, sus reglas y los cambios del administrador.
  * @param cambiosLocales cambios en borrador (vista previa del administrador) que se suman a los publicados
  * @param opciones.pisoId piso a cargar (por defecto el inicial del edificio)
- * @param opciones.cambiosUrl de dónde leer los cambios publicados (OM3); si no, pb/cambios.json del sitio
+ * @param opciones.cambiosUrl de dónde leer la configuración publicada en OM3 (?config=); si no, CONFIG_OM3_URL
+ * @param opciones.sinPublicados no leer la publicada (editor de OM3: el borrador ya es el estado completo)
+ * Si la configuración no llega (o no trae nada del piso), el piso se dibuja y traza rutas igual, sin nombres:
+ * d.sinInformacion = true (la app lo avisa).
  */
 export async function cargarDatos(cambiosLocales = null, opciones = {}) {
   const edificio = await cargarEdificio()
@@ -64,9 +90,12 @@ export async function cargarDatos(cambiosLocales = null, opciones = {}) {
     d.calles = ext?.calles || []
     d.veredasExt = ext?.veredas || []
   }
-  // cambios del administrador publicados: en OM3 (cambiosUrl) o, si no, en el repositorio
+  // información de los ambientes publicada en OM3 (?config= o CONFIG_OM3_URL)
   // (en el editor de OM3 el borrador ya es el estado completo: no se suman los publicados)
-  const publicados = opciones.sinPublicados ? null : await pedirJson(opciones.cambiosUrl || `${BASE}pb/cambios.json?v=${__VERSION__}`)
+  const publicados = opciones.sinPublicados ? null : await pedirConfig(opciones.cambiosUrl || CONFIG_OM3_URL)
+  const delPiso = cambiosDelPiso(publicados, piso.id)
+  const locales = cambiosDelPiso(cambiosLocales, piso.id)
+  d.sinInformacion = !tieneInformacion(delPiso) && !tieneInformacion(locales)
   // ambientes que se atienden por ventanilla: el paciente llega al punto frente a ella y no entra al cuarto
   for (const a of d.ambientes) if (d.cfg.ventanillas[a.nombre]) { a.dest = d.cfg.ventanillas[a.nombre].slice(); a.ventanilla = true }
   // nombres corregidos (p. ej. el lado del personal de los módulos de Gestión Privados no es un lugar aparte)
@@ -77,13 +106,16 @@ export async function cargarDatos(cambiosLocales = null, opciones = {}) {
     else if (rn.sufijo) a.nombre = `${a.nombre}${rn.sufijo}`
   }
   d.cambiosPasos = []
+  d.letreros = []
   const ajustes = Object.fromEntries(Object.entries(d.cfg.ajustes)
     .filter(([id, c]) => d.ambientes.find((x) => x.id === id)?.nombre === c.si))
-  aplicarCambios(d, { ambientes: ajustes, lugares: d.cfg.lugares, pasos: d.cfg.pasos })
-  aplicarCambios(d, cambiosDelPiso(publicados, piso.id))
-  aplicarCambios(d, cambiosDelPiso(cambiosLocales, piso.id))
-  // solo personal: por regla del piso o marcado por el administrador
+  aplicarCambios(d, { ambientes: ajustes, lugares: d.cfg.lugares, letreros: d.cfg.letreros, pasos: d.cfg.pasos })
+  aplicarCambios(d, delPiso)
+  aplicarCambios(d, locales)
+  // solo personal: marcado en OM3 (o por una regla del piso, si el config.json la trae)
   for (const a of d.ambientes) a.personal = a.personal ?? d.cfg.esPersonal(a.nombre)
+  // entrada sin nombre (OM3 no respondió): un rótulo neutro, para que se pueda elegir como origen igual
+  for (const e of d.entradas || []) if (!e.nombre) e.nombre = 'Entrada'
   const bin = atob(d.nav.celdas)
   const celdas = new Uint8Array(bin.length)
   for (let i = 0; i < bin.length; i++) celdas[i] = bin.charCodeAt(i)
@@ -235,10 +267,12 @@ function unirPorDentro(d, banda) {
   }
 }
 
-// ---------- cambios del administrador ----------
-// Formato 2 (OM3, ver OMNIUM_MS_GESTION_HOSPITALARIA mapa.*):
-//   { version: 2, pisos: { PB: { ambientes: { a47: { nombre, cat, dest, ventanilla, oculto, personal } },
-//                                lugares: [{ id, nombre, cat, x, y }],
+// ---------- información de OM3 y cambios del administrador ----------
+// Formato 2 (OM3, ver OMNIUM_MS_GESTION_HOSPITALARIA services/mapaConfig.service.ts):
+//   { version: 2, pisos: { PB: { ambientes: { a47: { nombre, cat, icono, dest, ventanilla, oculto, personal } },
+//                                lugares: [{ id, nombre, cat, icono, x, y, personal }],
+//                                entradas: { 'entrada-puerta-1': { nombre } },
+//                                letreros: [{ id, nombre, x, y, zona, cat }],
 //                                pasos: [{ tipo: 'cerrar' | 'abrir' | 'linea', puntos: [[x, y], ...] }] } } }
 // El formato 1 ({ ambientes }) del primer administrador vale para la planta baja.
 export function cambiosDelPiso(cambios, pisoId) {
@@ -247,8 +281,13 @@ export function cambiosDelPiso(cambios, pisoId) {
   return cambios.ambientes && pisoId === 'PB' ? cambios : null
 }
 
+// ¿la configuración de un piso trae información de sus ambientes? (si no, el mapa avisa que no la pudo cargar)
+export const tieneInformacion = (c) => !!c && ['ambientes', 'lugares', 'entradas', 'letreros']
+  .some((k) => c[k] && (Array.isArray(c[k]) ? c[k].length : Object.keys(c[k]).length))
+
 const ID_LUGAR = /^L-[A-Za-z0-9_-]{1,40}$/
 const esPunto = (p) => Array.isArray(p) && p.length === 2 && p.every((v) => Number.isFinite(v))
+const textoOk = (v) => typeof v === 'string' && !!v.trim()
 
 export function aplicarCambios(d, cambios) {
   if (!cambios) return
@@ -257,6 +296,8 @@ export function aplicarCambios(d, cambios) {
     if (!a || !c) continue
     if (typeof c.nombre === 'string' && c.nombre.trim()) a.nombre = c.nombre.trim().slice(0, 80)
     if (c.cat && CATS[c.cat]) a.cat = c.cat
+    // ícono propio (caja, información, capilla…); sin ícono, el mapa usa el de la categoría
+    if (c.icono && ICONO_LUGAR[c.icono]) a.icono = c.icono
     if (esPunto(c.dest)) a.dest = c.dest.slice()
     // ventanilla: el paciente llega al punto (dest) y no entra; false la quita
     if (typeof c.ventanilla === 'boolean') a.ventanilla = c.ventanilla && !!a.dest
@@ -269,9 +310,24 @@ export function aplicarCambios(d, cambios) {
     if (!l || !ID_LUGAR.test(l.id) || !esPunto([l.x, l.y]) || typeof l.nombre !== 'string' || !l.nombre.trim()) continue
     const previo = d.ambientes.find((x) => x.id === l.id)
     const nuevo = { id: l.id, nombre: l.nombre.trim().slice(0, 80), cat: CATS[l.cat] ? l.cat : 'otro', area: 0, pg: [],
-      lbl: [l.x, l.y], dest: [l.x, l.y], ventanilla: true, nuevo: true, personal: !!l.personal }
+      lbl: [l.x, l.y], dest: [l.x, l.y], ventanilla: true, nuevo: true, personal: !!l.personal,
+      ...(l.icono && ICONO_LUGAR[l.icono] ? { icono: l.icono } : {}) }
     if (previo) Object.assign(previo, nuevo)
     else d.ambientes.push(nuevo)
+  }
+  // nombre de cada entrada del edificio (la puerta y su ubicación son del plano)
+  for (const e of d.entradas || []) {
+    const c = cambios.entradas?.[e.id]
+    if (c && textoOk(c.nombre)) e.nombre = c.nombre.trim().slice(0, 80)
+  }
+  // letreros sueltos del piso (Zona 1, una sala de espera dentro de un pasillo): se dibujan en el 3D
+  d.letreros ??= []
+  for (const l of cambios.letreros || []) {
+    if (!l || !textoOk(l.nombre) || !esPunto([l.x, l.y])) continue
+    const nuevo = { id: l.id || null, nombre: l.nombre.trim().slice(0, 80), x: l.x, y: l.y, zona: l.zona === true, ...(CATS[l.cat] ? { cat: l.cat } : {}) }
+    const k = nuevo.id ? d.letreros.findIndex((x) => x.id === nuevo.id) : -1
+    if (k >= 0) d.letreros[k] = nuevo
+    else d.letreros.push(nuevo)
   }
   for (const p of cambios.pasos || []) {
     if (!p || !['cerrar', 'abrir', 'linea'].includes(p.tipo) || !Array.isArray(p.puntos) || p.puntos.length < 2 || !p.puntos.every(esPunto)) continue
@@ -450,7 +506,7 @@ function abrirPuertas(d, banda) {
   // muro que se puede abrir: cualquier celda sin paso (muro); el interior de los cuartos no se toca
   const muro = (j) => celdas[j] === 0 && !personal(cuarto[j])
   d.ambientes.forEach((a, k) => {
-    if (!d.cfg.puertasAuto.includes(a.nombre)) return
+    if (!d.cfg.puertasAuto.includes(a.id)) return
     const q = k + 1
     // espacio libre que se puede cruzar sin romper nada: vestíbulos sin nombre y espacios abiertos (no otros cuartos)
     // (y otros baños: el cubículo de Minusválidos puede estar dentro de un SS.HH. y se llega cruzándolo)
