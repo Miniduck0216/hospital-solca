@@ -130,7 +130,7 @@ export async function cargarDatos(cambiosLocales = null, opciones = {}) {
   d.nav.paso = new Uint8Array(d.ambientes.length + 1)
   d.nav.paso[0] = 1
   // a.paso: vestíbulo o recepción que reparte a varios cuartos (marcado al importar el plano por su número de puertas)
-  d.ambientes.forEach((a, k) => { d.nav.paso[k + 1] = ((ABIERTOS.includes(a.cat) || a.paso) && !a.personal) || (!a.nombre && a.area >= 30) ? 1 : 0 })
+  d.ambientes.forEach((a, k) => { d.nav.paso[k + 1] = ((ABIERTOS.includes(a.cat) || a.paso) && !a.personal) || (!a.nombre && !a.eliminado && a.area >= 30) ? 1 : 0 })
   // red de pasillos para pacientes (trazada sobre el plano): 1 = pasillo de la red
   const bin3 = atob(d.nav.red)
   d.nav.red = new Uint8Array(bin3.length)
@@ -269,7 +269,7 @@ function unirPorDentro(d, banda) {
 
 // ---------- información de OM3 y cambios del administrador ----------
 // Formato 2 (OM3, ver OMNIUM_MS_GESTION_HOSPITALARIA services/mapaConfig.service.ts):
-//   { version: 2, pisos: { PB: { ambientes: { a47: { nombre, cat, icono, dest, ventanilla, oculto, personal } },
+//   { version: 2, pisos: { PB: { ambientes: { a47: { nombre, cat, icono, dest, ventanilla, oculto, personal, eliminado } },
 //                                lugares: [{ id, nombre, cat, icono, x, y, personal }],
 //                                entradas: { 'entrada-puerta-1': { nombre } },
 //                                letreros: [{ id, nombre, x, y, zona, cat }],
@@ -294,6 +294,9 @@ export function aplicarCambios(d, cambios) {
   for (const [id, c] of Object.entries(cambios.ambientes || {})) {
     const a = d.ambientes.find((x) => x.id === id)
     if (!a || !c) continue
+    // eliminado: el ambiente dejó de existir. El cuarto es del plano y queda dibujado, pero sin nombre ni letrero, no es
+    // destino ni aparece en búsquedas, en el tótem ni en el celular (ver eliminarAmbiente en editor.js)
+    if (c.eliminado === true) { a.nombre = null; a.oculto = true; a.eliminado = true; continue }
     if (typeof c.nombre === 'string' && c.nombre.trim()) a.nombre = c.nombre.trim().slice(0, 80)
     if (c.cat && CATS[c.cat]) a.cat = c.cat
     // ícono propio (caja, información, capilla…); sin ícono, el mapa usa el de la categoría

@@ -8,6 +8,7 @@ import { listaPasos } from './pasoAPaso.js'
 import { Mapa } from './Mapa.jsx'
 import { Hoja } from './Hoja.jsx'
 import { Clave, PanelAdmin } from './Admin.jsx'
+import { cambiarAmbiente, eliminarAmbiente, eliminarLugar, restaurarAmbiente } from './editor.js'
 import { Cargando } from './Cargando.jsx'
 import { BarraFoco, Dock } from './Hud.jsx'
 import { agruparGuia, buscarLugar, juntarIguales } from './guia.js'
@@ -414,9 +415,11 @@ export default function App() {
   }
   const cambiosPiso = cambiosDelPiso(cambios, pisoId) || {}
   const conPiso = (fn) => guardar({ version: 2, pisos: { ...cambios.pisos, [pisoId]: fn({ ambientes: {}, lugares: [], pasos: [], ...cambiosPiso }) } })
-  const onCambiar = (id, patch) => conPiso((cp) => ({ ...cp, ambientes: { ...cp.ambientes, [id]: { ...(cp.ambientes[id] || {}), ...patch } } }))
+  const onCambiar = (id, patch) => conPiso((cp) => cambiarAmbiente(cp, id, patch))
+  const onEliminar = (id) => { setPick(null); conPiso((cp) => eliminarAmbiente(cp, id)) }
+  const onRestaurar = (id) => conPiso((cp) => restaurarAmbiente(cp, id))
   const onLugar = (l) => conPiso((cp) => ({ ...cp, lugares: [...cp.lugares.filter((x) => x.id !== l.id), l] }))
-  const onQuitarLugar = (id) => conPiso((cp) => ({ ...cp, lugares: cp.lugares.filter((x) => x.id !== id) }))
+  const onQuitarLugar = (id) => { setPick(null); conPiso((cp) => eliminarLugar(cp, id)) }
   const onPaso = (p) => conPiso((cp) => ({ ...cp, pasos: [...cp.pasos, p] }))
   const onQuitarPaso = (i) => conPiso((cp) => ({ ...cp, pasos: cp.pasos.filter((_, k) => k !== i) }))
   const onRestablecer = () => {
@@ -738,7 +741,7 @@ export default function App() {
 
       {/* columna izquierda: marca, búsqueda y ruta */}
       {admin && (
-        <PanelAdmin d={d} cambios={cambiosPiso} onCambiar={onCambiar} onLugar={onLugar} onQuitarLugar={onQuitarLugar} onPaso={onPaso} onQuitarPaso={onQuitarPaso}
+        <PanelAdmin d={d} cambios={cambiosPiso} onCambiar={onCambiar} onEliminar={onEliminar} onRestaurar={onRestaurar} onLugar={onLugar} onQuitarLugar={onQuitarLugar} onPaso={onPaso} onQuitarPaso={onQuitarPaso}
           onRestablecer={onRestablecer} pick={pick} onPick={setPick} enOm3={MODO_ADMIN}
           onSalir={MODO_ADMIN ? () => window.parent.postMessage({ tipo: 'mapa-salir' }, PADRE) : () => { setAdmin(false); setPick(null) }} />
       )}

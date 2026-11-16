@@ -42,6 +42,24 @@ export function Clave({ onOk, onCerrar }) {
   )
 }
 
+// confirmación propia del mapa (dentro del iframe de OM3 no está el modal de OM3): Escape o el fondo cancelan
+function Confirmar({ titulo, texto, boton, onSi, onNo }) {
+  return (
+    <div className="qr-fondo admin-confirmar" onClick={onNo} onKeyDown={(e) => e.key === 'Escape' && onNo()}>
+      <div className="qr-tarjeta admin-clave" role="alertdialog" aria-modal="true" aria-labelledby="admin-confirmar-titulo"
+        aria-describedby="admin-confirmar-texto" onClick={(e) => e.stopPropagation()}>
+        <small>Administración</small>
+        <h3 id="admin-confirmar-titulo">{titulo}</h3>
+        <p id="admin-confirmar-texto">{texto}</p>
+        <div className="ficha-btns">
+          <button type="button" className="btn-claro" autoFocus onClick={onNo}>Cancelar</button>
+          <button type="button" className="btn-peligro" onClick={() => { onSi(); onNo() }}>{boton}</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 const TIPOS_PASO = {
   abrir: { nombre: 'Abrir paso', ayuda: 'Toca dos puntos a través de un muro: se abre un vano de 1 m (una puerta que el plano no tiene).' },
   cerrar: { nombre: 'Cerrar paso', ayuda: 'Toca los puntos del muro nuevo: la ruta ya no pasa por ahí (se dibuja en 2D y 3D).' },
@@ -50,21 +68,35 @@ const TIPOS_PASO = {
 
 /**
  * Panel de administración del plano (un piso). Edita:
- * - cada ambiente: nombre, categoría, ícono, punto de acceso, ventanilla, solo personal, oculto
+ * - cada ambiente: nombre, categoría, ícono, punto de acceso, ventanilla, solo personal, oculto; eliminarlo o restaurarlo
  * - lugares nuevos (un punto con nombre: un módulo, una ventanilla, un servicio sin cuarto propio)
  * - pasos: abrir un vano, cerrar un paso con un muro, trazar una línea de recorrido de pacientes
  * Dentro de OM3 (enOm3) cada cambio se manda a OM3, que lo guarda en el servidor; fuera, solo en este navegador.
  */
-export function PanelAdmin({ d, cambios, onCambiar, onLugar, onQuitarLugar, onPaso, onQuitarPaso, onRestablecer, pick, onPick, onSalir, enOm3 = false }) {
+export function PanelAdmin({ d, cambios, onCambiar, onEliminar, onRestaurar, onLugar, onQuitarLugar, onPaso, onQuitarPaso, onRestablecer, pick, onPick, onSalir, enOm3 = false }) {
   const [pestana, setPestana] = useState('ambientes')
   const [q, setQ] = useState('')
   const [sel, setSel] = useState(null)
   const [nuevo, setNuevo] = useState({ nombre: '', cat: 'administracion' })
+  const [confirmar, setConfirmar] = useState(null)   // { titulo, texto, boton, onSi }
   const lista = useMemo(() => d.ambientes
-    .filter((a) => (a.nombre || cambios?.ambientes?.[a.id]?.oculto) && !a.nuevo && (!q || plano(a.nombre || '').includes(plano(q))))
+    .filter((a) => (a.nombre || cambios?.ambientes?.[a.id]?.oculto || a.eliminado) && !a.nuevo
+      && (!q || plano(a.nombre || cambios?.ambientes?.[a.id]?.nombre || '').includes(plano(q))))
     .slice(0, 80), [d, q, cambios])
   const a = sel ? d.ambientes.find((x) => x.id === sel) : null
   const ov = (id) => cambios?.ambientes?.[id] || {}
+  const nombreDe = (x) => ov(x.id).nombre || x.nombre || x.id
+  const enDonde = enOm3 ? 'Se aplica al pulsar «Guardar cambios» en OM3; hasta entonces se puede descartar.' : 'Se guarda en este navegador.'
+  const pedirEliminar = (x) => setConfirmar({
+    titulo: `¿Eliminar «${nombreDe(x)}»?`,
+    texto: `Deja de aparecer en el mapa, en las búsquedas, en el tótem y en el celular. El cuarto sigue dibujado en el plano, sin nombre, y se puede restaurar. ${enDonde}`,
+    boton: 'Eliminar', onSi: () => onEliminar(x.id),
+  })
+  const pedirEliminarLugar = (l) => setConfirmar({
+    titulo: `¿Eliminar «${l.nombre}»?`,
+    texto: `El lugar sale del mapa, de las búsquedas, del tótem y del celular. Para volver a tenerlo hay que ubicarlo de nuevo. ${enDonde}`,
+    boton: 'Eliminar', onSi: () => onQuitarLugar(l.id),
+  })
   const lugares = cambios?.lugares || []
   const pasos = cambios?.pasos || []
   const descargar = () => {
@@ -101,12 +133,22 @@ export function PanelAdmin({ d, cambios, onCambiar, onLugar, onQuitarLugar, onPa
           <input className="admin-buscar" placeholder="Buscar ambiente…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Buscar ambiente" />
           <ul className="admin-lista">
             {lista.map((x) => (
-              <li key={x.id}><button onClick={() => setSel(x.id)}><b>{ov(x.id).oculto ? `(oculto) ${x.id}` : ov(x.id).nombre || x.nombre}</b><small>{CATS[ov(x.id).cat || x.cat]?.nombre}</small></button></li>
+              <li key={x.id}><button onClick={() => setSel(x.id)}><b>{x.eliminado ? `(eliminado) ${nombreDe(x)}` : ov(x.id).oculto ? `(oculto) ${x.id}` : ov(x.id).nombre || x.nombre}</b><small>{CATS[ov(x.id).cat || x.cat]?.nombre}</small></button></li>
             ))}
           </ul>
         </>
       )}
-      {pestana === 'ambientes' && a && (
+      {pestana === 'ambientes' && a && a.eliminado && (
+        <div className="admin-edit">
+          <button className="btn-claro" onClick={() => { setSel(null); onPick(null) }}>← Lista de ambientes</button>
+          <b>{nombreDe(a)}</b>
+          <p className="admin-nota admin-eliminado">Eliminado: no aparece en el mapa, en las búsquedas, en el tótem ni en el celular. El cuarto sigue en el plano, sin nombre.</p>
+          <div className="admin-pie">
+            <button className="btn-negro" onClick={() => onRestaurar(a.id)}>Restaurar</button>
+          </div>
+        </div>
+      )}
+      {pestana === 'ambientes' && a && !a.eliminado && (
         <div className="admin-edit">
           <button className="btn-claro" onClick={() => { setSel(null); onPick(null) }}>← Lista de ambientes</button>
           <label>Nombre
@@ -130,6 +172,10 @@ export function PanelAdmin({ d, cambios, onCambiar, onLugar, onQuitarLugar, onPa
           {casilla(a.id, 'ventanilla', 'Atiende por ventanilla (la ruta llega al punto y no entra)', ov(a.id).ventanilla ?? a.ventanilla)}
           {casilla(a.id, 'personal', 'Solo personal (no es destino de pacientes)', ov(a.id).personal ?? a.personal)}
           {casilla(a.id, 'oculto', 'Ocultar (sin nombre ni letrero)', ov(a.id).oculto)}
+          <div className="admin-pie admin-zona-peligro">
+            <button className="btn-peligro" onClick={() => pedirEliminar(a)}>Eliminar ambiente</button>
+            <small>Para un ambiente que dejó de existir.</small>
+          </div>
         </div>
       )}
 
@@ -151,7 +197,7 @@ export function PanelAdmin({ d, cambios, onCambiar, onLugar, onQuitarLugar, onPa
             {lugares.map((l) => (
               <li key={l.id} className="admin-fila">
                 <span><b>{l.nombre}</b><small>{CATS[l.cat]?.nombre} · {l.x.toFixed(1)}, {l.y.toFixed(1)}</small></span>
-                <button className="btn-claro" onClick={() => onQuitarLugar(l.id)} aria-label={`Quitar ${l.nombre}`}>Quitar</button>
+                <button className="btn-peligro" onClick={() => pedirEliminarLugar(l)} aria-label={`Eliminar ${l.nombre}`}>Eliminar</button>
               </li>
             ))}
           </ul>
@@ -191,6 +237,7 @@ export function PanelAdmin({ d, cambios, onCambiar, onLugar, onQuitarLugar, onPa
         {!enOm3 && <button className="btn-claro" onClick={descargar}>Descargar cambios.json</button>}
         <button className="btn-claro" onClick={onRestablecer}>{enOm3 ? 'Descartar lo no guardado' : 'Restablecer'}</button>
       </div>
+      {confirmar && <Confirmar {...confirmar} onNo={() => setConfirmar(null)} />}
     </div>
   )
 }

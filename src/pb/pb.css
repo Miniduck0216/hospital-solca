@@ -269,6 +269,17 @@ body { background: #E9EDF1; }
 .admin-fila { display: flex; align-items: center; justify-content: space-between; gap: 8px; background: #F4F6F9; border-radius: 10px; padding: 6px 8px; }
 .admin-fila span { display: flex; flex-direction: column; font-size: 13px; }
 .admin-fila small { color: #6A7584; }
+/* eliminar (ambiente o lugar nuevo): botón de peligro y su confirmación, encima del panel */
+.btn-peligro { background: #FDECEA; color: #B42318; border: 0; border-radius: 999px; padding: 9px 14px; font-weight: 700; font-size: .85rem; cursor: pointer; }
+.btn-peligro:hover { background: #FAD7D2; }
+.admin-zona-peligro { align-items: center; border-top: 1px solid #E6EAF0; padding-top: 10px; }
+.admin-zona-peligro small { color: #6A7584; font-size: 12px; }
+.admin-eliminado { color: #B42318; }
+.admin-confirmar { position: fixed; z-index: 40; }
+.admin-confirmar .qr-tarjeta p { margin-top: 6px; }
+.admin-confirmar .ficha-btns { margin-top: 6px; }
+.admin-confirmar .btn-peligro { flex: 1; background: #B42318; color: #fff; padding: 11px 18px; font-weight: 800; }
+.admin-confirmar .btn-peligro:hover { background: #912018; }
 .pb-accesible { font-size: .85rem; color: var(--m-tinta); }
 .pb-pisos li { display: block; }
 .pb-pisos button { width: 100%; display: flex; align-items: center; gap: 8px; border: 0; background: transparent; border-radius: 10px; padding: 6px 8px; font: 700 .82rem var(--m-fuente); color: var(--m-tinta); cursor: pointer; text-align: left; }
