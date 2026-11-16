@@ -3,6 +3,7 @@
 // personal, ventanillas, lugares, nombres de las entradas y letreros vienen de OM3 (ver CONFIG_OM3_URL).
 // (en las pruebas con node no hay import.meta.env: se usa la raíz)
 export const BASE = import.meta.env?.BASE_URL ?? "/"
+import { crearProveedor, CaidaOm3 } from './geometria.js'
 
 // Configuración publicada en OM3 (GET /mapa/publicado, desde OMN_DBA.OMN_ADM_PLANO_*). El tótem, el celular y el
 // editor la pasan en ?config=; sin parámetro (sitio público) se usa esta. VITE_CONFIG_OM3_URL la cambia al compilar.
@@ -32,10 +33,17 @@ const EDIFICIO_RESPALDO = {
   conectores: [],
   tiempos: { velocidadMs: 1.2, ascensorEsperaS: 45, ascensorPorPisoS: 5, escaleraPorPisoS: 15 },
 }
-let edificioCache = null
-export async function cargarEdificio() {
-  edificioCache ??= pedirJson(`${BASE}edificio.json?v=${__VERSION__}`).then((e) => e || EDIFICIO_RESPALDO)
-  return edificioCache
+// origen del dibujo (ver geometria.js): un proveedor por origen; sin `geo`, public/ como siempre
+const proveedores = new Map()
+export function proveedorGeo(geo = null) {
+  const k = geo?.url || ''
+  if (!proveedores.has(k)) proveedores.set(k, crearProveedor({ geo, base: BASE, version: __VERSION__ }))
+  return proveedores.get(k)
+}
+/** @param geo origen del dibujo ({ url, vista } de origenGeoDeUrl); sin él, public/ */
+export async function cargarEdificio(geo = null) {
+  const e = await proveedorGeo(geo).edificio()
+  return e || EDIFICIO_RESPALDO
 }
 
 // Reglas propias de cada piso. En public/<piso>/config.json quedan solo las geométricas: pasos (muros y pasos
@@ -64,26 +72,37 @@ export function compilarConfig(c = {}) {
  * @param opciones.pisoId piso a cargar (por defecto el inicial del edificio)
  * @param opciones.cambiosUrl de dónde leer la configuración publicada en OM3 (?config=); si no, CONFIG_OM3_URL
  * @param opciones.sinPublicados no leer la publicada (editor de OM3: el borrador ya es el estado completo)
+ * @param opciones.geo origen del dibujo (OM3 o public/, ver geometria.js); solo cambia de dónde salen los archivos
  * Si la configuración no llega (o no trae nada del piso), el piso se dibuja y traza rutas igual, sin nombres:
  * d.sinInformacion = true (la app lo avisa).
  */
 export async function cargarDatos(cambiosLocales = null, opciones = {}) {
-  const edificio = await cargarEdificio()
+  try {
+    return await cargarDatosDe(cambiosLocales, opciones)
+  } catch (e) {
+    // OM3 falló a mitad de carga: el proveedor ya pasó a public/ y el piso se vuelve a leer de ahí
+    if (e instanceof CaidaOm3) return cargarDatosDe(cambiosLocales, opciones)
+    throw e
+  }
+}
+
+async function cargarDatosDe(cambiosLocales, opciones) {
+  const prov = proveedorGeo(opciones.geo)
+  const edificio = await cargarEdificio(opciones.geo)
   const piso = edificio.pisos.find((p) => p.id === (opciones.pisoId || edificio.pisoInicial) && p.disponible)
   if (!piso) throw new Error('Ese piso todavía no tiene plano')
-  const r = await fetch(`${BASE}${piso.datos}?v=${__VERSION__}`)
-  if (!r.ok) throw new Error('No se pudo cargar el plano')
-  const d = await r.json()
+  const d = await prov.json(piso.datos, { obligatorio: true })
+  if (!d) throw new Error('No se pudo cargar el plano')
   d.edificio = edificio
   d.piso = piso
   // (la configuración tal cual queda en d.cfgCruda para rearmar d.cfg si el piso se preparó en otro hilo)
-  d.cfgCruda = (piso.config && (await pedirJson(`${BASE}${piso.config}?v=${__VERSION__}`))) || {}
+  d.cfgCruda = (piso.config && (await prov.json(piso.config))) || {}
   d.cfg = compilarConfig(d.cfgCruda)
   // pisos altos: el perfil del hospital (contorno de la planta baja) se dibuja debajo, como en el plano de cada piso
   d.perfil = piso.nivel > 0 ? ((await pedirJson(`${BASE}perfil.json?v=${__VERSION__}`))?.huella || []) : []
   // alrededores tomados de la foto satelital (parqueaderos, canchas y zonas de árboles): ver planta_real/pisos/exterior.py
   if (piso.nivel === 0) {
-    const ext = await pedirJson(`${BASE}exterior.json?v=${__VERSION__}`)
+    const ext = await prov.json('exterior.json')
     if (ext?.parqueos?.length) d.parqueos = ext.parqueos
     d.canchas = ext?.canchas || []
     d.zonasArboles = ext?.arboles || []
