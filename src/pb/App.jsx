@@ -218,7 +218,9 @@ const MODO_ADMIN = !!PADRE
 // pacientes; OM3 le pide el destino por mensaje (sin recargar) y lo reinicia al volver al inicio
 const PADRE_TOTEM = INSERTADO === 'totem' ? URL_OK(PARAMS.get('padre') || '')?.origin || null : null
 // información de los ambientes publicada en OM3 (?config=<url pública>); sin parámetro, la de CONFIG_OM3_URL (datos.js)
-const CONFIG_URL = URL_OK(PARAMS.get('config') || '')?.href || null
+// (puede ser relativa a la página: en el portal de OM3, /api/v1/administracion/mapa/publicado)
+const URL_REL = (u) => { try { return u ? URL_OK(new URL(u, location.href).href) : null } catch { return null } }
+const CONFIG_URL = URL_REL(PARAMS.get('config'))?.href || null
 // origen del dibujo: OM3 con ?geo= (o derivado de ?config=), borrador con ?modo=admin&vista=<token>; si no, public/
 const GEO = origenGeoDeUrl(location.search)
 // preferencias de ruta: ?via=ascensor|escalera|cualquiera (entre pisos) y ?accesible=1 (sin escalones)

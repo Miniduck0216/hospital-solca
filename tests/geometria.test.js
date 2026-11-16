@@ -150,3 +150,11 @@ test('pisos dinámicos: la lista sale del manifiesto (nombre, nivel, altura) cua
   const u = unirPisos({ pisos: [] }, { pisos: [{ clave: 'P4', nombre: 'Piso 4', nivel: 4, altura: 400 }] })
   assert.deepEqual(u[0], { id: 'P4', nombre: 'Piso 4', corto: 'P4', nivel: 4, altura: 400, disponible: true, datos: 'pisos/P4/datos.json', config: 'pisos/P4/config.json', glb: null })
 })
+
+test('portal de OM3 (/mapa/): ?config= y ?geo= relativos a la página; sin página siguen pidiendo dirección completa', () => {
+  const pagina = 'https://portal.test/mapa/?modo=totem'
+  const r = origenGeoDeUrl('?config=/api/v1/administracion/mapa/publicado', pagina)
+  assert.equal(r.url, 'https://portal.test/api/v1/administracion/mapa/geo?sede=1&edificio=PRINCIPAL')
+  assert.equal(origenGeoDeUrl('?geo=/api/v1/administracion/mapa/geo?sede=2', pagina).url, 'https://portal.test/api/v1/administracion/mapa/geo?sede=2')
+  assert.equal(origenGeoDeUrl('?config=/api/v1/administracion/mapa/publicado', undefined), null)
+})

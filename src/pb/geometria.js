@@ -24,16 +24,17 @@ const urlValida = (u, base) => {
 
 /**
  * Lee de la consulta de la página de dónde sale el dibujo.
+ * @param pagina dirección de la página: ?geo= y ?config= pueden ser relativas a ella (portal de OM3: /api/…)
  * @returns {{ url: string, vista: string|null } | null} null = public/
  */
-export function origenGeoDeUrl(busqueda = '') {
+export function origenGeoDeUrl(busqueda = '', pagina = globalThis.location?.href) {
   const p = new URLSearchParams(busqueda)
   const geo = p.get('geo')
   if (geo === '0' || geo === 'public') return null
   const token = p.get('modo') === 'admin' && p.get('vista') && !VISTAS.includes(p.get('vista')) ? p.get('vista') : null
-  let url = geo ? urlValida(geo) : null
+  let url = geo ? urlValida(geo, pagina) : null
   if (!url && p.get('config')) {
-    const c = urlValida(p.get('config'))
+    const c = urlValida(p.get('config'), pagina)
     if (c && /\/publicado\/?$/.test(c.pathname)) {
       c.pathname = c.pathname.replace(/\/publicado\/?$/, '/geo')
       if (!c.searchParams.has('sede')) c.searchParams.set('sede', '1')

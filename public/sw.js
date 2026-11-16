@@ -113,16 +113,18 @@ self.addEventListener('fetch', (e) => {
   const req = e.request
   if (req.method !== 'GET') return
   const u = new URL(req.url)
-  if (u.origin === self.location.origin) {
-    if (!u.pathname.startsWith(new URL('./', self.location.href).pathname)) return
-    if (req.mode === 'navigate') { e.respondWith(primeroRed(req)); return }
-    if (u.searchParams.has('v') || u.pathname.includes('/assets/') || u.pathname.includes('/marca/')) { e.respondWith(primeroMemoria(req)); return }
-    return
-  }
+  // OM3: en GitHub Pages es otro origen; en el portal de OM3 (mapa en /mapa/) es el mismo origen (/api/…)
   if (deOm3(u)) { e.respondWith(redOUltima(req)); return }
   if (!u.searchParams.has('vista')) {
     if (esGeo(u)) { e.respondWith(manifiestoGeo(req)); return }
     if (ARCHIVO_GEO.test(u.pathname)) { e.respondWith(archivoGeo(req)); return }
+  }
+  if (u.origin === self.location.origin) {
+    // en el portal de OM3, lo que está fuera de la carpeta del mapa (el resto del portal, su API) no se toca
+    if (!u.pathname.startsWith(new URL('./', self.location.href).pathname)) return
+    if (req.mode === 'navigate') { e.respondWith(primeroRed(req)); return }
+    if (u.searchParams.has('v') || u.pathname.includes('/assets/') || u.pathname.includes('/marca/')) { e.respondWith(primeroMemoria(req)); return }
+    return
   }
   if (deMapaBase(u)) e.respondWith(memoriaYRenovar(e))
 })
