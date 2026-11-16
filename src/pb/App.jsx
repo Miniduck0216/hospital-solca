@@ -112,7 +112,7 @@ function armarLugaresPiso(d) {
     return m < 25 ? n : null
   }
   for (const e of d.entradas) {
-    lugares.push({ id: e.id, nombre: e.nombre === 'Puerta 1' ? 'Puerta 1 · Entrada principal' : e.nombre, cat: 'entrada', x: e.x, y: e.y, lbl: [e.x, e.y], entrada: true, icono: 'salida', cerca: zonaCerca([e.x, e.y]) })
+    lugares.push({ id: e.id, nombre: e.id === 'entrada-puerta-1' && e.nombre === 'Puerta 1' ? 'Puerta 1 · Entrada principal' : e.nombre, cat: 'entrada', x: e.x, y: e.y, lbl: [e.x, e.y], entrada: true, icono: 'salida', cerca: zonaCerca([e.x, e.y]) })
   }
   return lugares
 }
@@ -215,7 +215,7 @@ const MODO_ADMIN = !!PADRE
 // tótem de OM3 con el mapa siempre cargado (?modo=totem&padre=<origen de OM3>): el iframe no se desmonta entre
 // pacientes; OM3 le pide el destino por mensaje (sin recargar) y lo reinicia al volver al inicio
 const PADRE_TOTEM = INSERTADO === 'totem' ? URL_OK(PARAMS.get('padre') || '')?.origin || null : null
-// cambios publicados en OM3 (?config=<url pública>); si no, los del repositorio
+// información de los ambientes publicada en OM3 (?config=<url pública>); sin parámetro, la de CONFIG_OM3_URL (datos.js)
 const CONFIG_URL = URL_OK(PARAMS.get('config') || '')?.href || null
 // preferencias de ruta: ?via=ascensor|escalera|cualquiera (entre pisos) y ?accesible=1 (sin escalones)
 const VIA_INICIAL = ['ascensor', 'escalera', 'cualquiera'].includes(PARAMS.get('via')) ? PARAMS.get('via') : 'ascensor'
@@ -912,6 +912,8 @@ export default function App() {
 
       {transicion && <CambioPiso {...transicion} pisos={d.edificio?.pisos || []} onFin={finTransicion} />}
       {aviso && <div className="tarjeta pb-aviso" role="status">{aviso}</div>}
+      {/* sin la información de OM3 el plano se dibuja y traza rutas, pero sin nombres */}
+      {d.sinInformacion && <div className="pb-sin-info" role="status">No se pudo cargar la información del hospital</div>}
       {pedirClave && <Clave onOk={() => { setAdmin(true); setPedirClave(false) }} onCerrar={() => setPedirClave(false)} />}
       {qr && origen && <QR lugar={{ ...origen, pisoNombre: pisos[origen.piso]?.piso?.nombre }} onCerrar={() => setQr(false)} />}
       {!INSERTADO && <a className="pb-proto" href={`${import.meta.env.BASE_URL}prototipo/`}>Prototipo anterior (5 pisos)</a>}

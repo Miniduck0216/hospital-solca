@@ -1,0 +1,6439 @@
+{
+ "version": 2,
+ "pisos": {
+  "SB": {
+   "ambientes": {
+    "a0": {
+     "nombre": "Hall · Espera",
+     "cat": "circulacion",
+     "icono": "espera",
+     "personal": false
+    },
+    "a1": {
+     "nombre": "Alimentación y Dietética",
+     "cat": "apoyo",
+     "personal": false
+    },
+    "a10": {
+     "nombre": "Bodega Central",
+     "cat": "otro",
+     "personal": true
+    },
+    "a100": {
+     "nombre": "Información · Secretaría",
+     "cat": "administracion",
+     "icono": "informacion",
+     "dest": [
+      131.54,
+      41.24
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a101": {
+     "nombre": "Vestidor 2 · Subsuelo",
+     "cat": "otro",
+     "personal": true
+    },
+    "a102": {
+     "nombre": "Control 1 · Subsuelo",
+     "cat": "otro",
+     "personal": false
+    },
+    "a103": {
+     "nombre": "Tratamiento Agua",
+     "cat": "otro",
+     "personal": true
+    },
+    "a104": {
+     "nombre": "Oficina 7 · Subsuelo",
+     "cat": "otro",
+     "personal": false
+    },
+    "a105": {
+     "nombre": "Vestidores Mujeres",
+     "cat": "otro",
+     "personal": true
+    },
+    "a106": {
+     "nombre": "Usados · Montacargas",
+     "cat": "otro",
+     "personal": true
+    },
+    "a107": {
+     "nombre": "Oficina 6 · Subsuelo",
+     "cat": "otro",
+     "personal": false
+    },
+    "a108": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "personal": true
+    },
+    "a109": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "personal": false
+    },
+    "a11": {
+     "nombre": "Pasillo",
+     "cat": "circulacion",
+     "personal": false
+    },
+    "a110": {
+     "nombre": "Recepción",
+     "cat": "otro",
+     "dest": [
+      102.15,
+      28.05
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a111": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a112": {
+     "nombre": "Oficina 3 · Subsuelo",
+     "cat": "otro",
+     "personal": true
+    },
+    "a113": {
+     "nombre": "Vestidores 1 · Subsuelo",
+     "cat": "otro",
+     "personal": true
+    },
+    "a115": {
+     "nombre": "Limpios · Montacargas",
+     "cat": "otro",
+     "personal": true
+    },
+    "a116": {
+     "nombre": "Ascensores",
+     "cat": "ascensores",
+     "icono": "ascensor",
+     "personal": false
+    },
+    "a117": {
+     "nombre": "Ascensores",
+     "cat": "ascensores",
+     "icono": "ascensor",
+     "personal": false
+    },
+    "a118": {
+     "nombre": "Oficina 5 · Subsuelo",
+     "cat": "otro",
+     "personal": false
+    },
+    "a119": {
+     "nombre": "Aire Acondicionado",
+     "cat": "otro",
+     "personal": true
+    },
+    "a12": {
+     "nombre": "Aula 1 · Aula 2",
+     "cat": "otro",
+     "personal": false
+    },
+    "a120": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "dest": [
+      76.46,
+      54.36
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a121": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a122": {
+     "nombre": "Servicio",
+     "cat": "otro",
+     "personal": true
+    },
+    "a123": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a124": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a125": {
+     "nombre": "Despacho · Recepción · Reloj 1 · Subsuelo",
+     "cat": "otro",
+     "personal": true
+    },
+    "a126": {
+     "nombre": "Puerta 12",
+     "cat": "circulacion",
+     "personal": false
+    },
+    "a127": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a128": {
+     "nombre": "Aire Acondic.",
+     "cat": "otro",
+     "personal": true
+    },
+    "a129": {
+     "nombre": "Bodega 1 · Subsuelo",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a13": {
+     "nombre": "Sala de Espera",
+     "cat": "espera",
+     "icono": "espera",
+     "personal": false
+    },
+    "a130": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a131": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a133": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a135": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a136": {
+     "nombre": "Comedor",
+     "cat": "otro",
+     "personal": false
+    },
+    "a137": {
+     "nombre": "Oficina 4 · Subsuelo",
+     "cat": "otro",
+     "personal": false
+    },
+    "a139": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a14": {
+     "nombre": "Esterilización",
+     "cat": "otro",
+     "personal": true
+    },
+    "a141": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a142": {
+     "nombre": "Control 2",
+     "cat": "otro",
+     "personal": false
+    },
+    "a143": {
+     "nombre": "Vestidor 1 · Subsuelo",
+     "cat": "otro",
+     "personal": true
+    },
+    "a144": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "personal": true
+    },
+    "a145": {
+     "nombre": "Control 2 · Subsuelo",
+     "cat": "otro",
+     "personal": false
+    },
+    "a146": {
+     "nombre": "Control 1",
+     "cat": "otro",
+     "personal": false
+    },
+    "a147": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "personal": true
+    },
+    "a148": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a149": {
+     "nombre": "Desechos Radioactivos",
+     "cat": "otro",
+     "personal": true
+    },
+    "a15": {
+     "nombre": "Talento Humano",
+     "cat": "circulacion",
+     "personal": false
+    },
+    "a151": {
+     "nombre": "R. Farm.",
+     "cat": "otro",
+     "personal": false
+    },
+    "a152": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a153": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a154": {
+     "nombre": "Abastecimiento",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a155": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "personal": false
+    },
+    "a156": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a157": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a158": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "dest": [
+      134.11,
+      52.22
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a159": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a16": {
+     "nombre": "Depósito Estéril · Despacho",
+     "cat": "otro",
+     "personal": true
+    },
+    "a160": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "dest": [
+      134.11,
+      52.22
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a161": {
+     "nombre": "Aseo",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a163": {
+     "nombre": "Compres.",
+     "cat": "otro",
+     "personal": true
+    },
+    "a164": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      122.85,
+      46.83
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a165": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      139.07,
+      44.16
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a166": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "personal": true
+    },
+    "a167": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "dest": [
+      134.11,
+      52.22
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a168": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "dest": [
+      134.11,
+      52.22
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a169": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a17": {
+     "nombre": "Mantenimiento",
+     "cat": "otro",
+     "personal": true
+    },
+    "a170": {
+     "nombre": "Hall · Espera",
+     "cat": "circulacion",
+     "icono": "espera",
+     "personal": false
+    },
+    "a171": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "dest": [
+      134.11,
+      52.22
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a172": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "personal": true
+    },
+    "a173": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      134.11,
+      52.22
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a174": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      134.11,
+      52.22
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a175": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      134.11,
+      52.22
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a176": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "dest": [
+      139.07,
+      44.16
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a177": {
+     "nombre": "Bodega 5 · Subsuelo",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a178": {
+     "nombre": "U.L.",
+     "cat": "otro",
+     "personal": true
+    },
+    "a179": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "personal": false
+    },
+    "a18": {
+     "nombre": "Acelerador Lineal 1",
+     "cat": "otro",
+     "personal": false
+    },
+    "a180": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "personal": false
+    },
+    "a181": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "dest": [
+      139.07,
+      44.16
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a183": {
+     "nombre": "Bodega 6 · Subsuelo",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a184": {
+     "nombre": "Hall · Espera",
+     "cat": "circulacion",
+     "icono": "espera",
+     "personal": false
+    },
+    "a188": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "personal": true
+    },
+    "a189": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      102.15,
+      37.96
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a19": {
+     "nombre": "Comedor Especial",
+     "cat": "otro",
+     "personal": false
+    },
+    "a190": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "personal": true
+    },
+    "a191": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "personal": true
+    },
+    "a193": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "personal": true
+    },
+    "a194": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "personal": true
+    },
+    "a196": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      135.41,
+      44.99
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a197": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      139.07,
+      44.16
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a2": {
+     "nombre": "Pasillo",
+     "cat": "circulacion",
+     "personal": false
+    },
+    "a20": {
+     "nombre": "Medicina Nuclear",
+     "cat": "otro",
+     "personal": false
+    },
+    "a21": {
+     "nombre": "Biblioteca",
+     "cat": "otro",
+     "personal": false
+    },
+    "a22": {
+     "nombre": "Recuperación",
+     "cat": "otro",
+     "personal": false
+    },
+    "a23": {
+     "nombre": "Acelerador Lineal 2",
+     "cat": "otro",
+     "personal": false
+    },
+    "a24": {
+     "nombre": "Planificación",
+     "cat": "otro",
+     "personal": false
+    },
+    "a25": {
+     "nombre": "Bodega 4 · Subsuelo",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a26": {
+     "nombre": "Bodega C",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a27": {
+     "nombre": "Comando · Simulador",
+     "cat": "otro",
+     "personal": true
+    },
+    "a28": {
+     "nombre": "Cafetería",
+     "cat": "otro",
+     "personal": false
+    },
+    "a29": {
+     "nombre": "Cardiología",
+     "cat": "otro",
+     "personal": false
+    },
+    "a3": {
+     "nombre": "Radioterapia",
+     "cat": "otro",
+     "personal": false
+    },
+    "a30": {
+     "nombre": "Sistemas de Gestión · y Calidad Integral",
+     "cat": "administracion",
+     "icono": "administracion",
+     "personal": false
+    },
+    "a31": {
+     "nombre": "Cámara Gamma",
+     "cat": "otro",
+     "personal": false
+    },
+    "a32": {
+     "nombre": "Aula 3",
+     "cat": "otro",
+     "personal": false
+    },
+    "a33": {
+     "nombre": "Acelerador 3",
+     "cat": "otro",
+     "personal": false
+    },
+    "a34": {
+     "nombre": "Bodega 3 · Subsuelo",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a35": {
+     "nombre": "Cámara de Transformación",
+     "cat": "otro",
+     "personal": false
+    },
+    "a36": {
+     "nombre": "Bodega 2 · Subsuelo",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a37": {
+     "nombre": "Frigorífico",
+     "cat": "otro",
+     "personal": true
+    },
+    "a38": {
+     "nombre": "Inserciones",
+     "cat": "otro",
+     "personal": false
+    },
+    "a39": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a4": {
+     "nombre": "Auditorio",
+     "cat": "otro",
+     "personal": false
+    },
+    "a40": {
+     "nombre": "Vestidores 2 · Subsuelo",
+     "cat": "otro",
+     "personal": true
+    },
+    "a41": {
+     "nombre": "Aux. Enf. Mujeres",
+     "cat": "otro",
+     "personal": true
+    },
+    "a42": {
+     "nombre": "Depósito Ropa Limpia",
+     "cat": "otro",
+     "personal": false
+    },
+    "a43": {
+     "nombre": "Planificación Terapia Externa y Hdr",
+     "cat": "otro",
+     "personal": false
+    },
+    "a44": {
+     "nombre": "Curietron",
+     "cat": "otro",
+     "personal": false
+    },
+    "a45": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a46": {
+     "nombre": "Tomografo",
+     "cat": "otro",
+     "personal": false
+    },
+    "a47": {
+     "nombre": "Prof. Hombres",
+     "cat": "otro",
+     "personal": true
+    },
+    "a48": {
+     "nombre": "Bodega D",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a49": {
+     "nombre": "Aux. Hombres",
+     "cat": "otro",
+     "personal": true
+    },
+    "a5": {
+     "nombre": "Lavandería",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a50": {
+     "nombre": "Oficina Nutricionista",
+     "cat": "otro",
+     "personal": true
+    },
+    "a51": {
+     "nombre": "Aux. Mujeres",
+     "cat": "otro",
+     "personal": true
+    },
+    "a52": {
+     "nombre": "Taller",
+     "cat": "otro",
+     "personal": true
+    },
+    "a53": {
+     "nombre": "Jefe Mantenimiento",
+     "cat": "otro",
+     "personal": true
+    },
+    "a54": {
+     "nombre": "Escalera",
+     "cat": "escaleras",
+     "icono": "escalera",
+     "personal": false
+    },
+    "a55": {
+     "nombre": "Bodega Voluntariado",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a56": {
+     "nombre": "Bodega Estadística 1 · Subsuelo",
+     "cat": "administracion",
+     "personal": true
+    },
+    "a57": {
+     "nombre": "Voluntariado",
+     "cat": "otro",
+     "personal": false
+    },
+    "a58": {
+     "nombre": "Bodega Estadística 2 · Subsuelo",
+     "cat": "administracion",
+     "personal": true
+    },
+    "a59": {
+     "nombre": "Vestidor · Taller",
+     "cat": "otro",
+     "personal": true
+    },
+    "a6": {
+     "nombre": "Comedor Personal",
+     "cat": "otro",
+     "personal": false
+    },
+    "a60": {
+     "nombre": "Cámara",
+     "cat": "otro",
+     "personal": false
+    },
+    "a61": {
+     "nombre": "Consultorio 4 · Subsuelo",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a62": {
+     "nombre": "Planificación Bqt. Mdr Curietron",
+     "cat": "otro",
+     "personal": false
+    },
+    "a63": {
+     "nombre": "Oficina 2 · Subsuelo",
+     "cat": "otro",
+     "personal": false
+    },
+    "a64": {
+     "nombre": "Espera",
+     "cat": "espera",
+     "icono": "espera",
+     "personal": false
+    },
+    "a65": {
+     "nombre": "Consultorio 1 · Subsuelo",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a66": {
+     "nombre": "Mujeres",
+     "cat": "banos",
+     "dest": [
+      90.82,
+      52.17
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a67": {
+     "nombre": "Mujeres",
+     "cat": "banos",
+     "personal": false
+    },
+    "a68": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "dest": [
+      134.11,
+      52.22
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a69": {
+     "nombre": "Sala de Reuniones",
+     "cat": "otro",
+     "personal": false
+    },
+    "a7": {
+     "nombre": "Despacho · Recepción · Reloj 2 · Subsuelo",
+     "cat": "otro",
+     "personal": true
+    },
+    "a70": {
+     "nombre": "Comando · Lavabo Quirúrgico",
+     "cat": "circulacion",
+     "personal": false
+    },
+    "a71": {
+     "nombre": "Sala Trabajo",
+     "cat": "otro",
+     "personal": false
+    },
+    "a72": {
+     "nombre": "Bodega Seguridad Ocupacional",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a73": {
+     "nombre": "Cctv",
+     "cat": "otro",
+     "personal": true
+    },
+    "a74": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a75": {
+     "nombre": "Consultorio 2 · Subsuelo",
+     "cat": "consulta",
+     "personal": false
+    },
+    "a76": {
+     "nombre": "Consultorio 3 · Subsuelo",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a77": {
+     "nombre": "Seguridad Ocupacional",
+     "cat": "otro",
+     "personal": false
+    },
+    "a78": {
+     "nombre": "Cuarto Oscuro",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a79": {
+     "nombre": "Recepción Docencia",
+     "cat": "otro",
+     "personal": false
+    },
+    "a8": {
+     "nombre": "Estadística · Registro Nacional Tumores",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a80": {
+     "nombre": "Bodega Patología",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a81": {
+     "nombre": "Secretaría · Información",
+     "cat": "administracion",
+     "icono": "informacion",
+     "personal": false
+    },
+    "a82": {
+     "nombre": "Docencia",
+     "cat": "otro",
+     "personal": false
+    },
+    "a83": {
+     "nombre": "Termodesinfectadoras · Área Roja Lavado",
+     "cat": "otro",
+     "personal": true
+    },
+    "a84": {
+     "nombre": "Reuniones",
+     "cat": "otro",
+     "personal": false
+    },
+    "a85": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a86": {
+     "nombre": "Hombres · Servicios de Personal",
+     "cat": "otro",
+     "personal": false
+    },
+    "a87": {
+     "nombre": "Subestación Casa de Máquinas Tableros",
+     "cat": "otro",
+     "personal": false
+    },
+    "a88": {
+     "nombre": "Oficina Ecónomo",
+     "cat": "otro",
+     "personal": true
+    },
+    "a89": {
+     "nombre": "Bodega Radioterapia",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a9": {
+     "nombre": "Bodega B",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a90": {
+     "nombre": "Seguridad Hospitalaria",
+     "cat": "otro",
+     "personal": false
+    },
+    "a91": {
+     "nombre": "Oficina 1 · Subsuelo",
+     "cat": "otro",
+     "personal": false
+    },
+    "a92": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a93": {
+     "nombre": "Jefatura",
+     "cat": "otro",
+     "personal": false
+    },
+    "a94": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a95": {
+     "nombre": "Bodega Diario",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a96": {
+     "nombre": "Consultorio 5 · Subsuelo",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a97": {
+     "nombre": "Call Center",
+     "cat": "otro",
+     "personal": false
+    },
+    "a98": {
+     "nombre": "Vestidores Hombres",
+     "cat": "otro",
+     "personal": true
+    },
+    "a99": {
+     "nombre": "Lactancia",
+     "cat": "otro",
+     "personal": false
+    }
+   },
+   "lugares": [
+    {
+     "id": "L-sb-auditorio-vestidor",
+     "nombre": "Vestidor del Auditorio",
+     "cat": "apoyo",
+     "x": 47.4,
+     "y": 41.5,
+     "personal": true
+    },
+    {
+     "id": "L-sb-cocina-1",
+     "nombre": "Recepción",
+     "cat": "apoyo",
+     "x": 88.1,
+     "y": 3,
+     "personal": true
+    },
+    {
+     "id": "L-sb-cocina-10",
+     "nombre": "Descarga",
+     "cat": "apoyo",
+     "x": 79,
+     "y": 21.9,
+     "personal": true
+    },
+    {
+     "id": "L-sb-cocina-11",
+     "nombre": "Distribución",
+     "cat": "apoyo",
+     "x": 82.6,
+     "y": 22.2,
+     "personal": true
+    },
+    {
+     "id": "L-sb-cocina-12",
+     "nombre": "Repostería",
+     "cat": "apoyo",
+     "x": 86.5,
+     "y": 22.5,
+     "personal": true
+    },
+    {
+     "id": "L-sb-cocina-13",
+     "nombre": "Estación Carros Thermo",
+     "cat": "apoyo",
+     "x": 74.8,
+     "y": 24.8,
+     "personal": true
+    },
+    {
+     "id": "L-sb-cocina-14",
+     "nombre": "Dietas",
+     "cat": "apoyo",
+     "x": 86.5,
+     "y": 26,
+     "personal": true
+    },
+    {
+     "id": "L-sb-cocina-2",
+     "nombre": "Lavado de Ollas",
+     "cat": "apoyo",
+     "x": 81.5,
+     "y": 3.05,
+     "personal": true
+    },
+    {
+     "id": "L-sb-cocina-3",
+     "nombre": "Comedor",
+     "cat": "apoyo",
+     "x": 78.9,
+     "y": 6.4,
+     "personal": true
+    },
+    {
+     "id": "L-sb-cocina-4",
+     "nombre": "Cocción",
+     "cat": "apoyo",
+     "x": 79.9,
+     "y": 9,
+     "personal": true
+    },
+    {
+     "id": "L-sb-cocina-5",
+     "nombre": "Carnes · Pescados",
+     "cat": "apoyo",
+     "x": 86.5,
+     "y": 9.85,
+     "personal": true
+    },
+    {
+     "id": "L-sb-cocina-6",
+     "nombre": "Verduras · Frutas",
+     "cat": "apoyo",
+     "x": 86.8,
+     "y": 13.15,
+     "personal": true
+    },
+    {
+     "id": "L-sb-cocina-7",
+     "nombre": "Lavado de Vajilla",
+     "cat": "apoyo",
+     "x": 74.9,
+     "y": 18.85,
+     "personal": true
+    },
+    {
+     "id": "L-sb-cocina-8",
+     "nombre": "Depósito de Vajillas",
+     "cat": "apoyo",
+     "x": 77.8,
+     "y": 19.75,
+     "personal": true
+    },
+    {
+     "id": "L-sb-cocina-9",
+     "nombre": "Lavado",
+     "cat": "apoyo",
+     "x": 74.8,
+     "y": 21.9,
+     "personal": true
+    },
+    {
+     "id": "L-sb-esterilizacion-1",
+     "nombre": "Mantenimiento · Lubricado de Instrumental",
+     "cat": "apoyo",
+     "x": 103.3,
+     "y": 34.2,
+     "personal": true
+    },
+    {
+     "id": "L-sb-esterilizacion-2",
+     "nombre": "Preparación · Carga",
+     "cat": "apoyo",
+     "x": 113.9,
+     "y": 36.95,
+     "personal": true
+    },
+    {
+     "id": "L-sb-esterilizacion-3",
+     "nombre": "Autoclaves",
+     "cat": "apoyo",
+     "x": 112.2,
+     "y": 39.4,
+     "personal": true
+    },
+    {
+     "id": "L-sb-esterilizacion-4",
+     "nombre": "Área Equipos",
+     "cat": "apoyo",
+     "x": 106.3,
+     "y": 41.6,
+     "personal": true
+    },
+    {
+     "id": "L-sb-jefatura-talento",
+     "nombre": "Jefatura de Talento Humano",
+     "cat": "administracion",
+     "x": 71.1,
+     "y": 25.2,
+     "personal": true
+    },
+    {
+     "id": "L-sb-lavanderia-1",
+     "nombre": "Contaminado",
+     "cat": "apoyo",
+     "x": 108.6,
+     "y": 31.5,
+     "personal": true
+    },
+    {
+     "id": "L-sb-lavanderia-2",
+     "nombre": "Clasificación",
+     "cat": "apoyo",
+     "x": 110.5,
+     "y": 29.2,
+     "personal": true
+    },
+    {
+     "id": "L-sb-lavanderia-3",
+     "nombre": "Lavado · Carga",
+     "cat": "apoyo",
+     "x": 116.2,
+     "y": 30.75,
+     "personal": true
+    },
+    {
+     "id": "L-sb-lavanderia-4",
+     "nombre": "Lavado · Descarga",
+     "cat": "apoyo",
+     "x": 119.6,
+     "y": 31.35,
+     "personal": true
+    },
+    {
+     "id": "L-sb-lavanderia-5",
+     "nombre": "Secado",
+     "cat": "apoyo",
+     "x": 123.2,
+     "y": 35.6,
+     "personal": true
+    },
+    {
+     "id": "L-sb-lavanderia-6",
+     "nombre": "Entrega a Esterilización",
+     "cat": "apoyo",
+     "x": 116.7,
+     "y": 37.4,
+     "personal": true
+    },
+    {
+     "id": "L-sb-lavanderia-7",
+     "nombre": "Plancha",
+     "cat": "apoyo",
+     "x": 117,
+     "y": 40.9,
+     "personal": true
+    },
+    {
+     "id": "L-sb-lavanderia-8",
+     "nombre": "Costura",
+     "cat": "apoyo",
+     "x": 121.9,
+     "y": 41.4,
+     "personal": true
+    },
+    {
+     "id": "L-sb-lavanderia-9",
+     "nombre": "Abastecimiento",
+     "cat": "apoyo",
+     "x": 120.4,
+     "y": 43.6,
+     "personal": true
+    },
+    {
+     "id": "L-sb-radioterapia-estacion",
+     "nombre": "Estación · Apoyo",
+     "cat": "apoyo",
+     "x": 151.5,
+     "y": 45,
+     "personal": true
+    },
+    {
+     "id": "L-sb-servicio-1",
+     "nombre": "Jefe de Calderas",
+     "cat": "apoyo",
+     "x": 89,
+     "y": -24.45,
+     "personal": true
+    },
+    {
+     "id": "L-sb-servicio-10",
+     "nombre": "Garita",
+     "cat": "apoyo",
+     "x": 102.5,
+     "y": -46.6,
+     "personal": true
+    },
+    {
+     "id": "L-sb-servicio-11",
+     "nombre": "Plataforma de Descarga",
+     "cat": "apoyo",
+     "x": 116.8,
+     "y": 17.55,
+     "personal": true
+    },
+    {
+     "id": "L-sb-servicio-2",
+     "nombre": "Casa de Máquinas",
+     "cat": "apoyo",
+     "x": 82.1,
+     "y": -18.45,
+     "personal": true
+    },
+    {
+     "id": "L-sb-servicio-3",
+     "nombre": "Generador de Emergencia",
+     "cat": "apoyo",
+     "x": 80.6,
+     "y": -30.55,
+     "personal": true
+    },
+    {
+     "id": "L-sb-servicio-4",
+     "nombre": "Recepción de Combustible",
+     "cat": "apoyo",
+     "x": 85.2,
+     "y": -9.2,
+     "personal": true
+    },
+    {
+     "id": "L-sb-servicio-5",
+     "nombre": "Desechos",
+     "cat": "apoyo",
+     "x": 88.45,
+     "y": -50.1,
+     "personal": true
+    },
+    {
+     "id": "L-sb-servicio-6",
+     "nombre": "Residuos Contaminados",
+     "cat": "apoyo",
+     "x": 84.5,
+     "y": -47.9,
+     "personal": true
+    },
+    {
+     "id": "L-sb-servicio-7",
+     "nombre": "Residuos Reciclables",
+     "cat": "apoyo",
+     "x": 82.7,
+     "y": -46,
+     "personal": true
+    },
+    {
+     "id": "L-sb-servicio-8",
+     "nombre": "Bodega Líquidos Inflamables",
+     "cat": "apoyo",
+     "x": 77.8,
+     "y": -48.35,
+     "personal": true
+    },
+    {
+     "id": "L-sb-servicio-9",
+     "nombre": "Cuarto Eléctrico",
+     "cat": "apoyo",
+     "x": 97.3,
+     "y": -46.5,
+     "personal": true
+    }
+   ],
+   "entradas": {
+    "entrada-sb-acceso-sb-1": {
+     "nombre": "Acceso SB 1"
+    },
+    "entrada-sb-acceso-sb-2": {
+     "nombre": "Acceso SB 2"
+    },
+    "entrada-sb-acceso-sb-3": {
+     "nombre": "Acceso SB 3"
+    },
+    "entrada-sb-acceso-sb-4": {
+     "nombre": "Acceso SB 4"
+    },
+    "entrada-sb-acceso-sb-5": {
+     "nombre": "Acceso SB 5"
+    },
+    "entrada-sb-puerta-9": {
+     "nombre": "Puerta 9"
+    }
+   },
+   "letreros": [
+    {
+     "id": "T-sb-01",
+     "nombre": "Zona 7",
+     "x": 51.71,
+     "y": 40.25,
+     "zona": true
+    },
+    {
+     "id": "T-sb-02",
+     "nombre": "Zona 8",
+     "x": 91.88,
+     "y": 30.21,
+     "zona": true
+    },
+    {
+     "id": "T-sb-03",
+     "nombre": "Zona 9",
+     "x": 150.75,
+     "y": 37.8,
+     "zona": true
+    },
+    {
+     "id": "T-sb-04",
+     "nombre": "Zona 10",
+     "x": 99.61,
+     "y": 5.02,
+     "zona": true
+    }
+   ]
+  },
+  "PB": {
+   "ambientes": {
+    "a0": {
+     "nombre": "Administración",
+     "cat": "circulacion",
+     "personal": false
+    },
+    "a1": {
+     "nombre": "Sala de Espera Bloque A",
+     "cat": "espera",
+     "icono": "espera",
+     "personal": false
+    },
+    "a10": {
+     "nombre": "Pasillo Bloque B",
+     "cat": "circulacion",
+     "personal": true
+    },
+    "a100": {
+     "nombre": "Módulo 01 · Gestión Privados",
+     "cat": "administracion",
+     "dest": [
+      65.5,
+      31.1
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a101": {
+     "nombre": "Módulo 04 · Gestión Privados",
+     "cat": "administracion",
+     "dest": [
+      71.05,
+      31.1
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a102": {
+     "nombre": "Módulo 02 · Gestión Privados",
+     "cat": "administracion",
+     "dest": [
+      67.35,
+      31.1
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a103": {
+     "nombre": "Módulo 03 · Gestión Privados",
+     "cat": "administracion",
+     "dest": [
+      69.2,
+      31.1
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a104": {
+     "nombre": "Módulo 05 · Gestión Privados",
+     "cat": "administracion",
+     "dest": [
+      72.9,
+      31.1
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a105": {
+     "nombre": "Aseo",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a106": {
+     "nombre": "Ducto Sanitario",
+     "cat": "apoyo",
+     "icono": "bano",
+     "personal": true
+    },
+    "a107": {
+     "nombre": "Hospitalización de Medicina Nuclear",
+     "cat": "circulacion",
+     "personal": false
+    },
+    "a108": {
+     "nombre": "Pasillo",
+     "cat": "circulacion",
+     "personal": false
+    },
+    "a109": {
+     "nombre": "Pasillo",
+     "cat": "circulacion",
+     "personal": false
+    },
+    "a11": {
+     "nombre": "Pasillo Bloque A",
+     "cat": "circulacion",
+     "personal": true
+    },
+    "a110": {
+     "nombre": "Imagen",
+     "cat": "circulacion",
+     "personal": false
+    },
+    "a111": {
+     "nombre": "U.C.I.",
+     "cat": "otro",
+     "personal": false
+    },
+    "a112": {
+     "nombre": "Espera Quimioterapia Patología",
+     "cat": "espera",
+     "icono": "espera",
+     "personal": false
+    },
+    "a113": {
+     "nombre": "Circulación Técnica",
+     "cat": "circulacion",
+     "personal": false
+    },
+    "a114": {
+     "nombre": "Pasillo",
+     "cat": "circulacion",
+     "personal": false
+    },
+    "a115": {
+     "nombre": "Quimioterapia · Estación · Apoyo",
+     "cat": "otro",
+     "personal": false
+    },
+    "a116": {
+     "nombre": "Gastroenterología",
+     "cat": "otro",
+     "personal": false
+    },
+    "a117": {
+     "nombre": "Circulación Gris",
+     "cat": "circulacion",
+     "personal": false
+    },
+    "a118": {
+     "nombre": "Pasillo",
+     "cat": "circulacion",
+     "personal": false
+    },
+    "a119": {
+     "nombre": "Circulación Blanca",
+     "cat": "circulacion",
+     "personal": true
+    },
+    "a12": {
+     "nombre": "Tragaluz",
+     "cat": "otro",
+     "personal": true
+    },
+    "a120": {
+     "nombre": "Pasillo",
+     "cat": "circulacion",
+     "personal": false
+    },
+    "a121": {
+     "nombre": "Pasillo",
+     "cat": "circulacion",
+     "personal": false
+    },
+    "a122": {
+     "nombre": "Clínica de Heridas",
+     "cat": "espera",
+     "personal": false
+    },
+    "a123": {
+     "nombre": "Hab. 1 – 6",
+     "cat": "circulacion",
+     "personal": false
+    },
+    "a124": {
+     "nombre": "Laboratorio Clínico",
+     "cat": "apoyo",
+     "icono": "laboratorio",
+     "personal": false
+    },
+    "a125": {
+     "nombre": "Espera · Zona 1",
+     "cat": "espera",
+     "icono": "espera",
+     "personal": false
+    },
+    "a126": {
+     "nombre": "Pasillo",
+     "cat": "circulacion",
+     "personal": false
+    },
+    "a127": {
+     "nombre": "Recuperación",
+     "cat": "otro",
+     "personal": false
+    },
+    "a128": {
+     "nombre": "Aire Acondicionado 4 · Planta Baja",
+     "cat": "otro",
+     "personal": true
+    },
+    "a129": {
+     "nombre": "Pasillo",
+     "cat": "circulacion",
+     "personal": false
+    },
+    "a13": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a130": {
+     "nombre": "Archivo Estadística",
+     "cat": "administracion",
+     "personal": true
+    },
+    "a131": {
+     "nombre": "Pasillo",
+     "cat": "circulacion",
+     "personal": false
+    },
+    "a132": {
+     "nombre": "Archivo Pasivo",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a133": {
+     "nombre": "Histología · Laboratorio",
+     "cat": "apoyo",
+     "icono": "laboratorio",
+     "personal": false
+    },
+    "a134": {
+     "nombre": "Morgue",
+     "cat": "otro",
+     "personal": true
+    },
+    "a135": {
+     "nombre": "Archivo Rx",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a136": {
+     "nombre": "Área Patólogos",
+     "cat": "otro",
+     "personal": false
+    },
+    "a137": {
+     "nombre": "Mecanoterapia",
+     "cat": "otro",
+     "personal": true
+    },
+    "a138": {
+     "nombre": "Espera Familiares",
+     "cat": "espera",
+     "icono": "espera",
+     "personal": false
+    },
+    "a139": {
+     "nombre": "Citotecnología · Micro Fotog.",
+     "cat": "otro",
+     "personal": false
+    },
+    "a14": {
+     "nombre": "Administración",
+     "cat": "otro",
+     "personal": true
+    },
+    "a140": {
+     "nombre": "Laboratorio Genética-bio Banco",
+     "cat": "apoyo",
+     "icono": "laboratorio",
+     "personal": false
+    },
+    "a141": {
+     "nombre": "Vestidor Hombres",
+     "cat": "otro",
+     "personal": true
+    },
+    "a142": {
+     "nombre": "Espera · Secretaría · Información",
+     "cat": "espera",
+     "icono": "espera",
+     "personal": false
+    },
+    "a143": {
+     "nombre": "Pasillo",
+     "cat": "circulacion",
+     "icono": "administracion",
+     "personal": false
+    },
+    "a144": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a145": {
+     "nombre": "Cuarto Azul",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a146": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a147": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a148": {
+     "nombre": "Quirófano 05",
+     "cat": "otro",
+     "personal": true
+    },
+    "a149": {
+     "nombre": "Microbiología · Bacteriología · Micología",
+     "cat": "otro",
+     "personal": false
+    },
+    "a15": {
+     "nombre": "Capilla",
+     "cat": "apoyo",
+     "icono": "capilla",
+     "personal": false
+    },
+    "a150": {
+     "nombre": "Quirófano 06",
+     "cat": "otro",
+     "personal": true
+    },
+    "a151": {
+     "nombre": "Quirófano 04",
+     "cat": "otro",
+     "personal": true
+    },
+    "a152": {
+     "nombre": "Quirófano 02",
+     "cat": "otro",
+     "personal": true
+    },
+    "a153": {
+     "nombre": "Quirófano 03",
+     "cat": "otro",
+     "personal": true
+    },
+    "a154": {
+     "nombre": "Resonador",
+     "cat": "otro",
+     "personal": false
+    },
+    "a155": {
+     "nombre": "Quirófano 01",
+     "cat": "otro",
+     "personal": true
+    },
+    "a156": {
+     "nombre": "Citología",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a157": {
+     "cat": "circulacion",
+     "personal": false
+    },
+    "a158": {
+     "nombre": "Estación Enfermería",
+     "cat": "circulacion",
+     "personal": false
+    },
+    "a159": {
+     "nombre": "Sala de Tecnologos",
+     "cat": "otro",
+     "personal": false
+    },
+    "a16": {
+     "nombre": "RPIS",
+     "cat": "administracion",
+     "icono": "informacion",
+     "personal": false
+    },
+    "a160": {
+     "nombre": "T.a.c.",
+     "cat": "otro",
+     "personal": false
+    },
+    "a161": {
+     "nombre": "Coord. Mantenimiento",
+     "cat": "otro",
+     "personal": false
+    },
+    "a162": {
+     "nombre": "Banco de Sangre",
+     "cat": "otro",
+     "personal": false
+    },
+    "a163": {
+     "nombre": "Toma Muestras · Cultivos",
+     "cat": "otro",
+     "personal": false
+    },
+    "a164": {
+     "nombre": "Medicina Física",
+     "cat": "circulacion",
+     "personal": false
+    },
+    "a165": {
+     "nombre": "Masoterapia · Elect. 01 · Elect. 02",
+     "cat": "administracion",
+     "personal": false
+    },
+    "a166": {
+     "nombre": "Acceso Familiares",
+     "cat": "circulacion",
+     "personal": false
+    },
+    "a167": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a168": {
+     "nombre": "Hidroterapia Calorterapia",
+     "cat": "otro",
+     "personal": true
+    },
+    "a169": {
+     "nombre": "Recepción",
+     "cat": "otro",
+     "personal": false
+    },
+    "a17": {
+     "nombre": "Preconsulta · 11",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a170": {
+     "nombre": "Mantenimiento · Bodega 7",
+     "cat": "apoyo",
+     "personal": false
+    },
+    "a171": {
+     "nombre": "Bodegas",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a172": {
+     "nombre": "Bodega Tics",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a173": {
+     "nombre": "Mujeres",
+     "cat": "otro",
+     "personal": false
+    },
+    "a174": {
+     "nombre": "Utilería Sucia",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a175": {
+     "nombre": "Pasillo",
+     "cat": "circulacion",
+     "personal": false
+    },
+    "a176": {
+     "nombre": "Sala #2",
+     "cat": "otro",
+     "personal": false
+    },
+    "a177": {
+     "nombre": "Sala #1",
+     "cat": "otro",
+     "personal": false
+    },
+    "a178": {
+     "nombre": "Reunión Docencia",
+     "cat": "otro",
+     "personal": false
+    },
+    "a179": {
+     "nombre": "Cistoscopia",
+     "cat": "otro",
+     "personal": false
+    },
+    "a18": {
+     "nombre": "Agendamiento",
+     "cat": "administracion",
+     "icono": "informacion",
+     "personal": false
+    },
+    "a180": {
+     "nombre": "Espera · Zona 3",
+     "cat": "espera",
+     "icono": "espera",
+     "personal": false
+    },
+    "a181": {
+     "nombre": "Gastroenterología 01",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a182": {
+     "nombre": "Psicología Laboral",
+     "cat": "otro",
+     "personal": false
+    },
+    "a183": {
+     "nombre": "Compras",
+     "cat": "otro",
+     "personal": false
+    },
+    "a184": {
+     "nombre": "Central de Oxigeno",
+     "cat": "otro",
+     "personal": true
+    },
+    "a185": {
+     "nombre": "Infectología",
+     "cat": "otro",
+     "personal": false
+    },
+    "a186": {
+     "nombre": "Resonancia Magnética",
+     "cat": "otro",
+     "personal": false
+    },
+    "a187": {
+     "nombre": "Reparaciones",
+     "cat": "otro",
+     "personal": false
+    },
+    "a188": {
+     "nombre": "Auditoría Médica · Planta Baja",
+     "cat": "otro",
+     "personal": false
+    },
+    "a189": {
+     "nombre": "Flebotomía",
+     "cat": "otro",
+     "personal": false
+    },
+    "a19": {
+     "nombre": "Cajas · Zona 1",
+     "cat": "administracion",
+     "icono": "caja",
+     "personal": false
+    },
+    "a190": {
+     "nombre": "Toma de Muestras · U.usada",
+     "cat": "otro",
+     "personal": false
+    },
+    "a191": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a192": {
+     "nombre": "Oficina 2 · Planta Baja",
+     "cat": "otro",
+     "personal": false
+    },
+    "a193": {
+     "nombre": "Residente",
+     "cat": "otro",
+     "personal": true
+    },
+    "a194": {
+     "nombre": "Bodega 1 · Planta Baja",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a195": {
+     "nombre": "Gastroenterología 03",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a196": {
+     "nombre": "Sala Rauniones",
+     "cat": "otro",
+     "personal": false
+    },
+    "a197": {
+     "nombre": "Depósito General",
+     "cat": "apoyo",
+     "personal": false
+    },
+    "a198": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a199": {
+     "nombre": "Vestidor Mujeres",
+     "cat": "otro",
+     "personal": true
+    },
+    "a2": {
+     "nombre": "Sala Espera Pediatría · Sala de Espera",
+     "cat": "espera",
+     "icono": "espera",
+     "personal": false
+    },
+    "a20": {
+     "nombre": "Coordinación Enfermería · 1",
+     "cat": "administracion",
+     "icono": "administracion",
+     "personal": false
+    },
+    "a200": {
+     "nombre": "Gastroenterología 02",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a201": {
+     "nombre": "Abastecimiento · Estación",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a202": {
+     "nombre": "Recepción Estéril",
+     "cat": "otro",
+     "personal": false
+    },
+    "a203": {
+     "nombre": "Investigación",
+     "cat": "otro",
+     "personal": true
+    },
+    "a204": {
+     "nombre": "Broncoscopia",
+     "cat": "otro",
+     "personal": false
+    },
+    "a205": {
+     "nombre": "Bodega 3 · Planta Baja",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a206": {
+     "nombre": "Hab. 9",
+     "cat": "otro",
+     "personal": false
+    },
+    "a207": {
+     "cat": "circulacion",
+     "personal": false
+    },
+    "a208": {
+     "nombre": "Quimioterapia",
+     "cat": "otro",
+     "personal": false
+    },
+    "a209": {
+     "nombre": "Hab. 10",
+     "cat": "otro",
+     "personal": false
+    },
+    "a21": {
+     "nombre": "Escalera",
+     "cat": "escaleras",
+     "icono": "escalera",
+     "personal": false
+    },
+    "a210": {
+     "nombre": "Recepción Limpia",
+     "cat": "otro",
+     "personal": true
+    },
+    "a211": {
+     "nombre": "Hab. 11",
+     "cat": "otro",
+     "personal": false
+    },
+    "a212": {
+     "nombre": "Hab. 12",
+     "cat": "otro",
+     "personal": false
+    },
+    "a213": {
+     "cat": "circulacion",
+     "personal": false
+    },
+    "a214": {
+     "nombre": "Coordinación Citología",
+     "cat": "administracion",
+     "icono": "administracion",
+     "personal": false
+    },
+    "a215": {
+     "nombre": "Estar",
+     "cat": "otro",
+     "personal": false
+    },
+    "a216": {
+     "nombre": "Bodega · Zona 3",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a217": {
+     "nombre": "Residencia · Planta Baja",
+     "cat": "otro",
+     "personal": true
+    },
+    "a218": {
+     "nombre": "Cafetería",
+     "cat": "otro",
+     "personal": true
+    },
+    "a219": {
+     "nombre": "Triaje",
+     "cat": "otro",
+     "personal": false
+    },
+    "a22": {
+     "nombre": "Laboratorio · Espera",
+     "cat": "espera",
+     "icono": "espera",
+     "personal": false
+    },
+    "a220": {
+     "nombre": "Preparación",
+     "cat": "apoyo",
+     "personal": false
+    },
+    "a221": {
+     "nombre": "Apoyo",
+     "cat": "otro",
+     "personal": true
+    },
+    "a222": {
+     "nombre": "Área Inmunohistoquímica",
+     "cat": "otro",
+     "personal": false
+    },
+    "a223": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a224": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a225": {
+     "nombre": "Sala Reuniones 3 · Planta Baja",
+     "cat": "otro",
+     "personal": true
+    },
+    "a226": {
+     "nombre": "Cuarto Crítico",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a227": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a228": {
+     "nombre": "Residencia · Zona 3",
+     "cat": "otro",
+     "personal": true
+    },
+    "a229": {
+     "nombre": "Estación Enfermería",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a23": {
+     "nombre": "Ginecología · 4",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a230": {
+     "nombre": "Equipos · Portatiles",
+     "cat": "otro",
+     "personal": false
+    },
+    "a231": {
+     "nombre": "Oficina Anestesista",
+     "cat": "otro",
+     "personal": true
+    },
+    "a232": {
+     "nombre": "Sala Reuniones 1 · Planta Baja",
+     "cat": "otro",
+     "personal": true
+    },
+    "a233": {
+     "nombre": "Hab. 5",
+     "cat": "otro",
+     "personal": false
+    },
+    "a234": {
+     "nombre": "Hab. 7",
+     "cat": "otro",
+     "personal": false
+    },
+    "a235": {
+     "nombre": "Ginecología 1 · Planta Baja",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a236": {
+     "nombre": "Mamografía 2",
+     "cat": "otro",
+     "personal": false
+    },
+    "a237": {
+     "nombre": "Hab. 6",
+     "cat": "otro",
+     "personal": false
+    },
+    "a238": {
+     "nombre": "Sala Procedimientos",
+     "cat": "otro",
+     "personal": false
+    },
+    "a239": {
+     "nombre": "U. Limpia 2 · Planta Baja",
+     "cat": "otro",
+     "personal": true
+    },
+    "a24": {
+     "nombre": "Colposcopía · 6",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a240": {
+     "nombre": "Selección Donantes 1 · Zona 3",
+     "cat": "otro",
+     "personal": false
+    },
+    "a241": {
+     "nombre": "Sala de Equipos",
+     "cat": "otro",
+     "personal": true
+    },
+    "a242": {
+     "nombre": "Aislamiento",
+     "cat": "otro",
+     "personal": false
+    },
+    "a243": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a244": {
+     "nombre": "Hab. 1",
+     "cat": "otro",
+     "personal": false
+    },
+    "a245": {
+     "nombre": "Hab. 06",
+     "cat": "otro",
+     "personal": false
+    },
+    "a246": {
+     "nombre": "Sala Reuniones 4 · Planta Baja",
+     "cat": "otro",
+     "personal": true
+    },
+    "a247": {
+     "nombre": "Comando",
+     "cat": "otro",
+     "personal": true
+    },
+    "a248": {
+     "nombre": "Transcripciones",
+     "cat": "otro",
+     "personal": false
+    },
+    "a249": {
+     "nombre": "Sala Reuniones 2 · Planta Baja",
+     "cat": "otro",
+     "personal": true
+    },
+    "a25": {
+     "nombre": "Preconsulta · 9",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a250": {
+     "nombre": "Citopreparacion",
+     "cat": "apoyo",
+     "personal": false
+    },
+    "a251": {
+     "nombre": "Ginecología 2 · Planta Baja",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a252": {
+     "nombre": "Hab. 2",
+     "cat": "otro",
+     "personal": false
+    },
+    "a253": {
+     "nombre": "Hab. 3",
+     "cat": "otro",
+     "personal": false
+    },
+    "a254": {
+     "nombre": "Esterilización",
+     "cat": "otro",
+     "personal": true
+    },
+    "a255": {
+     "nombre": "Utilería 1 · Planta Baja",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a256": {
+     "nombre": "Hab. 4",
+     "cat": "otro",
+     "personal": false
+    },
+    "a257": {
+     "nombre": "Recepción · Banco de Sangre",
+     "cat": "otro",
+     "personal": false
+    },
+    "a258": {
+     "nombre": "Jefatura",
+     "cat": "otro",
+     "personal": true
+    },
+    "a259": {
+     "nombre": "Utilería 2 · Planta Baja",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a26": {
+     "nombre": "Traumatología · 20",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a260": {
+     "nombre": "Secretaría · Zona 3",
+     "cat": "administracion",
+     "icono": "administracion",
+     "dest": [
+      89.3,
+      92.3
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a261": {
+     "nombre": "Hab. 05",
+     "cat": "otro",
+     "personal": false
+    },
+    "a262": {
+     "nombre": "Bodega 4 · Planta Baja",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a263": {
+     "nombre": "Hab. 04",
+     "cat": "otro",
+     "personal": false
+    },
+    "a264": {
+     "nombre": "Toma de Muestras 01",
+     "cat": "otro",
+     "personal": false
+    },
+    "a265": {
+     "nombre": "Oficina Jefe",
+     "cat": "otro",
+     "personal": true
+    },
+    "a266": {
+     "nombre": "S.h M",
+     "cat": "otro",
+     "personal": false
+    },
+    "a267": {
+     "nombre": "Biología Molecular",
+     "cat": "otro",
+     "personal": false
+    },
+    "a268": {
+     "nombre": "Biopsias 3 · Planta Baja",
+     "cat": "otro",
+     "personal": false
+    },
+    "a269": {
+     "nombre": "Consultorio",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a27": {
+     "nombre": "Preparación · 32",
+     "cat": "apoyo",
+     "personal": false
+    },
+    "a270": {
+     "nombre": "Toma de Muestras 04",
+     "cat": "otro",
+     "personal": false
+    },
+    "a271": {
+     "nombre": "Coordinación Genética",
+     "cat": "administracion",
+     "icono": "administracion",
+     "personal": false
+    },
+    "a272": {
+     "nombre": "Central de Aire Comprimido",
+     "cat": "otro",
+     "personal": true
+    },
+    "a273": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a274": {
+     "nombre": "Hab. 8",
+     "cat": "otro",
+     "personal": false
+    },
+    "a275": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a276": {
+     "nombre": "Toma de Muestras 05",
+     "cat": "otro",
+     "personal": false
+    },
+    "a277": {
+     "nombre": "Toma de Muestras 03",
+     "cat": "otro",
+     "personal": false
+    },
+    "a278": {
+     "nombre": "Central de Vacio",
+     "cat": "otro",
+     "personal": true
+    },
+    "a279": {
+     "nombre": "Biopsias 1 · Planta Baja",
+     "cat": "otro",
+     "personal": false
+    },
+    "a28": {
+     "nombre": "Pediatría 03 · 33",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a280": {
+     "nombre": "Biopsias 2 · Planta Baja",
+     "cat": "otro",
+     "personal": false
+    },
+    "a281": {
+     "nombre": "Citogenética Convencional",
+     "cat": "otro",
+     "personal": true
+    },
+    "a282": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a283": {
+     "nombre": "Ascensores",
+     "cat": "ascensores",
+     "icono": "ascensor",
+     "personal": false
+    },
+    "a284": {
+     "nombre": "Oficina · Zona 3",
+     "cat": "otro",
+     "personal": false
+    },
+    "a285": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a286": {
+     "nombre": "Aire Acondicionado 1 · Planta Baja",
+     "cat": "otro",
+     "personal": true
+    },
+    "a287": {
+     "nombre": "Eos",
+     "cat": "otro",
+     "personal": false
+    },
+    "a288": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a289": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a29": {
+     "nombre": "Neumología · 21",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a290": {
+     "nombre": "Aire Acondicionado 2 · Planta Baja",
+     "cat": "otro",
+     "personal": true
+    },
+    "a291": {
+     "nombre": "Emergencias",
+     "cat": "otro",
+     "personal": false
+    },
+    "a292": {
+     "nombre": "Bodega Reactivos",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a293": {
+     "nombre": "Archivo 2 · Planta Baja",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a294": {
+     "nombre": "Ascensores",
+     "cat": "ascensores",
+     "icono": "ascensor",
+     "personal": true
+    },
+    "a295": {
+     "nombre": "Baños",
+     "cat": "banos",
+     "dest": [
+      105.27,
+      30.14
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a296": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a297": {
+     "nombre": "Mamografía 1",
+     "cat": "otro",
+     "personal": false
+    },
+    "a298": {
+     "nombre": "Comedor",
+     "cat": "otro",
+     "personal": false
+    },
+    "a299": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a3": {
+     "nombre": "Pasillo Central",
+     "cat": "circulacion",
+     "personal": false
+    },
+    "a30": {
+     "nombre": "Gastroenterología · 12",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a300": {
+     "nombre": "Ascensores",
+     "cat": "ascensores",
+     "icono": "ascensor",
+     "personal": true
+    },
+    "a301": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a302": {
+     "nombre": "Lavachatas",
+     "cat": "otro",
+     "personal": true
+    },
+    "a303": {
+     "cat": "circulacion",
+     "personal": false
+    },
+    "a304": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "dest": [
+      115.36,
+      87.68
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a305": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a306": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "dest": [
+      111.72,
+      97.14
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a307": {
+     "cat": "circulacion",
+     "personal": false
+    },
+    "a308": {
+     "nombre": "Utilería · Limpieza",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a309": {
+     "nombre": "Citogenerica Molecular",
+     "cat": "otro",
+     "personal": true
+    },
+    "a31": {
+     "nombre": "Preconsulta · 10",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a310": {
+     "nombre": "Punciones",
+     "cat": "otro",
+     "personal": true
+    },
+    "a311": {
+     "nombre": "Cuarto de Máquinas",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a312": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "personal": false
+    },
+    "a313": {
+     "nombre": "Vestidor Pacientes",
+     "cat": "otro",
+     "personal": true
+    },
+    "a314": {
+     "nombre": "Lavado",
+     "cat": "otro",
+     "personal": false
+    },
+    "a315": {
+     "nombre": "Desechos",
+     "cat": "otro",
+     "personal": true
+    },
+    "a316": {
+     "nombre": "Médicos",
+     "cat": "otro",
+     "personal": true
+    },
+    "a317": {
+     "nombre": "Toma de Muestras 02",
+     "cat": "otro",
+     "personal": false
+    },
+    "a318": {
+     "nombre": "Biobanco",
+     "cat": "otro",
+     "personal": false
+    },
+    "a319": {
+     "cat": "circulacion",
+     "personal": false
+    },
+    "a32": {
+     "nombre": "Urología",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a320": {
+     "nombre": "Secretaría 2 · Planta Baja",
+     "cat": "administracion",
+     "icono": "administracion",
+     "personal": false
+    },
+    "a321": {
+     "nombre": "Oficina 3 · Planta Baja",
+     "cat": "otro",
+     "personal": true
+    },
+    "a322": {
+     "nombre": "Selección Donantes 2 · Zona 3",
+     "cat": "otro",
+     "personal": true
+    },
+    "a323": {
+     "nombre": "Computadora",
+     "cat": "otro",
+     "personal": true
+    },
+    "a324": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a325": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a326": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a327": {
+     "nombre": "Secretaría 1 · Planta Baja",
+     "cat": "administracion",
+     "icono": "administracion",
+     "personal": false
+    },
+    "a328": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a329": {
+     "nombre": "Coordinación",
+     "cat": "administracion",
+     "icono": "administracion",
+     "personal": true
+    },
+    "a33": {
+     "nombre": "Tumores Mixtos · 15",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a330": {
+     "nombre": "Triage",
+     "cat": "otro",
+     "personal": false
+    },
+    "a331": {
+     "nombre": "Cuarto Oscuro",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a332": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "personal": true
+    },
+    "a333": {
+     "cat": "circulacion",
+     "personal": false
+    },
+    "a334": {
+     "nombre": "Baños",
+     "cat": "banos",
+     "personal": true
+    },
+    "a335": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a336": {
+     "nombre": "Camillas",
+     "cat": "otro",
+     "personal": false
+    },
+    "a337": {
+     "nombre": "S.h. H",
+     "cat": "otro",
+     "personal": false
+    },
+    "a338": {
+     "nombre": "Genómica",
+     "cat": "otro",
+     "personal": true
+    },
+    "a339": {
+     "nombre": "Toma 5 y 6",
+     "cat": "otro",
+     "personal": false
+    },
+    "a34": {
+     "nombre": "Tumores Mamarios · 14",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a340": {
+     "nombre": "Aire Acondicionado 3 · Planta Baja",
+     "cat": "otro",
+     "personal": true
+    },
+    "a341": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a342": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a343": {
+     "nombre": "Estación",
+     "cat": "otro",
+     "personal": true
+    },
+    "a344": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a345": {
+     "nombre": "Cajas 1 · Planta Baja",
+     "cat": "administracion",
+     "icono": "caja",
+     "personal": false
+    },
+    "a346": {
+     "nombre": "Archivo 1 · Planta Baja",
+     "cat": "otro",
+     "personal": true
+    },
+    "a347": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "personal": false
+    },
+    "a348": {
+     "cat": "otro",
+     "personal": true
+    },
+    "a349": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a35": {
+     "nombre": "Pediatría 01 · 30",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a350": {
+     "nombre": "U. Usada 2 · Planta Baja",
+     "cat": "otro",
+     "personal": true
+    },
+    "a351": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a352": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a353": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a354": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a355": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a356": {
+     "cat": "circulacion",
+     "personal": false
+    },
+    "a357": {
+     "nombre": "Laboratorio",
+     "cat": "apoyo",
+     "icono": "laboratorio",
+     "personal": false
+    },
+    "a358": {
+     "nombre": "Bodega 2 · Planta Baja",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a359": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a36": {
+     "nombre": "Endocrinología · 22",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a360": {
+     "cat": "circulacion",
+     "personal": false
+    },
+    "a361": {
+     "cat": "circulacion",
+     "personal": false
+    },
+    "a362": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "personal": false
+    },
+    "a363": {
+     "nombre": "Abastecimiento · Planta Baja",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a364": {
+     "nombre": "Aseo",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a365": {
+     "nombre": "Minusv.",
+     "cat": "otro",
+     "personal": false
+    },
+    "a366": {
+     "nombre": "Vestidor 2 · Zona 3",
+     "cat": "otro",
+     "personal": true
+    },
+    "a367": {
+     "nombre": "U.U. 2 · Planta Baja",
+     "cat": "otro",
+     "personal": true
+    },
+    "a368": {
+     "nombre": "Vestidor 1 · Zona 3",
+     "cat": "otro",
+     "personal": true
+    },
+    "a369": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a37": {
+     "nombre": "Pediatría 04 · 34",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a370": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a371": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a372": {
+     "nombre": "Depósito",
+     "cat": "apoyo",
+     "personal": false
+    },
+    "a373": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "personal": false
+    },
+    "a374": {
+     "nombre": "Cajas 2 · Planta Baja",
+     "cat": "administracion",
+     "icono": "caja",
+     "personal": false
+    },
+    "a375": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a376": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "personal": false
+    },
+    "a377": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "personal": false
+    },
+    "a378": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "personal": true
+    },
+    "a379": {
+     "nombre": "U.U. 1 · Planta Baja",
+     "cat": "otro",
+     "personal": true
+    },
+    "a38": {
+     "nombre": "Dietética · 25",
+     "cat": "apoyo",
+     "personal": false
+    },
+    "a380": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a381": {
+     "nombre": "Redes",
+     "cat": "otro",
+     "personal": true
+    },
+    "a382": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "personal": false
+    },
+    "a383": {
+     "nombre": "Tuberculosis",
+     "cat": "otro",
+     "personal": true
+    },
+    "a384": {
+     "nombre": "V 2 · Planta Baja",
+     "cat": "otro",
+     "personal": false
+    },
+    "a385": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a386": {
+     "nombre": "V.",
+     "cat": "otro",
+     "personal": false
+    },
+    "a387": {
+     "nombre": "U.U. U.U.",
+     "cat": "otro",
+     "personal": true
+    },
+    "a388": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a389": {
+     "nombre": "U. Usada · Zona 3",
+     "cat": "otro",
+     "personal": true
+    },
+    "a39": {
+     "nombre": "Ginecología · 5",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a390": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a391": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "personal": false
+    },
+    "a392": {
+     "nombre": "Aseo",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a393": {
+     "nombre": "U.c.i.",
+     "cat": "otro",
+     "personal": false
+    },
+    "a394": {
+     "nombre": "Batería Personal",
+     "cat": "otro",
+     "personal": false
+    },
+    "a395": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "personal": false
+    },
+    "a396": {
+     "nombre": "S.h. Pers.",
+     "cat": "otro",
+     "personal": false
+    },
+    "a397": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "dest": [
+      93.05,
+      102.12
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a398": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "personal": false
+    },
+    "a399": {
+     "nombre": "U. Usada 1 · Planta Baja",
+     "cat": "otro",
+     "personal": true
+    },
+    "a4": {
+     "nombre": "Farmacia",
+     "cat": "farmacia",
+     "icono": "farmacia",
+     "dest": [
+      56.75,
+      61.1
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a40": {
+     "nombre": "Colposcopía · 7",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a400": {
+     "nombre": "U.L.",
+     "cat": "otro",
+     "personal": true
+    },
+    "a401": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "personal": false
+    },
+    "a402": {
+     "nombre": "Reactivos",
+     "cat": "otro",
+     "personal": true
+    },
+    "a403": {
+     "nombre": "Aseo",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a404": {
+     "nombre": "Lenc. 1 · Planta Baja",
+     "cat": "otro",
+     "personal": false
+    },
+    "a405": {
+     "nombre": "L.ch.",
+     "cat": "otro",
+     "personal": false
+    },
+    "a406": {
+     "nombre": "Lenc. 2 · Planta Baja",
+     "cat": "otro",
+     "personal": true
+    },
+    "a407": {
+     "nombre": "Aseo",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a408": {
+     "nombre": "U. Limpia 1 · Planta Baja",
+     "cat": "otro",
+     "personal": true
+    },
+    "a409": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a41": {
+     "nombre": "Cirugía Laparoscópica · 18",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a410": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a411": {
+     "nombre": "V 1 · Planta Baja",
+     "cat": "otro",
+     "personal": false
+    },
+    "a412": {
+     "nombre": "Presidencia",
+     "cat": "otro",
+     "personal": false
+    },
+    "a413": {
+     "nombre": "Dirección Médica",
+     "cat": "administracion",
+     "icono": "administracion",
+     "personal": false
+    },
+    "a414": {
+     "nombre": "Secretaría Dirección Administrativa Financiera",
+     "cat": "administracion",
+     "icono": "administracion",
+     "personal": false
+    },
+    "a415": {
+     "nombre": "Dirección Administrativa Financiera",
+     "cat": "administracion",
+     "icono": "administracion",
+     "personal": false
+    },
+    "a416": {
+     "nombre": "Jefatura Financiera",
+     "cat": "otro",
+     "personal": true
+    },
+    "a417": {
+     "nombre": "Sala de Consejo",
+     "cat": "otro",
+     "personal": false
+    },
+    "a418": {
+     "nombre": "S.H. H.",
+     "cat": "banos",
+     "icono": "bano",
+     "personal": false
+    },
+    "a419": {
+     "nombre": "S.H. H.",
+     "cat": "banos",
+     "icono": "bano",
+     "personal": false
+    },
+    "a42": {
+     "nombre": "Recreación Infantil",
+     "cat": "espera",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a420": {
+     "nombre": "Aseo",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a421": {
+     "nombre": "S.H. M.",
+     "cat": "banos",
+     "icono": "bano",
+     "personal": false
+    },
+    "a422": {
+     "nombre": "Café",
+     "cat": "otro",
+     "personal": false
+    },
+    "a423": {
+     "nombre": "Gerencia Comercial · Comunicación RRPP",
+     "cat": "otro",
+     "personal": false
+    },
+    "a424": {
+     "nombre": "Asesoría Jurídica",
+     "cat": "otro",
+     "personal": false
+    },
+    "a425": {
+     "nombre": "Sala de Comisiones",
+     "cat": "otro",
+     "personal": false
+    },
+    "a426": {
+     "nombre": "Gerencia Proyectos",
+     "cat": "otro",
+     "personal": true
+    },
+    "a427": {
+     "nombre": "Auditoría Médica · Zona 1",
+     "cat": "otro",
+     "personal": false
+    },
+    "a428": {
+     "nombre": "Jefatura Enfermería",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": true
+    },
+    "a429": {
+     "nombre": "Oficina 2 · Zona 1",
+     "cat": "otro",
+     "personal": true
+    },
+    "a43": {
+     "nombre": "Neurocirugía · 19",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a430": {
+     "nombre": "Financiero",
+     "cat": "otro",
+     "personal": false
+    },
+    "a431": {
+     "cat": "circulacion",
+     "personal": false
+    },
+    "a432": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a433": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "dest": [
+      52.38,
+      32.27
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a434": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "dest": [
+      52.02,
+      32.27
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a435": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "dest": [
+      52.05,
+      32.9
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a436": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "dest": [
+      63.81,
+      26.42
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a437": {
+     "nombre": "Atención Farmacéutica 2 · Zona 1",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a438": {
+     "nombre": "Sala Reuniones · Zona 1",
+     "cat": "otro",
+     "personal": true
+    },
+    "a439": {
+     "nombre": "Quimioterápicos",
+     "cat": "otro",
+     "personal": true
+    },
+    "a44": {
+     "nombre": "Pediatría 02 · 31",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a440": {
+     "nombre": "Nutrición Parental",
+     "cat": "otro",
+     "personal": true
+    },
+    "a441": {
+     "nombre": "Cuarto UPS 2 · Zona 1",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a442": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a443": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a444": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a45": {
+     "nombre": "Medicina 03 · 27",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a46": {
+     "nombre": "Medicina 04 · 26",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a47": {
+     "nombre": "Consultorio 1",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a48": {
+     "nombre": "Cirugía Especial · 17",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a49": {
+     "nombre": "Tumores de Cabeza y Cuello · 16",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a5": {
+     "nombre": "Hall Puerta 1 · Información",
+     "cat": "circulacion",
+     "icono": "informacion",
+     "personal": false
+    },
+    "a50": {
+     "nombre": "Espera Dirección",
+     "cat": "espera",
+     "personal": false
+    },
+    "a51": {
+     "nombre": "Medicina 01 · 29",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a52": {
+     "nombre": "Medicina 02 · 28",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a53": {
+     "nombre": "Consultorio 2",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a54": {
+     "nombre": "SS.HH. Mujeres",
+     "cat": "banos",
+     "icono": "bano",
+     "personal": false
+    },
+    "a55": {
+     "nombre": "SS.HH. Mujeres",
+     "cat": "banos",
+     "icono": "bano",
+     "personal": false
+    },
+    "a56": {
+     "nombre": "SS.HH. Hombres",
+     "cat": "banos",
+     "icono": "bano",
+     "personal": false
+    },
+    "a57": {
+     "nombre": "Bodega · Zona 2",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a58": {
+     "nombre": "Datacenter",
+     "cat": "otro",
+     "personal": true
+    },
+    "a59": {
+     "nombre": "Secretaría · Zona 1",
+     "cat": "administracion",
+     "icono": "administracion",
+     "personal": false
+    },
+    "a6": {
+     "nombre": "Hall de Cajas",
+     "cat": "circulacion",
+     "icono": "caja",
+     "personal": false
+    },
+    "a60": {
+     "nombre": "Farmacias Económicas",
+     "cat": "farmacia",
+     "icono": "farmacia",
+     "personal": false
+    },
+    "a61": {
+     "nombre": "Tesorería",
+     "cat": "administracion",
+     "icono": "caja",
+     "dest": [
+      75.6,
+      31.1
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a62": {
+     "nombre": "SS.HH. Personal",
+     "cat": "banos",
+     "icono": "bano",
+     "personal": false
+    },
+    "a63": {
+     "nombre": "Oficina 1 · Zona 1",
+     "cat": "otro",
+     "personal": true
+    },
+    "a64": {
+     "nombre": "Consultorio · 23",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a65": {
+     "nombre": "Almacenamiento",
+     "cat": "otro",
+     "personal": true
+    },
+    "a66": {
+     "nombre": "Central Telefónica",
+     "cat": "otro",
+     "personal": true
+    },
+    "a67": {
+     "nombre": "Consultorio · 24",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a68": {
+     "nombre": "Consultorio · 35",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a69": {
+     "nombre": "Cuarto Frío",
+     "cat": "otro",
+     "personal": true
+    },
+    "a7": {
+     "nombre": "Hall de Ascensores",
+     "cat": "circulacion",
+     "icono": "ascensor",
+     "personal": false
+    },
+    "a70": {
+     "nombre": "Cuarto UPS 1 · Zona 1",
+     "cat": "otro",
+     "personal": true
+    },
+    "a71": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a72": {
+     "nombre": "Escalera",
+     "cat": "escaleras",
+     "icono": "escalera",
+     "personal": false
+    },
+    "a73": {
+     "nombre": "Ascensores",
+     "cat": "ascensores",
+     "icono": "ascensor",
+     "personal": false
+    },
+    "a74": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "personal": false
+    },
+    "a75": {
+     "nombre": "Ascensores",
+     "cat": "ascensores",
+     "icono": "ascensor",
+     "personal": false
+    },
+    "a76": {
+     "nombre": "Ascensor",
+     "cat": "ascensores",
+     "icono": "ascensor",
+     "personal": false
+    },
+    "a77": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "personal": false
+    },
+    "a78": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "personal": false
+    },
+    "a79": {
+     "nombre": "Secretaría Información",
+     "cat": "administracion",
+     "icono": "informacion",
+     "personal": false
+    },
+    "a8": {
+     "nombre": "Pasillo Bloque C · U.U. · U.L.",
+     "cat": "circulacion",
+     "personal": true
+    },
+    "a80": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a81": {
+     "nombre": "Atención Farmacéutica 1 · Zona 1",
+     "cat": "consulta",
+     "icono": "consulta",
+     "personal": false
+    },
+    "a82": {
+     "nombre": "Secretaría – Control 3 · Zona 2",
+     "cat": "administracion",
+     "icono": "administracion",
+     "personal": false
+    },
+    "a83": {
+     "nombre": "SS.HH. Hombres",
+     "cat": "banos",
+     "icono": "bano",
+     "dest": [
+      69.36,
+      102.3
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a84": {
+     "nombre": "Abastecimiento · Zona 2",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a85": {
+     "nombre": "Secretaría – Control 1 · Zona 2",
+     "cat": "administracion",
+     "icono": "administracion",
+     "personal": false
+    },
+    "a86": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a87": {
+     "nombre": "Secretaría – Control 2 · Zona 2",
+     "cat": "administracion",
+     "icono": "administracion",
+     "personal": false
+    },
+    "a88": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a89": {
+     "nombre": "Oficina 1 · Planta Baja",
+     "cat": "otro",
+     "personal": false
+    },
+    "a9": {
+     "nombre": "Hall",
+     "cat": "circulacion",
+     "personal": false
+    },
+    "a90": {
+     "nombre": "Minusválidos",
+     "cat": "banos",
+     "icono": "bano",
+     "personal": false
+    },
+    "a91": {
+     "nombre": "Minusválidos",
+     "cat": "banos",
+     "icono": "bano",
+     "personal": false
+    },
+    "a92": {
+     "nombre": "Vestíbulo de Ductos",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a93": {
+     "cat": "administracion",
+     "icono": "administracion",
+     "personal": false
+    },
+    "a94": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a95": {
+     "cat": "administracion",
+     "icono": "administracion",
+     "personal": false
+    },
+    "a96": {
+     "cat": "administracion",
+     "icono": "administracion",
+     "personal": false
+    },
+    "a97": {
+     "cat": "administracion",
+     "icono": "administracion",
+     "personal": false
+    },
+    "a98": {
+     "cat": "administracion",
+     "icono": "administracion",
+     "personal": false
+    },
+    "a99": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "dest": [
+      57.04,
+      98.94
+     ],
+     "ventanilla": true,
+     "personal": false
+    }
+   },
+   "lugares": [
+    {
+     "id": "L-pb-emergencia-cubiculos",
+     "nombre": "Cubículos",
+     "cat": "otro",
+     "x": 129,
+     "y": 91,
+     "personal": false
+    },
+    {
+     "id": "L-pb-emergencia-enfermeria",
+     "nombre": "Enfermería",
+     "cat": "otro",
+     "x": 130.5,
+     "y": 95,
+     "personal": true
+    },
+    {
+     "id": "L-pb-emergencia-procedimientos",
+     "nombre": "Procedimientos",
+     "cat": "otro",
+     "x": 128.1,
+     "y": 87,
+     "personal": false
+    },
+    {
+     "id": "L-pb-espera-citologia",
+     "nombre": "Espera Citología",
+     "cat": "espera",
+     "x": 80,
+     "y": 100.5,
+     "personal": false
+    },
+    {
+     "id": "L-pb-gastro-estacion",
+     "nombre": "Estación",
+     "cat": "otro",
+     "x": 105.19,
+     "y": 58.96,
+     "personal": true
+    },
+    {
+     "id": "L-pb-gastro-recuperacion",
+     "nombre": "Recuperación · Preparación",
+     "cat": "otro",
+     "x": 100.48,
+     "y": 55.7,
+     "personal": false
+    },
+    {
+     "id": "L-pb-gastro-vestidores",
+     "nombre": "Vestidores",
+     "cat": "apoyo",
+     "x": 101.8,
+     "y": 60.1,
+     "personal": true
+    },
+    {
+     "id": "L-pb-heridas-1",
+     "nombre": "Hab. 1 · Clínica de Heridas",
+     "cat": "otro",
+     "x": 164.67,
+     "y": 98.87,
+     "personal": false
+    },
+    {
+     "id": "L-pb-heridas-2",
+     "nombre": "Hab. 2 · Clínica de Heridas",
+     "cat": "otro",
+     "x": 166.38,
+     "y": 97.2,
+     "personal": false
+    },
+    {
+     "id": "L-pb-heridas-3",
+     "nombre": "Hab. 3 · Clínica de Heridas",
+     "cat": "otro",
+     "x": 167.8,
+     "y": 95.47,
+     "personal": false
+    },
+    {
+     "id": "L-pb-heridas-4",
+     "nombre": "Hab. 4 · Clínica de Heridas",
+     "cat": "otro",
+     "x": 169.31,
+     "y": 93.82,
+     "personal": false
+    },
+    {
+     "id": "L-pb-heridas-5",
+     "nombre": "Hab. 5 · Clínica de Heridas",
+     "cat": "otro",
+     "x": 170.9,
+     "y": 91.96,
+     "personal": false
+    },
+    {
+     "id": "L-pb-heridas-6",
+     "nombre": "Hab. 6 · Clínica de Heridas",
+     "cat": "otro",
+     "x": 172.55,
+     "y": 90.14,
+     "personal": false
+    },
+    {
+     "id": "L-pb-heridas-medicos",
+     "nombre": "Médicos",
+     "cat": "otro",
+     "x": 158.8,
+     "y": 102.98,
+     "personal": true
+    },
+    {
+     "id": "L-pb-imagen-comando",
+     "nombre": "Comando",
+     "cat": "apoyo",
+     "x": 98,
+     "y": 78.4,
+     "personal": true
+    },
+    {
+     "id": "L-pb-lab-coagulacion",
+     "nombre": "Coagulación",
+     "cat": "apoyo",
+     "x": 94.05,
+     "y": 7.11,
+     "personal": true
+    },
+    {
+     "id": "L-pb-lab-hematologia",
+     "nombre": "Hematología",
+     "cat": "apoyo",
+     "x": 90.7,
+     "y": 6.96,
+     "personal": true
+    },
+    {
+     "id": "L-pb-lab-rutina",
+     "nombre": "Análisis Rutina",
+     "cat": "apoyo",
+     "x": 87.9,
+     "y": 6.6,
+     "personal": true
+    },
+    {
+     "id": "L-pb-lab-urgentes",
+     "nombre": "Análisis Urgentes",
+     "cat": "apoyo",
+     "x": 97.4,
+     "y": 6.6,
+     "personal": true
+    },
+    {
+     "id": "L-pb-quimio-drogas",
+     "nombre": "Preparación de Drogas",
+     "cat": "apoyo",
+     "x": 95.5,
+     "y": 42.45,
+     "personal": true
+    },
+    {
+     "id": "L-pb-quimio-informacion",
+     "nombre": "Información · Secretaría",
+     "cat": "otro",
+     "x": 84.9,
+     "y": 24.8,
+     "personal": false
+    },
+    {
+     "id": "L-pb-quirurgico-camillas",
+     "nombre": "Camillas",
+     "cat": "apoyo",
+     "x": 120.3,
+     "y": 52.4,
+     "personal": true
+    },
+    {
+     "id": "L-pb-telefonos",
+     "nombre": "Teléfonos",
+     "cat": "otro",
+     "x": 51.4,
+     "y": 68,
+     "personal": false
+    },
+    {
+     "id": "L-pb-terraza-calderos",
+     "nombre": "Terraza Calderos",
+     "cat": "apoyo",
+     "x": 82.4,
+     "y": -14.8,
+     "personal": true
+    },
+    {
+     "id": "L-pb-toma-1",
+     "nombre": "Toma 1",
+     "cat": "otro",
+     "x": 83.84,
+     "y": 8.91,
+     "personal": false
+    },
+    {
+     "id": "L-pb-toma-2",
+     "nombre": "Toma 2",
+     "cat": "otro",
+     "x": 83.84,
+     "y": 7.41,
+     "personal": false
+    },
+    {
+     "id": "L-pb-toma-3",
+     "nombre": "Toma 3",
+     "cat": "otro",
+     "x": 83.84,
+     "y": 5.89,
+     "personal": false
+    },
+    {
+     "id": "L-pb-toma-4",
+     "nombre": "Toma 4",
+     "cat": "otro",
+     "x": 83.84,
+     "y": 4,
+     "personal": false
+    },
+    {
+     "id": "L-pb-uci-01",
+     "nombre": "Hab. 01 · U.C.I.",
+     "cat": "otro",
+     "x": 124.28,
+     "y": 84.43,
+     "personal": false
+    },
+    {
+     "id": "L-pb-uci-02",
+     "nombre": "Hab. 02 · U.C.I.",
+     "cat": "otro",
+     "x": 127.65,
+     "y": 84.57,
+     "personal": false
+    },
+    {
+     "id": "L-pb-uci-03",
+     "nombre": "Hab. 03 · U.C.I.",
+     "cat": "otro",
+     "x": 131.35,
+     "y": 84.54,
+     "personal": false
+    },
+    {
+     "id": "L-pb-uci-07",
+     "nombre": "Hab. 07 · U.C.I.",
+     "cat": "otro",
+     "x": 135.42,
+     "y": 73.16,
+     "personal": false
+    },
+    {
+     "id": "L-pb-uci-08",
+     "nombre": "Hab. 08 · U.C.I.",
+     "cat": "otro",
+     "x": 131.97,
+     "y": 72.98,
+     "personal": false
+    },
+    {
+     "id": "L-pb-uci-09",
+     "nombre": "Hab. 09 · U.C.I.",
+     "cat": "otro",
+     "x": 128.79,
+     "y": 73.05,
+     "personal": false
+    },
+    {
+     "id": "L-pb-uci-10",
+     "nombre": "Hab. 10 · U.C.I.",
+     "cat": "otro",
+     "x": 125.61,
+     "y": 73.12,
+     "personal": false
+    }
+   ],
+   "entradas": {
+    "entrada-acceso-1": {
+     "nombre": "Acceso 1"
+    },
+    "entrada-acceso-10": {
+     "nombre": "Acceso 10"
+    },
+    "entrada-acceso-11": {
+     "nombre": "Acceso 11"
+    },
+    "entrada-acceso-12": {
+     "nombre": "Acceso 12"
+    },
+    "entrada-acceso-13": {
+     "nombre": "Acceso 13"
+    },
+    "entrada-acceso-14": {
+     "nombre": "Acceso 14"
+    },
+    "entrada-acceso-2": {
+     "nombre": "Acceso 2"
+    },
+    "entrada-acceso-3": {
+     "nombre": "Acceso 3"
+    },
+    "entrada-acceso-4": {
+     "nombre": "Acceso 4"
+    },
+    "entrada-acceso-5": {
+     "nombre": "Acceso 5"
+    },
+    "entrada-acceso-6": {
+     "nombre": "Acceso 6"
+    },
+    "entrada-acceso-7": {
+     "nombre": "Acceso 7"
+    },
+    "entrada-acceso-8": {
+     "nombre": "Acceso 8"
+    },
+    "entrada-acceso-9": {
+     "nombre": "Acceso 9"
+    },
+    "entrada-puerta-1": {
+     "nombre": "Puerta 1"
+    },
+    "entrada-puerta-4": {
+     "nombre": "Puerta 4"
+    },
+    "entrada-puerta-5": {
+     "nombre": "Puerta 5"
+    },
+    "entrada-puerta-6": {
+     "nombre": "Puerta 6"
+    }
+   },
+   "letreros": [
+    {
+     "id": "T-pb-01",
+     "nombre": "Zona 1",
+     "x": 59.1,
+     "y": 45,
+     "zona": true
+    },
+    {
+     "id": "T-pb-02",
+     "nombre": "Zona 2",
+     "x": 30.94,
+     "y": 91.01,
+     "zona": true
+    },
+    {
+     "id": "T-pb-03",
+     "nombre": "Espera Citología",
+     "x": 76.7,
+     "y": 100.6,
+     "cat": "espera"
+    },
+    {
+     "id": "T-pb-04",
+     "nombre": "Sala de Espera",
+     "x": 52.6,
+     "y": 82.7,
+     "cat": "espera"
+    },
+    {
+     "id": "T-pb-05",
+     "nombre": "Zona 3",
+     "x": 94.73,
+     "y": 81.92,
+     "zona": true
+    },
+    {
+     "id": "T-pb-06",
+     "nombre": "Zona 4",
+     "x": 144.45,
+     "y": 69.55,
+     "zona": true
+    },
+    {
+     "id": "T-pb-07",
+     "nombre": "Zona 4A",
+     "x": 146.79,
+     "y": 43.64,
+     "zona": true
+    },
+    {
+     "id": "T-pb-08",
+     "nombre": "Zona 5",
+     "x": 109.49,
+     "y": 22.55,
+     "zona": true
+    },
+    {
+     "id": "T-pb-09",
+     "nombre": "Zona 10",
+     "x": 77.52,
+     "y": 14.42,
+     "zona": true
+    }
+   ]
+  },
+  "P1": {
+   "ambientes": {
+    "a0": {
+     "nombre": "Hall",
+     "cat": "circulacion",
+     "icono": "espera",
+     "personal": false
+    },
+    "a1": {
+     "nombre": "Recepción · Hall Interno · TICs",
+     "cat": "circulacion",
+     "personal": true
+    },
+    "a10": {
+     "nombre": "Hab. 16",
+     "cat": "otro",
+     "personal": false
+    },
+    "a100": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "personal": true
+    },
+    "a101": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      9.59,
+      89.37
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a102": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "personal": true
+    },
+    "a103": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      46.96,
+      98.91
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a104": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      43.39,
+      87.36
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a105": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      47.28,
+      87.37
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a106": {
+     "nombre": "Aseo",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a107": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "personal": true
+    },
+    "a108": {
+     "nombre": "Baño Mujeres",
+     "cat": "banos",
+     "personal": false
+    },
+    "a109": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "personal": true
+    },
+    "a11": {
+     "nombre": "Hab. 1",
+     "cat": "otro",
+     "personal": false
+    },
+    "a110": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "personal": true
+    },
+    "a111": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a112": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a113": {
+     "nombre": "Vestidor",
+     "cat": "otro",
+     "personal": true
+    },
+    "a114": {
+     "nombre": "Baño Hombres",
+     "cat": "banos",
+     "personal": false
+    },
+    "a115": {
+     "nombre": "Utilería Sucia",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a116": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "dest": [
+      76.5,
+      73.69
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a117": {
+     "nombre": "Baño Mujeres",
+     "cat": "banos",
+     "personal": false
+    },
+    "a118": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      74.74,
+      102.37
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a119": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "personal": true
+    },
+    "a12": {
+     "nombre": "Hab 3",
+     "cat": "otro",
+     "personal": false
+    },
+    "a120": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "dest": [
+      70.56,
+      54.94
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a121": {
+     "nombre": "Baño Hombres",
+     "cat": "banos",
+     "dest": [
+      51.9,
+      91.7
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a122": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      70.57,
+      57.06
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a123": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      70.55,
+      60.22
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a124": {
+     "nombre": "Lavachata",
+     "cat": "otro",
+     "personal": true
+    },
+    "a125": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      76.31,
+      66.53
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a126": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "dest": [
+      70.42,
+      102.97
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a127": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      76.42,
+      75.65
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a128": {
+     "nombre": "Limpieza",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a129": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "dest": [
+      70.54,
+      67.71
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a13": {
+     "nombre": "Limpios",
+     "cat": "otro",
+     "personal": true
+    },
+    "a130": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      70.6,
+      75.68
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a131": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      70.52,
+      68.45
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a132": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "personal": false
+    },
+    "a133": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      76.44,
+      68.48
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a134": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      76.38,
+      89.81
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a135": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      76.38,
+      83.49
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a136": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      70.58,
+      99.51
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a137": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      70.63,
+      95.98
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a138": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      70.58,
+      94.44
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a139": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      76.38,
+      96.31
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a14": {
+     "nombre": "Hab. 14",
+     "cat": "otro",
+     "personal": false
+    },
+    "a140": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      70.58,
+      81.89
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a141": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      70.57,
+      88.51
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a142": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      76.38,
+      102.58
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a15": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a151": {
+     "nombre": "Criopreservación",
+     "cat": "otro",
+     "personal": true
+    },
+    "a152": {
+     "nombre": "Baños",
+     "cat": "banos",
+     "personal": true
+    },
+    "a153": {
+     "nombre": "Despachos",
+     "cat": "otro",
+     "personal": true
+    },
+    "a154": {
+     "nombre": "Cuarentena",
+     "cat": "otro",
+     "personal": true
+    },
+    "a155": {
+     "nombre": "Serología",
+     "cat": "otro",
+     "personal": true
+    },
+    "a156": {
+     "nombre": "Sub Bodega",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a157": {
+     "nombre": "Centrífuga",
+     "cat": "otro",
+     "personal": true
+    },
+    "a16": {
+     "nombre": "Hab. 6",
+     "cat": "otro",
+     "personal": false
+    },
+    "a17": {
+     "nombre": "Hab 102",
+     "cat": "otro",
+     "personal": false
+    },
+    "a18": {
+     "nombre": "Hab 107",
+     "cat": "otro",
+     "personal": false
+    },
+    "a19": {
+     "nombre": "Hab 105",
+     "cat": "otro",
+     "personal": false
+    },
+    "a2": {
+     "nombre": "Cafetería",
+     "cat": "otro",
+     "personal": false
+    },
+    "a20": {
+     "nombre": "Hab 103",
+     "cat": "otro",
+     "personal": false
+    },
+    "a21": {
+     "nombre": "Sala de Estar · Hab. 8",
+     "cat": "otro",
+     "personal": false
+    },
+    "a22": {
+     "nombre": "Hab. 12",
+     "cat": "otro",
+     "personal": false
+    },
+    "a23": {
+     "nombre": "Hab. 10",
+     "cat": "otro",
+     "personal": false
+    },
+    "a24": {
+     "nombre": "Hab 104",
+     "cat": "otro",
+     "personal": false
+    },
+    "a25": {
+     "nombre": "Hab. 17",
+     "cat": "otro",
+     "personal": false
+    },
+    "a26": {
+     "nombre": "Hab 101",
+     "cat": "otro",
+     "personal": false
+    },
+    "a27": {
+     "nombre": "Hab. 11",
+     "cat": "otro",
+     "personal": false
+    },
+    "a28": {
+     "nombre": "Escalera",
+     "cat": "escaleras",
+     "icono": "escalera",
+     "personal": false
+    },
+    "a29": {
+     "nombre": "Hab. 9",
+     "cat": "otro",
+     "personal": false
+    },
+    "a3": {
+     "nombre": "Pasillo",
+     "cat": "circulacion",
+     "personal": false
+    },
+    "a30": {
+     "nombre": "Hab. 5",
+     "cat": "otro",
+     "personal": false
+    },
+    "a31": {
+     "nombre": "Hab. 7",
+     "cat": "otro",
+     "personal": false
+    },
+    "a32": {
+     "nombre": "Hab 109",
+     "cat": "otro",
+     "personal": false
+    },
+    "a33": {
+     "nombre": "Hab 111",
+     "cat": "otro",
+     "personal": false
+    },
+    "a34": {
+     "nombre": "Hab 118",
+     "cat": "otro",
+     "personal": false
+    },
+    "a35": {
+     "nombre": "Hab 110",
+     "cat": "otro",
+     "personal": false
+    },
+    "a36": {
+     "nombre": "Hab 116",
+     "cat": "otro",
+     "personal": false
+    },
+    "a37": {
+     "nombre": "Hab 114",
+     "cat": "otro",
+     "personal": false
+    },
+    "a38": {
+     "nombre": "Hab 112",
+     "cat": "otro",
+     "personal": false
+    },
+    "a39": {
+     "nombre": "Hab 124",
+     "cat": "otro",
+     "personal": false
+    },
+    "a4": {
+     "nombre": "Usados",
+     "cat": "otro",
+     "personal": true
+    },
+    "a40": {
+     "nombre": "Hab 108",
+     "cat": "otro",
+     "personal": false
+    },
+    "a41": {
+     "nombre": "Hab 117",
+     "cat": "otro",
+     "personal": false
+    },
+    "a42": {
+     "nombre": "Hab 120",
+     "cat": "otro",
+     "personal": false
+    },
+    "a43": {
+     "nombre": "Hab 122",
+     "cat": "otro",
+     "personal": false
+    },
+    "a44": {
+     "nombre": "Hab 123",
+     "cat": "otro",
+     "personal": false
+    },
+    "a45": {
+     "nombre": "Hab 121",
+     "cat": "otro",
+     "personal": false
+    },
+    "a46": {
+     "nombre": "Hab 113",
+     "cat": "otro",
+     "personal": false
+    },
+    "a47": {
+     "nombre": "Hab 129",
+     "cat": "otro",
+     "personal": false
+    },
+    "a48": {
+     "nombre": "Hab 127",
+     "cat": "otro",
+     "personal": false
+    },
+    "a49": {
+     "nombre": "Hab 125",
+     "cat": "otro",
+     "personal": false
+    },
+    "a5": {
+     "nombre": "Hab. 15",
+     "cat": "otro",
+     "personal": false
+    },
+    "a50": {
+     "nombre": "Hab 115",
+     "cat": "otro",
+     "personal": false
+    },
+    "a51": {
+     "nombre": "Hab 106",
+     "cat": "otro",
+     "personal": false
+    },
+    "a52": {
+     "nombre": "Escalera",
+     "cat": "escaleras",
+     "icono": "escalera",
+     "personal": false
+    },
+    "a53": {
+     "nombre": "Escalera",
+     "cat": "escaleras",
+     "icono": "escalera",
+     "personal": false
+    },
+    "a54": {
+     "nombre": "Terraza 1 · Piso 1",
+     "cat": "otro",
+     "personal": false
+    },
+    "a55": {
+     "nombre": "Escalera de emergencia",
+     "cat": "escaleras",
+     "personal": false
+    },
+    "a56": {
+     "nombre": "Dormitorio Residente 1 · Piso 1",
+     "cat": "otro",
+     "personal": true
+    },
+    "a57": {
+     "nombre": "Terraza 2 · Piso 1",
+     "cat": "otro",
+     "personal": true
+    },
+    "a58": {
+     "nombre": "Residencia",
+     "cat": "otro",
+     "personal": true
+    },
+    "a59": {
+     "nombre": "Sala Reuniones",
+     "cat": "otro",
+     "personal": true
+    },
+    "a6": {
+     "nombre": "Hab. 13",
+     "cat": "otro",
+     "personal": false
+    },
+    "a60": {
+     "nombre": "Preparación Médica",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a61": {
+     "nombre": "Jefatura",
+     "cat": "otro",
+     "personal": true
+    },
+    "a62": {
+     "nombre": "Dormitorio Residente 2 · Piso 1",
+     "cat": "otro",
+     "personal": true
+    },
+    "a63": {
+     "nombre": "Cocina de Piso",
+     "cat": "otro",
+     "personal": true
+    },
+    "a64": {
+     "nombre": "Oficina 1 · Piso 1",
+     "cat": "otro",
+     "personal": true
+    },
+    "a65": {
+     "nombre": "Oficina 2 · Piso 1",
+     "cat": "otro",
+     "personal": true
+    },
+    "a66": {
+     "nombre": "Ascensores",
+     "cat": "ascensores",
+     "icono": "ascensor",
+     "personal": true
+    },
+    "a67": {
+     "nombre": "Examen Tratamiento",
+     "cat": "otro",
+     "personal": true
+    },
+    "a68": {
+     "nombre": "Ascensores",
+     "cat": "ascensores",
+     "icono": "ascensor",
+     "personal": true
+    },
+    "a69": {
+     "cat": "circulacion",
+     "personal": false
+    },
+    "a7": {
+     "nombre": "Sala Rauniones",
+     "cat": "otro",
+     "personal": false
+    },
+    "a70": {
+     "nombre": "L.ch. · U.U.",
+     "cat": "otro",
+     "personal": true
+    },
+    "a71": {
+     "nombre": "Ascensores",
+     "cat": "ascensores",
+     "icono": "ascensor",
+     "personal": false
+    },
+    "a72": {
+     "nombre": "Ascensores",
+     "cat": "ascensores",
+     "icono": "ascensor",
+     "personal": false
+    },
+    "a73": {
+     "nombre": "Ascensor",
+     "cat": "ascensores",
+     "icono": "ascensor",
+     "personal": false
+    },
+    "a74": {
+     "nombre": "Abastecimiento",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a75": {
+     "nombre": "Ductos",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a76": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a77": {
+     "nombre": "Bodega 2 · Piso 1",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a78": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      22.18,
+      86.23
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a79": {
+     "nombre": "U.L",
+     "cat": "otro",
+     "personal": true
+    },
+    "a8": {
+     "nombre": "Hab. 2",
+     "cat": "otro",
+     "personal": false
+    },
+    "a80": {
+     "nombre": "Sanitario · Ducto",
+     "cat": "apoyo",
+     "icono": "bano",
+     "personal": true
+    },
+    "a81": {
+     "nombre": "Bodega 1 · Piso 1",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a82": {
+     "nombre": "Pasillo",
+     "cat": "circulacion",
+     "personal": false
+    },
+    "a83": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      11.72,
+      85.27
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a84": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a85": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a86": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      35.37,
+      85.83
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a87": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "personal": false
+    },
+    "a88": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "personal": false
+    },
+    "a89": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      16.36,
+      89.29
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a9": {
+     "nombre": "Hab. 47",
+     "cat": "otro",
+     "personal": false
+    },
+    "a90": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      22.23,
+      86.48
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a91": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      9.97,
+      85.93
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a92": {
+     "nombre": "Utilería Limpia",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a93": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      17.57,
+      89.36
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a94": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      23.07,
+      90.85
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a95": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      40.89,
+      89.39
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a96": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      35.62,
+      90.81
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a97": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      37.5,
+      86.56
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a98": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      7.07,
+      89.35
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a99": {
+     "nombre": "Almac. Sec",
+     "cat": "otro",
+     "personal": true
+    }
+   },
+   "lugares": [
+    {
+     "id": "L-p1-balcon",
+     "nombre": "Balcón",
+     "cat": "otro",
+     "x": 53.2,
+     "y": 98.9,
+     "personal": false
+    },
+    {
+     "id": "L-p1-cuarto-electrico",
+     "nombre": "Cuarto Eléctrico",
+     "cat": "apoyo",
+     "x": 52.2,
+     "y": 85.4,
+     "personal": true
+    },
+    {
+     "id": "L-p1-estacion-oeste",
+     "nombre": "Estación de Enfermería",
+     "cat": "otro",
+     "x": 29.8,
+     "y": 90.1,
+     "personal": false
+    },
+    {
+     "id": "L-p1-estacion-torre",
+     "nombre": "Estación de Enfermería",
+     "cat": "otro",
+     "x": 74.8,
+     "y": 64.5,
+     "personal": false
+    },
+    {
+     "id": "L-p1-preparacion-oeste",
+     "nombre": "Preparación de Medicinas",
+     "cat": "otro",
+     "x": 30.9,
+     "y": 91.9,
+     "personal": false
+    },
+    {
+     "id": "L-p1-recepcion",
+     "nombre": "Recepción",
+     "cat": "administracion",
+     "x": 54.1,
+     "y": 91,
+     "personal": false
+    },
+    {
+     "id": "L-p1-sala-espera-oeste",
+     "nombre": "Sala de Espera",
+     "cat": "espera",
+     "x": 27.6,
+     "y": 95.3,
+     "personal": false
+    },
+    {
+     "id": "L-p1-trabajo-social",
+     "nombre": "Trabajo Social",
+     "cat": "administracion",
+     "x": 71.4,
+     "y": 46.4,
+     "personal": false
+    }
+   ],
+   "letreros": [
+    {
+     "id": "T-p1-01",
+     "nombre": "Zona 6",
+     "x": 73.98,
+     "y": 75.27,
+     "zona": true
+    }
+   ]
+  },
+  "P2": {
+   "ambientes": {
+    "a0": {
+     "nombre": "Pasillo",
+     "cat": "circulacion",
+     "personal": false
+    },
+    "a1": {
+     "nombre": "Pasillo",
+     "cat": "circulacion",
+     "personal": false
+    },
+    "a10": {
+     "nombre": "Hab 204",
+     "cat": "otro",
+     "personal": false
+    },
+    "a11": {
+     "nombre": "Hab 207",
+     "cat": "otro",
+     "personal": false
+    },
+    "a12": {
+     "nombre": "Hab 219",
+     "cat": "otro",
+     "personal": false
+    },
+    "a13": {
+     "nombre": "Escalera",
+     "cat": "escaleras",
+     "icono": "escalera",
+     "personal": false
+    },
+    "a14": {
+     "nombre": "Hab 220",
+     "cat": "otro",
+     "personal": false
+    },
+    "a15": {
+     "nombre": "Hab 216",
+     "cat": "otro",
+     "personal": false
+    },
+    "a16": {
+     "nombre": "Hab 212",
+     "cat": "otro",
+     "personal": false
+    },
+    "a17": {
+     "nombre": "Hab 223",
+     "cat": "otro",
+     "personal": false
+    },
+    "a18": {
+     "nombre": "Hab 215",
+     "cat": "otro",
+     "personal": false
+    },
+    "a19": {
+     "nombre": "Hab 209",
+     "cat": "otro",
+     "personal": false
+    },
+    "a2": {
+     "nombre": "Quimioterapia Ambulatoria",
+     "cat": "otro",
+     "personal": false
+    },
+    "a20": {
+     "nombre": "Hab 211",
+     "cat": "otro",
+     "personal": false
+    },
+    "a21": {
+     "nombre": "Hab 227",
+     "cat": "otro",
+     "personal": false
+    },
+    "a22": {
+     "nombre": "Hab 208",
+     "cat": "otro",
+     "personal": false
+    },
+    "a23": {
+     "nombre": "Hab 206",
+     "cat": "otro",
+     "personal": false
+    },
+    "a24": {
+     "nombre": "Escalera",
+     "cat": "escaleras",
+     "icono": "escalera",
+     "personal": false
+    },
+    "a25": {
+     "nombre": "Hab 217",
+     "cat": "otro",
+     "personal": false
+    },
+    "a26": {
+     "nombre": "Hab 221",
+     "cat": "otro",
+     "personal": false
+    },
+    "a27": {
+     "nombre": "Hab 213",
+     "cat": "otro",
+     "personal": false
+    },
+    "a28": {
+     "nombre": "Hab 214",
+     "cat": "otro",
+     "personal": false
+    },
+    "a29": {
+     "nombre": "Hab 218",
+     "cat": "otro",
+     "personal": false
+    },
+    "a3": {
+     "nombre": "Usados · Camillas",
+     "cat": "otro",
+     "personal": true
+    },
+    "a30": {
+     "nombre": "Hab 210",
+     "cat": "otro",
+     "personal": false
+    },
+    "a31": {
+     "nombre": "Hab 225",
+     "cat": "otro",
+     "personal": false
+    },
+    "a32": {
+     "nombre": "Sala Médicos",
+     "cat": "otro",
+     "personal": false
+    },
+    "a33": {
+     "nombre": "Dormitorio Residente 1 · Piso 2",
+     "cat": "otro",
+     "personal": true
+    },
+    "a34": {
+     "nombre": "Preparación Médica",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a35": {
+     "nombre": "Dormitorio Residente 2 · Piso 2",
+     "cat": "otro",
+     "personal": true
+    },
+    "a36": {
+     "nombre": "Cocina de Piso",
+     "cat": "otro",
+     "personal": true
+    },
+    "a37": {
+     "nombre": "Ascensores",
+     "cat": "ascensores",
+     "icono": "ascensor",
+     "personal": true
+    },
+    "a38": {
+     "nombre": "Examen Tratamiento",
+     "cat": "otro",
+     "personal": true
+    },
+    "a39": {
+     "nombre": "Ascensores",
+     "cat": "ascensores",
+     "icono": "ascensor",
+     "personal": true
+    },
+    "a4": {
+     "nombre": "Sala Procedimientos",
+     "cat": "otro",
+     "personal": false
+    },
+    "a40": {
+     "nombre": "L.ch. · U.U.",
+     "cat": "otro",
+     "personal": true
+    },
+    "a41": {
+     "nombre": "Ascensores",
+     "cat": "ascensores",
+     "icono": "ascensor",
+     "personal": false
+    },
+    "a42": {
+     "nombre": "Ascensores",
+     "cat": "ascensores",
+     "icono": "ascensor",
+     "personal": false
+    },
+    "a43": {
+     "nombre": "Abastecimiento",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a44": {
+     "nombre": "Ductos",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a45": {
+     "nombre": "Tina · Bodega",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a46": {
+     "nombre": "Sanitario · Ducto",
+     "cat": "apoyo",
+     "icono": "bano",
+     "personal": true
+    },
+    "a47": {
+     "nombre": "Oficina",
+     "cat": "otro",
+     "personal": true
+    },
+    "a48": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a49": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "personal": false
+    },
+    "a5": {
+     "nombre": "Limpios",
+     "cat": "otro",
+     "personal": true
+    },
+    "a50": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "personal": false
+    },
+    "a51": {
+     "nombre": "Aseo",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a52": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a53": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "personal": true
+    },
+    "a54": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "personal": true
+    },
+    "a55": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      70.52,
+      101.38
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a56": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "personal": false
+    },
+    "a57": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      70.53,
+      82.21
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a58": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      70.57,
+      57.07
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a59": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "dest": [
+      70.58,
+      49.13
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a6": {
+     "nombre": "Hab 202",
+     "cat": "otro",
+     "personal": false
+    },
+    "a60": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      76.42,
+      67.74
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a61": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      70.55,
+      60.23
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a62": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "dest": [
+      70.54,
+      67.72
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a63": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "personal": false
+    },
+    "a64": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      76.47,
+      82.24
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a65": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      76.47,
+      88.64
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a66": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      76.45,
+      68.47
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a67": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      76.45,
+      75.89
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a68": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      70.44,
+      75.67
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a69": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      70.52,
+      68.46
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a7": {
+     "nombre": "Hab 205",
+     "cat": "otro",
+     "personal": false
+    },
+    "a70": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      70.53,
+      82.21
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a71": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      70.52,
+      101.38
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a72": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "dest": [
+      76.47,
+      82.24
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a73": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "dest": [
+      76.47,
+      88.64
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a74": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "dest": [
+      76.47,
+      95.03
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a75": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "dest": [
+      76.47,
+      95.03
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a76": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "dest": [
+      70.53,
+      95.01
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a77": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "dest": [
+      70.53,
+      95.01
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a78": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "dest": [
+      70.58,
+      86.74
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a79": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      70.43,
+      75.6
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a8": {
+     "nombre": "Hab 203",
+     "cat": "otro",
+     "personal": false
+    },
+    "a80": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      76.45,
+      75.89
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a81": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      76.42,
+      101.7
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a9": {
+     "nombre": "Hab 201",
+     "cat": "otro",
+     "personal": false
+    }
+   },
+   "lugares": [
+    {
+     "id": "L-p2-estacion",
+     "nombre": "Estación Enfermería",
+     "cat": "otro",
+     "x": 73.5,
+     "y": 65,
+     "personal": false
+    }
+   ],
+   "letreros": [
+    {
+     "id": "T-p2-01",
+     "nombre": "Zona 6",
+     "x": 74.02,
+     "y": 77.22,
+     "zona": true
+    }
+   ]
+  },
+  "P3": {
+   "ambientes": {
+    "a0": {
+     "nombre": "Pasillo",
+     "cat": "circulacion",
+     "personal": false
+    },
+    "a1": {
+     "nombre": "Usados · Camillas",
+     "cat": "otro",
+     "personal": true
+    },
+    "a10": {
+     "nombre": "Sala de Procedimientos",
+     "cat": "otro",
+     "personal": false
+    },
+    "a11": {
+     "nombre": "Hab 303",
+     "cat": "otro",
+     "personal": false
+    },
+    "a12": {
+     "nombre": "Hab 323",
+     "cat": "otro",
+     "personal": false
+    },
+    "a13": {
+     "nombre": "Hab 319",
+     "cat": "otro",
+     "personal": false
+    },
+    "a14": {
+     "nombre": "Hab 309",
+     "cat": "otro",
+     "personal": false
+    },
+    "a15": {
+     "nombre": "Hab 304",
+     "cat": "otro",
+     "personal": false
+    },
+    "a16": {
+     "nombre": "Hab 301",
+     "cat": "otro",
+     "personal": false
+    },
+    "a17": {
+     "nombre": "Hab 1",
+     "cat": "otro",
+     "personal": false
+    },
+    "a18": {
+     "nombre": "Hab 2",
+     "cat": "otro",
+     "personal": false
+    },
+    "a19": {
+     "nombre": "Escalera",
+     "cat": "escaleras",
+     "icono": "escalera",
+     "personal": false
+    },
+    "a2": {
+     "nombre": "Pasillo",
+     "cat": "circulacion",
+     "personal": false
+    },
+    "a20": {
+     "nombre": "Hab 312",
+     "cat": "otro",
+     "personal": false
+    },
+    "a21": {
+     "nombre": "Hab 317",
+     "cat": "otro",
+     "personal": false
+    },
+    "a22": {
+     "nombre": "Hab 306",
+     "cat": "otro",
+     "personal": false
+    },
+    "a23": {
+     "nombre": "Hab 313",
+     "cat": "otro",
+     "personal": false
+    },
+    "a24": {
+     "nombre": "Hab 311",
+     "cat": "otro",
+     "personal": false
+    },
+    "a25": {
+     "nombre": "Escalera",
+     "cat": "escaleras",
+     "icono": "escalera",
+     "personal": false
+    },
+    "a26": {
+     "nombre": "Hab 315",
+     "cat": "otro",
+     "personal": false
+    },
+    "a27": {
+     "nombre": "Hab 310",
+     "cat": "otro",
+     "personal": false
+    },
+    "a28": {
+     "nombre": "Hab 308",
+     "cat": "otro",
+     "personal": false
+    },
+    "a29": {
+     "nombre": "Hab 325",
+     "cat": "otro",
+     "personal": false
+    },
+    "a3": {
+     "nombre": "Sala Rauniones",
+     "cat": "otro",
+     "personal": false
+    },
+    "a30": {
+     "nombre": "Hab 329",
+     "cat": "otro",
+     "personal": false
+    },
+    "a31": {
+     "nombre": "Dormitorio Residente 1 · Piso 3",
+     "cat": "otro",
+     "personal": true
+    },
+    "a32": {
+     "nombre": "Hab 3",
+     "cat": "otro",
+     "personal": false
+    },
+    "a33": {
+     "nombre": "Hab 4",
+     "cat": "otro",
+     "personal": false
+    },
+    "a34": {
+     "nombre": "Dormitorio Residente 2 · Piso 3",
+     "cat": "otro",
+     "personal": true
+    },
+    "a35": {
+     "nombre": "Oficina · Jefatura",
+     "cat": "otro",
+     "personal": true
+    },
+    "a36": {
+     "nombre": "Cocina de Piso",
+     "cat": "otro",
+     "personal": true
+    },
+    "a37": {
+     "nombre": "Bodega",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a38": {
+     "nombre": "Ascensores",
+     "cat": "ascensores",
+     "icono": "ascensor",
+     "personal": true
+    },
+    "a39": {
+     "nombre": "Ascensores",
+     "cat": "ascensores",
+     "icono": "ascensor",
+     "personal": true
+    },
+    "a4": {
+     "nombre": "Pasillo",
+     "cat": "circulacion",
+     "personal": false
+    },
+    "a40": {
+     "nombre": "Baños",
+     "cat": "banos",
+     "personal": false
+    },
+    "a41": {
+     "nombre": "Ascensores",
+     "cat": "ascensores",
+     "icono": "ascensor",
+     "personal": false
+    },
+    "a42": {
+     "nombre": "Ascensores",
+     "cat": "ascensores",
+     "icono": "ascensor",
+     "personal": false
+    },
+    "a43": {
+     "nombre": "Apoyo",
+     "cat": "otro",
+     "personal": true
+    },
+    "a44": {
+     "nombre": "Filtro Paciente",
+     "cat": "otro",
+     "personal": false
+    },
+    "a45": {
+     "nombre": "Sanitario · Ducto",
+     "cat": "otro",
+     "personal": true
+    },
+    "a46": {
+     "cat": "otro",
+     "personal": false
+    },
+    "a47": {
+     "nombre": "Filtro Personal",
+     "cat": "otro",
+     "personal": true
+    },
+    "a48": {
+     "nombre": "U.L. 1 · Piso 3",
+     "cat": "otro",
+     "personal": true
+    },
+    "a49": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "personal": false
+    },
+    "a5": {
+     "nombre": "Limpios",
+     "cat": "otro",
+     "personal": true
+    },
+    "a50": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "personal": false
+    },
+    "a51": {
+     "nombre": "U.L. 2 · Piso 3",
+     "cat": "otro",
+     "personal": true
+    },
+    "a52": {
+     "nombre": "U.U. 2 · Piso 3",
+     "cat": "otro",
+     "personal": true
+    },
+    "a53": {
+     "nombre": "U.U. 1 · Piso 3",
+     "cat": "otro",
+     "personal": true
+    },
+    "a54": {
+     "nombre": "Ducto Agua y Sanit. · Ducto",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a55": {
+     "nombre": "Pasillo",
+     "cat": "circulacion",
+     "personal": false
+    },
+    "a56": {
+     "nombre": "Aseo",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a57": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "personal": true
+    },
+    "a58": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "personal": true
+    },
+    "a59": {
+     "nombre": "Filtro 1 · Piso 3",
+     "cat": "otro",
+     "personal": false
+    },
+    "a6": {
+     "nombre": "Hab 307",
+     "cat": "otro",
+     "personal": false
+    },
+    "a60": {
+     "nombre": "Filtro 2 · Piso 3",
+     "cat": "otro",
+     "personal": false
+    },
+    "a61": {
+     "nombre": "Filtro 3 · Piso 3",
+     "cat": "otro",
+     "personal": false
+    },
+    "a62": {
+     "nombre": "Filtro 4 · Piso 3",
+     "cat": "otro",
+     "personal": false
+    },
+    "a63": {
+     "nombre": "Aseo",
+     "cat": "apoyo",
+     "personal": true
+    },
+    "a64": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "personal": false
+    },
+    "a65": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "dest": [
+      70.56,
+      54.95
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a66": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "personal": false
+    },
+    "a67": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      70.57,
+      57.07
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a68": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      76.42,
+      67.74
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a69": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      70.55,
+      60.23
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a7": {
+     "nombre": "Hab 321",
+     "cat": "otro",
+     "personal": false
+    },
+    "a70": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "dest": [
+      70.56,
+      67.74
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a71": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      76.33,
+      90.82
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a72": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      76.5,
+      85.98
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a73": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      76.47,
+      82.24
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a74": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      76.45,
+      68.47
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a75": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      70.56,
+      85.92
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a76": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      70.53,
+      94.15
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a77": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      70.53,
+      68.47
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a78": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      70.53,
+      82.21
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a79": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      76.4,
+      95.32
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a8": {
+     "nombre": "Hab 302",
+     "cat": "otro",
+     "personal": false
+    },
+    "a80": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      76.45,
+      75.93
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a81": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "dest": [
+      70.61,
+      103.47
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a82": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "dest": [
+      70.58,
+      98.7
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a83": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "dest": [
+      78.25,
+      103.46
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a84": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "dest": [
+      78.25,
+      98.7
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a85": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      70.65,
+      90.84
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a86": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      70.53,
+      75.91
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a87": {
+     "nombre": "Vest.",
+     "cat": "otro",
+     "personal": true
+    },
+    "a88": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "dest": [
+      76.47,
+      82.24
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a89": {
+     "nombre": "SS.HH.",
+     "cat": "banos",
+     "icono": "bano",
+     "dest": [
+      70.53,
+      82.21
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a9": {
+     "nombre": "Hab 305",
+     "cat": "otro",
+     "personal": false
+    },
+    "a90": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      70.53,
+      75.91
+     ],
+     "ventanilla": true,
+     "personal": false
+    },
+    "a91": {
+     "nombre": "Baño",
+     "cat": "banos",
+     "dest": [
+      76.45,
+      75.93
+     ],
+     "ventanilla": true,
+     "personal": false
+    }
+   },
+   "lugares": [
+    {
+     "id": "L-p3-estacion",
+     "nombre": "Estación Enfermería",
+     "cat": "otro",
+     "x": 73.5,
+     "y": 63,
+     "personal": false
+    },
+    {
+     "id": "L-p3-estacion-trasplantes",
+     "nombre": "Estación Enfermería Trasplantes",
+     "cat": "otro",
+     "x": 73.4,
+     "y": 92.2,
+     "personal": false
+    },
+    {
+     "id": "L-p3-trabajo-social",
+     "nombre": "Trabajo Social",
+     "cat": "administracion",
+     "x": 71.2,
+     "y": 46.6,
+     "personal": false
+    }
+   ],
+   "letreros": [
+    {
+     "id": "T-p3-01",
+     "nombre": "Zona 6",
+     "x": 74,
+     "y": 62.19,
+     "zona": true
+    }
+   ]
+  }
+ }
+}

@@ -4,20 +4,35 @@
 //   y la memoria anterior se borra sola.
 // - La página (index.html): primero la red (para recibir cambios) y, si no hay conexión, la guardada.
 // - Teselas y fuentes del mapa base: de la memoria, renovándose en segundo plano (hasta ~1500 archivos).
+// - Información de los ambientes publicada en OM3 (…/mapa/publicado): primero la red y, si no hay conexión o OM3 no
+//   responde, la última que llegó (así el tótem no se queda sin nombres por un corte).
 const VERSION = new URL(self.location.href).searchParams.get('v') || 'dev'
 const PROPIO = `solca-${VERSION}`
 const TESELAS = 'solca-teselas'
+const OM3 = 'solca-om3'
 const MAX_TESELAS = 1500
 
 self.addEventListener('install', () => self.skipWaiting())
 self.addEventListener('activate', (e) => {
   e.waitUntil((async () => {
-    for (const k of await caches.keys()) if (k.startsWith('solca-') && k !== PROPIO && k !== TESELAS) await caches.delete(k)
+    for (const k of await caches.keys()) if (k.startsWith('solca-') && k !== PROPIO && k !== TESELAS && k !== OM3) await caches.delete(k)
     await self.clients.claim()
   })())
 })
 
 const deMapaBase = (u) => /(^|\.)openfreemap\.org$|(^|\.)gstatic\.com$|fonts\.googleapis\.com$/.test(u.hostname)
+const deOm3 = (u) => /\/mapa\/publicado$/.test(u.pathname)
+
+async function redOUltima(req) {
+  const c = await caches.open(OM3)
+  try {
+    const r = await fetch(req)
+    if (r.ok) { c.put(req, r.clone()); return r }
+    return (await c.match(req)) || r
+  } catch {
+    return (await c.match(req)) || Response.error()
+  }
+}
 
 async function primeroMemoria(req) {
   const c = await caches.open(PROPIO)
@@ -67,5 +82,6 @@ self.addEventListener('fetch', (e) => {
     if (u.searchParams.has('v') || u.pathname.includes('/assets/') || u.pathname.includes('/marca/')) { e.respondWith(primeroMemoria(req)); return }
     return
   }
+  if (deOm3(u)) { e.respondWith(redOUltima(req)); return }
   if (deMapaBase(u)) e.respondWith(memoriaYRenovar(e))
 })

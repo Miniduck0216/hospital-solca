@@ -2,7 +2,13 @@
 // La clave se compara como huella SHA-256 (no queda en claro en el código). Es un control del lado del cliente:
 // no sustituye una autenticación real en un servidor.
 import { useMemo, useState } from 'react'
-import { CATS, plano } from './datos.js'
+import { CATS, ICONO_LUGAR, plano } from './datos.js'
+
+// íconos que se pueden elegir para un ambiente (los mismos que acepta OM3); sin ícono, va el de su categoría
+const NOMBRE_ICONO = {
+  bano: 'Baño', ascensor: 'Ascensor', escalera: 'Escalera', farmacia: 'Farmacia', caja: 'Caja', informacion: 'Información',
+  espera: 'Sala de espera', capilla: 'Capilla', laboratorio: 'Laboratorio', consulta: 'Consulta', administracion: 'Atención y trámites',
+}
 
 const HUELLA_CLAVE = 'e04fd055801526b806fea980412adb229ec73b48d499963f49c42fb21d40dba6'
 
@@ -44,7 +50,7 @@ const TIPOS_PASO = {
 
 /**
  * Panel de administración del plano (un piso). Edita:
- * - cada ambiente: nombre, categoría, punto de acceso, ventanilla, solo personal, oculto
+ * - cada ambiente: nombre, categoría, ícono, punto de acceso, ventanilla, solo personal, oculto
  * - lugares nuevos (un punto con nombre: un módulo, una ventanilla, un servicio sin cuarto propio)
  * - pasos: abrir un vano, cerrar un paso con un muro, trazar una línea de recorrido de pacientes
  * Dentro de OM3 (enOm3) cada cambio se manda a OM3, que lo guarda en el servidor; fuera, solo en este navegador.
@@ -109,6 +115,12 @@ export function PanelAdmin({ d, cambios, onCambiar, onLugar, onQuitarLugar, onPa
           <label>Categoría
             <select value={ov(a.id).cat ?? a.cat} onChange={(e) => onCambiar(a.id, { cat: e.target.value })}>
               {Object.entries(CATS).map(([k, c]) => <option key={k} value={k}>{c.nombre}</option>)}
+            </select>
+          </label>
+          <label>Ícono
+            <select value={ov(a.id).icono ?? a.icono ?? ''} onChange={(e) => onCambiar(a.id, { icono: e.target.value || undefined })}>
+              <option value="">Según la categoría</option>
+              {Object.keys(ICONO_LUGAR).map((k) => <option key={k} value={k}>{NOMBRE_ICONO[k] || k}</option>)}
             </select>
           </label>
           <button className={pick?.id === a.id ? 'btn-negro' : 'btn-claro'} onClick={() => onPick(pick?.id === a.id ? null : { tipo: 'dest', id: a.id })}>

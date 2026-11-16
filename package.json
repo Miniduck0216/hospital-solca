@@ -8,6 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "node --test tests/*.test.js",
+    "vaciar": "node scripts/vaciar_datos.mjs",
+    "comparar-om3": "node scripts/comparar_om3.mjs",
     "validar": "esbuild scripts/validar.js --bundle --platform=node --format=esm --outfile=.validar.mjs --log-level=warning && node .validar.mjs"
   },
   "dependencies": {
