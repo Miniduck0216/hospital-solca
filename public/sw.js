@@ -6,22 +6,59 @@
 // - Teselas y fuentes del mapa base: de la memoria, renovándose en segundo plano (hasta ~1500 archivos).
 // - Información de los ambientes publicada en OM3 (…/mapa/publicado): primero la red y, si no hay conexión o OM3 no
 //   responde, la última que llegó (así el tótem no se queda sin nombres por un corte).
+// - Dibujo publicado en OM3 (…/geo y …/geo/<versión>/archivo?ruta=…): el manifiesto, primero la red y si no, el último;
+//   los archivos, de la memoria. La clave es la dirección, que lleva el número de versión: dos versiones no se mezclan.
+//   Al llegar un manifiesto nuevo se borran los archivos de las otras versiones. El borrador (?vista=) no se guarda.
 const VERSION = new URL(self.location.href).searchParams.get('v') || 'dev'
 const PROPIO = `solca-${VERSION}`
 const TESELAS = 'solca-teselas'
 const OM3 = 'solca-om3'
+const GEO = 'solca-geo'
 const MAX_TESELAS = 1500
 
 self.addEventListener('install', () => self.skipWaiting())
 self.addEventListener('activate', (e) => {
   e.waitUntil((async () => {
-    for (const k of await caches.keys()) if (k.startsWith('solca-') && k !== PROPIO && k !== TESELAS && k !== OM3) await caches.delete(k)
+    for (const k of await caches.keys()) if (k.startsWith('solca-') && k !== PROPIO && k !== TESELAS && k !== OM3 && k !== GEO) await caches.delete(k)
     await self.clients.claim()
   })())
 })
 
 const deMapaBase = (u) => /(^|\.)openfreemap\.org$|(^|\.)gstatic\.com$|fonts\.googleapis\.com$/.test(u.hostname)
 const deOm3 = (u) => /\/mapa\/publicado$/.test(u.pathname)
+const esGeo = (u) => /\/geo\/?$/.test(u.pathname)
+const ARCHIVO_GEO = /\/geo\/([^/]+)\/archivo$/
+
+// manifiesto del dibujo: primero la red; si cambió la versión, se borran los archivos de las demás
+async function manifiestoGeo(req) {
+  const c = await caches.open(GEO)
+  try {
+    const r = await fetch(req)
+    if (!r.ok) return r.status === 404 ? r : ((await c.match(req)) || r)
+    c.put(req, r.clone())
+    const m = await r.clone().json().catch(() => null)
+    const v = m && String(m.version?.id ?? m.version)
+    if (v) {
+      const raiz = new URL(req.url).pathname.replace(/\/geo\/?$/, '/geo/')
+      for (const k of await c.keys()) {
+        const ku = new URL(k.url)
+        const x = ku.pathname.match(ARCHIVO_GEO)
+        if (x && ku.pathname.startsWith(raiz) && x[1] !== v) await c.delete(k)
+      }
+    }
+    return r
+  } catch {
+    return (await c.match(req)) || Response.error()
+  }
+}
+async function archivoGeo(req) {
+  const c = await caches.open(GEO)
+  const hit = await c.match(req)
+  if (hit) return hit
+  const r = await fetch(req)
+  if (r.ok) c.put(req, r.clone())
+  return r
+}
 
 async function redOUltima(req) {
   const c = await caches.open(OM3)
@@ -83,5 +120,9 @@ self.addEventListener('fetch', (e) => {
     return
   }
   if (deOm3(u)) { e.respondWith(redOUltima(req)); return }
+  if (!u.searchParams.has('vista')) {
+    if (esGeo(u)) { e.respondWith(manifiestoGeo(req)); return }
+    if (ARCHIVO_GEO.test(u.pathname)) { e.respondWith(archivoGeo(req)); return }
+  }
   if (deMapaBase(u)) e.respondWith(memoriaYRenovar(e))
 })

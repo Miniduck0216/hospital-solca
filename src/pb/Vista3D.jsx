@@ -7,6 +7,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls, useGLTF, Line, Html } from '@react-three/drei'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { BASE, aLonLat, rumbo, dePlano, CATS } from './datos.js'
+import { urlArchivo, origenGeoDeUrl } from './geometria.js'
 import { Cargando } from './Cargando.jsx'
 import { Exterior } from './Exterior3D.jsx'
 import { Letreros } from './Letreros3D.jsx'
@@ -141,7 +142,7 @@ const ALZAR = 38
 // un piso del edificio: su modelo (una o varias partes), su techo y su posición. Estados:
 // 'activo' (el que se mira: muros cortados a la altura elegida, pisos de color y puertas que se abren),
 // 'abajo' (completo, con su techo), 'arriba' (sube y desaparece) y 'oculto' (el subsuelo bajo tierra)
-function Piso3D({ p, techo, estado, corte, letreros, y0 = p.nivel * H_PISO }) {
+function Piso3D({ p, origen, techo, estado, corte, letreros, y0 = p.nivel * H_PISO }) {
   const grupo = useRef()
   const plano = useMemo(() => new THREE.Plane(new THREE.Vector3(0, -1, 0), 9999), [])
   const meta = estado === 'arriba' ? y0 + ALZAR + Math.max(0, p.nivel) * 6 : y0
@@ -159,7 +160,7 @@ function Piso3D({ p, techo, estado, corte, letreros, y0 = p.nivel * H_PISO }) {
   return (
     <group ref={grupo} position-y={y0} visible={estado !== 'oculto'}>
       {glb.filter(Boolean).map((u) => (
-        <Suspense key={u} fallback={null}><ParteEdificio url={u} activo={activo} corte={activo ? corte : 9} letreros={activo && letreros} plano={plano} /></Suspense>
+        <Suspense key={u} fallback={null}><ParteEdificio url={urlArchivo(origen, u, BASE, __VERSION__)} activo={activo} corte={activo ? corte : 9} letreros={activo && letreros} plano={plano} /></Suspense>
       ))}
       {techo && !activo && <Techo huella={techo} />}
     </group>
@@ -167,7 +168,7 @@ function Piso3D({ p, techo, estado, corte, letreros, y0 = p.nivel * H_PISO }) {
 }
 
 function ParteEdificio({ url, activo, corte, letreros, plano }) {
-  const { scene } = useGLTF(`${BASE}${url}?v=${__VERSION__}`)
+  const { scene } = useGLTF(url)
   const { gl } = useThree()
   // tapa de los muros cortados: al recortar la altura, el interior hueco del muro se veía como un bloque gris
   // descuadrado; las caras traseras se pintan del color de la tapa y el corte se ve macizo. La tapa es oscura, como el
@@ -1058,7 +1059,7 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
           shadow-camera-left={-160} shadow-camera-right={160} shadow-camera-top={160} shadow-camera-bottom={-160} shadow-camera-near={10} shadow-camera-far={450}
           shadow-bias={-0.0004} shadow-normalBias={0.06} target-position={[cx, 0, -cy]} />
         {lista.map((p) => (
-          <Piso3D key={p.id} p={p} techo={techos[p.id]} estado={estadoDe(p)} corte={corte} letreros={letreros}
+          <Piso3D key={p.id} p={p} origen={d.edificio?.origen} techo={techos[p.id]} estado={estadoDe(p)} corte={corte} letreros={letreros}
             y0={!armado && p.id === pisoId ? base : p.nivel * H_PISO} />
         ))}
         <SueloMapa centro={[cx, cy]} onListo={setMapa} />
@@ -1110,4 +1111,5 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
   )
 })
 
-useGLTF.preload?.(`${BASE}pb/solca_pb.glb?v=${__VERSION__}`)
+// (con el dibujo desde OM3 no se adelanta el modelo de public/: no se usaría)
+if (typeof location === 'undefined' || !origenGeoDeUrl(location.search)) useGLTF.preload?.(`${BASE}pb/solca_pb.glb?v=${__VERSION__}`)

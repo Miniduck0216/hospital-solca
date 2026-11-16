@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore, lazy, Suspe
 import QRCode from 'qrcode'
 import { cargarDatos, cambiosDelPiso, usarGeo, CATS, ICONO_LUGAR, plano, dentro } from './datos.js'
 import { cargarDatosEnHilo } from './cargaEnHilo.js'
+import { origenGeoDeUrl } from './geometria.js'
 import { buscarRuta, indicaciones, metrosHasta, proximoPaso } from './ruta.js'
 import { rutaEdificio } from './rutaEdificio.js'
 import { listaPasos } from './pasoAPaso.js'
@@ -218,13 +219,15 @@ const MODO_ADMIN = !!PADRE
 const PADRE_TOTEM = INSERTADO === 'totem' ? URL_OK(PARAMS.get('padre') || '')?.origin || null : null
 // información de los ambientes publicada en OM3 (?config=<url pública>); sin parámetro, la de CONFIG_OM3_URL (datos.js)
 const CONFIG_URL = URL_OK(PARAMS.get('config') || '')?.href || null
+// origen del dibujo: OM3 con ?geo= (o derivado de ?config=), borrador con ?modo=admin&vista=<token>; si no, public/
+const GEO = origenGeoDeUrl(location.search)
 // preferencias de ruta: ?via=ascensor|escalera|cualquiera (entre pisos) y ?accesible=1 (sin escalones)
 const VIA_INICIAL = ['ascensor', 'escalera', 'cualquiera'].includes(PARAMS.get('via')) ? PARAMS.get('via') : 'ascensor'
 const ACCESIBLE_INICIAL = PARAMS.get('accesible') === '1'
 const VISTAS = ['2d', 'plano', '3d']   // plano: el plano del piso de frente, para guiarse como en un navegador (?vista=plano)
 const VISTA_INICIAL = VISTAS.includes(PARAMS.get('vista')) ? PARAMS.get('vista') : '2d'
 // piso a la vista al abrir: el del origen del enlace (?origen=P1:a12) o ?piso=P1; si no, el inicial del edificio
-const PISO_INICIAL = (PARAMS.get('origen') || '').match(/^(SB|P\d):/)?.[1] || PARAMS.get('piso') || null
+const PISO_INICIAL = (PARAMS.get('origen') || '').match(/^([A-Z0-9]{1,3}):/)?.[1] || PARAMS.get('piso') || null
 
 // destino por nombre (OM3: ?consulta=Cardiología, con la consulta de la cita) y recorrido automático (?recorrer=1)
 const CONSULTA = PARAMS.get('consulta') || PARAMS.get('buscar') || null
@@ -371,7 +374,7 @@ export default function App() {
   // los pisos que no se ven se preparan en otro hilo: así el mapa no se traba mientras tanto (el tótem es lento)
   const cargarPiso = (c, piso, ver = true) => {
     const n = ver ? ++turno.current : 0
-    return (ver ? cargarDatos : cargarDatosEnHilo)(c, { pisoId: piso || undefined, cambiosUrl: CONFIG_URL, sinPublicados: MODO_ADMIN })
+    return (ver ? cargarDatos : cargarDatosEnHilo)(c, { pisoId: piso || undefined, cambiosUrl: CONFIG_URL, sinPublicados: MODO_ADMIN, geo: GEO })
       .then((datos) => {
         usarGeo(datos.geo)
         setPisos((ps) => ({ ...ps, [datos.piso.id]: datos }))
