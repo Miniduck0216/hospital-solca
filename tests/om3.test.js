@@ -11,7 +11,7 @@ import { buscarRuta } from '../src/pb/ruta.js'
 import { buscarLugar } from '../src/pb/guia.js'
 import { TIPOS_ESTRUCTURALES } from '../scripts/vaciar_datos.mjs'
 
-const PUB = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'public')
+const PUB = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'public', 'sedes', 'quito', 'principal')
 const leer = (rel) => JSON.parse(fs.readFileSync(path.join(PUB, rel), 'utf8'))
 const edificio = leer('edificio.json')
 const SIN_OM3 = { cambiosUrl: 'https://om3-caido.test/api/v1/administracion/mapa/otra' }

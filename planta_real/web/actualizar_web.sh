@@ -3,5 +3,5 @@
 set -e
 cd "$(dirname "$0")/../.."
 python3 planta_real/revit/generar.py --pickle      # modelo, IFC para Revit y plano 2D
-python3 planta_real/web/exportar_datos.py          # public/pb/datos.json (mapa, rutas)
-python3 planta_real/web/exportar_glb.py            # public/pb/solca_pb.glb (vista 3D)
+python3 planta_real/web/exportar_datos.py          # public/sedes/quito/principal/pisos/pb/datos.json (mapa, rutas)
+python3 planta_real/web/exportar_glb.py            # public/sedes/quito/principal/pisos/pb/solca_pb.glb (vista 3D)

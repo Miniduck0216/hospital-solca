@@ -1,7 +1,8 @@
 // Proveedor de geometría: de dónde salen los archivos del dibujo (edificio.json, exterior.json y, por piso, datos.json,
 // config.json y los .glb). Solo cambia el origen; el dibujo usa el mismo código en los dos casos.
 //
-// - public/ (como siempre): sin parámetros, o con ?geo=0.
+// - public/ (respaldo local, public/sedes/<sede>/<edificio>/, ver sedes.js): sin parámetros, o con ?geo=0. La carpeta
+//   sale de ?sede=&edificio= o de los de ?geo=/?config=; si esa sede no tiene respaldo, se usa quito/principal.
 // - OM3 (contrato de planos, fase 1): con ?geo=<url de GET /geo?sede=&edificio=> o, si la URL trae ?config=<…/mapa/publicado>,
 //   la misma dirección con /geo en lugar de /publicado (misma sede y edificio). Se lee el manifiesto y luego cada archivo
 //   con GET /geo/:versionId/archivo?ruta=<ruta en el paquete>.
@@ -9,6 +10,8 @@
 //   exactamente 2d, plano o 3d) o ?geo=…/geo?…&vista=<token>. El manifiesto se pide con la URL de ?geo= tal cual y el
 //   token se añade a cada /geo/:id/archivo mientras la versión sea borrador.
 // Si OM3 no responde, da 404 o el manifiesto no sirve, se usan los archivos de public/ (y se avisa en la consola).
+
+import { CARPETA_DEFECTO } from './sedes.js'
 
 export class CaidaOm3 extends Error {}
 
@@ -49,9 +52,12 @@ export function origenGeoDeUrl(busqueda = '', pagina = globalThis.location?.href
   return { url: url.href, vista: enGeo || token }
 }
 
-/** Dirección de un archivo del dibujo según su origen (es un objeto simple: pasa entre hilos). */
+/**
+ * Dirección de un archivo del dibujo según su origen (es un objeto simple: pasa entre hilos).
+ * Con public/, `origen.base` es la carpeta del respaldo (…/sedes/<sede>/<edificio>/); sin ella, `base`.
+ */
 export function urlArchivo(origen, ruta, base = '/', version = 'dev') {
-  if (!origen || origen.tipo !== 'om3') return `${base}${ruta}?v=${version}`
+  if (!origen || origen.tipo !== 'om3') return `${origen?.base ?? base}${ruta}?v=${version}`
   const u = new URL(origen.archivos)
   u.searchParams.set('ruta', ruta)
   if (origen.vista) u.searchParams.set('vista', origen.vista)
@@ -93,14 +99,25 @@ const conPlazo = (url, init) => {
  * Crea el proveedor. Todo lo que devuelve son promesas de JSON o direcciones; el dibujo no sabe de dónde vienen.
  * @param o.geo     { url, vista } de origenGeoDeUrl, o null para public/
  * @param o.base    raíz de public/ (import.meta.env.BASE_URL)
+ * @param o.carpeta carpeta del respaldo local dentro de public/ (carpetaRespaldo de sedes.js)
  * @param o.version __VERSION__ (evita datos viejos de public/)
  * @param o.avisar  dónde se registra la caída a public/ (console.warn)
  */
-export function crearProveedor({ geo = null, base = '/', version = 'dev', avisar = (...a) => console.warn(...a) } = {}) {
+export function crearProveedor({ geo = null, base = '/', carpeta = CARPETA_DEFECTO, version = 'dev', avisar = (...a) => console.warn(...a) } = {}) {
   const pedirJson = (url, init) => fetch(url, init).then((x) => (x.ok ? x.json() : null)).catch(() => null)
-  const publico = { tipo: 'public' }
   let origen = null   // se fija al leer el edificio
   let edificioP = null
+  let respaldoP = null
+
+  // carpeta del respaldo local: la de la sede pedida si tiene edificio.json; si no, quito/principal
+  async function deRespaldo() {
+    const e = await pedirJson(`${base}${carpeta}edificio.json?v=${version}`)
+    if ((e && Array.isArray(e.pisos)) || carpeta === CARPETA_DEFECTO) return { origen: { tipo: 'public', base: `${base}${carpeta}` }, edificio: e }
+    avisar(`[mapa] No hay respaldo local en ${carpeta}; se usa ${CARPETA_DEFECTO}.`)
+    const d = await pedirJson(`${base}${CARPETA_DEFECTO}edificio.json?v=${version}`)
+    return { origen: { tipo: 'public', base: `${base}${CARPETA_DEFECTO}` }, edificio: d }
+  }
+  const respaldo = () => (respaldoP ||= deRespaldo())
 
   async function deOm3() {
     const r = await conPlazo(geo.url, { cache: 'no-cache' })
@@ -125,14 +142,14 @@ export function crearProveedor({ geo = null, base = '/', version = 'dev', avisar
   }
 
   async function dePublic() {
-    const e = await pedirJson(`${base}edificio.json?v=${version}`)
-    return { origen: publico, edificio: e ? { ...e, origen: publico } : null }
+    const r = await respaldo()
+    origen = r.origen
+    return r.edificio && Array.isArray(r.edificio.pisos) ? { ...r.edificio, origen: r.origen } : null
   }
 
   function caer(motivo) {
     avisar(`[mapa] El plano de OM3 no está disponible (${motivo}); se usa el de public/.`)
-    origen = publico
-    edificioP = dePublic().then((x) => x.edificio)
+    edificioP = dePublic()
     return edificioP
   }
 
@@ -141,11 +158,13 @@ export function crearProveedor({ geo = null, base = '/', version = 'dev', avisar
     /** edificio.json (con d.origen); null si no hay ninguno */
     edificio() {
       if (edificioP) return edificioP
-      if (!geo) { origen = publico; edificioP = dePublic().then((x) => x.edificio); return edificioP }
+      if (!geo) { edificioP = dePublic(); return edificioP }
       edificioP = deOm3().then((x) => { origen = x.origen; return x.edificio }).catch((e) => caer(e.message))
       return edificioP
     },
     url(ruta) { return urlArchivo(origen, ruta, base, version) },
+    /** Archivo que solo está en el respaldo local (perfil.json, techos.json), también cuando el dibujo llega de OM3 */
+    async urlRespaldo(ruta) { return urlArchivo((await respaldo()).origen, ruta, base, version) },
     /**
      * Un .json del dibujo (null si no existe). Si OM3 falla a mitad de carga, el proveedor pasa a public/ y lanza
      * CaidaOm3: quien carga vuelve a empezar con el edificio de public/ (las rutas de los pisos cambian).

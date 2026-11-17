@@ -5,7 +5,7 @@ se lleva al marco de la planta baja (los pisos quedan uno sobre otro en las mism
 
 Con --fuera-de <datos.json> solo se dejan los elementos que quedan fuera de la huella de ese plano: así se arma la
 parte nueva de la planta baja sin repetir la que ya estaba.
-Uso: python3 planta_real/pisos/glb_piso.py P1 [salida.glb] [--fuera-de public/pb/datos.json]
+Uso: python3 planta_real/pisos/glb_piso.py P1 [salida.glb] [--fuera-de public/sedes/quito/principal/pisos/pb/datos.json]
 """
 import os
 import sys
@@ -14,6 +14,7 @@ import pickle
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.abspath(os.path.join(AQUI, '..', '..'))
+DATOS = os.path.join(RAIZ, 'public', 'sedes', 'quito', 'principal')   # respaldo local de la sede Quito, edificio principal
 sys.path.insert(0, os.path.join(RAIZ, 'planta_real', 'revit'))
 sys.path.insert(0, os.path.join(RAIZ, 'planta_real', 'web'))
 sys.path.insert(0, AQUI)
@@ -362,7 +363,7 @@ def contorno_fachada(m, piso, zona):
     ox, oy = m.origen
     lineas = [q.exterior for q in _polis(m.huella)]
     try:
-        d = json.load(open(os.path.join(RAIZ, 'public', piso.lower(), 'datos.json'), encoding='utf-8'))
+        d = json.load(open(os.path.join(DATOS, 'pisos', piso.lower(), 'datos.json'), encoding='utf-8'))
         for pg in d['huella']:
             for h in pg[1:]:
                 ph = Polygon(h)
@@ -395,7 +396,7 @@ def cerrar_fachada(m, piso, zona=None):
     # lo que es piso (para saber de qué lado está adentro): la huella sin los patios del plano
     cubierto = m.huella
     try:
-        d = json.load(open(os.path.join(RAIZ, 'public', piso.lower(), 'datos.json'), encoding='utf-8'))
+        d = json.load(open(os.path.join(DATOS, 'pisos', piso.lower(), 'datos.json'), encoding='utf-8'))
         patios = [affinity.translate(Polygon(h), -ox, -oy) for pg in d['huella'] for h in pg[1:]
                   if Polygon(h).area >= 2.0]
         if patios:
@@ -856,7 +857,7 @@ def cerrar_fachada_vieja(esc, m, zona):
     # parte nueva es interior)
     completo = affinity.translate(EP.huella_real(m), ox, oy)
     try:
-        d = json.load(open(os.path.join(RAIZ, 'public', 'pb', 'datos.json'), encoding='utf-8'))
+        d = json.load(open(os.path.join(DATOS, 'pisos', 'pb', 'datos.json'), encoding='utf-8'))
         patios = [Polygon(h) for pg in d['huella'] for h in pg[1:] if Polygon(h).area >= 2.0]
     except (OSError, KeyError, ValueError):
         patios = []
@@ -1083,7 +1084,7 @@ def mamparas_vieja(esc):
     import unir_pb
     from modelo import ALTURA
     try:
-        puertas = json.load(open(os.path.join(RAIZ, 'public', 'pb', 'datos.json'), encoding='utf-8'))['puertas']
+        puertas = json.load(open(os.path.join(DATOS, 'pisos', 'pb', 'datos.json'), encoding='utf-8'))['puertas']
     except (OSError, KeyError, ValueError):
         puertas = []
     H_DINTEL, H_PUERTA_V = 2.40, 2.10
@@ -1193,7 +1194,7 @@ def fachadas_vidrio_tabique_vieja(esc):
 
 
 def recortar_vieja(zona, m=None):
-    """public/pb/solca_pb.glb = el 3D de la planta baja vieja (solca_pb_vieja.glb) sin las caras dentro de `zona`
+    """public/sedes/quito/principal/pisos/pb/solca_pb.glb = el 3D de la planta baja vieja (solca_pb_vieja.glb) sin las caras dentro de `zona`
     (marco de la web; en glTF el plano (x, y) es (x, -z)). Con el modelo nuevo de la planta baja (`m`) se corrigen
     además dos piezas de fachada del modelo viejo: el muro del descanso de las gradas de emergencia y la pérgola de
     la entrada norte."""
@@ -1253,7 +1254,7 @@ def recortar_vieja(zona, m=None):
         mamparas_vieja(esc)
         # fachadas con vidrio por fuera y tabique por dentro (Sala de Consejo)
         fachadas_vidrio_tabique_vieja(esc)
-    salida = os.path.join(RAIZ, 'public', 'pb', 'solca_pb.glb')
+    salida = os.path.join(DATOS, 'pisos', 'pb', 'solca_pb.glb')
     esc.export(salida)
     print('GLB vieja recortada', salida, round(os.path.getsize(salida) / 1e6, 2), 'MB')
 
@@ -1295,7 +1296,7 @@ def marquesinas(esc, piso, ox, oy):
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith('--')]
     piso = args[0]
-    salida = args[1] if len(args) > 1 else os.path.join(RAIZ, 'public', piso.lower(), f'solca_{piso.lower()}.glb')
+    salida = args[1] if len(args) > 1 else os.path.join(DATOS, 'pisos', piso.lower(), f'solca_{piso.lower()}.glb')
     fuera = sys.argv[sys.argv.index('--fuera-de') + 1] if '--fuera-de' in sys.argv else None
     import __main__
     import modelo_piso

@@ -1,9 +1,10 @@
 // Datos de la planta baja real (exportados desde el plano del hospital) y georreferencia sobre el mapa.
-// El plano (public/<piso>/datos.json y config.json) solo trae geometría e ids: los nombres, categorías, íconos, solo
+// El plano (public/sedes/<sede>/<edificio>/pisos/<piso>/datos.json y config.json) solo trae geometría e ids: los nombres, categorías, íconos, solo
 // personal, ventanillas, lugares, nombres de las entradas y letreros vienen de OM3 (ver CONFIG_OM3_URL).
 // (en las pruebas con node no hay import.meta.env: se usa la raíz)
 export const BASE = import.meta.env?.BASE_URL ?? "/"
 import { crearProveedor, CaidaOm3 } from './geometria.js'
+import { CARPETA_DEFECTO } from './sedes.js'
 
 // Configuración publicada en OM3 (GET /mapa/publicado, desde OMN_DBA.OMN_ADM_PLANO_*). El tótem, el celular y el
 // editor la pasan en ?config=; sin parámetro (sitio público) se usa esta. VITE_CONFIG_OM3_URL la cambia al compilar.
@@ -29,24 +30,25 @@ const pedirConfig = (url) => {
 // Edificio: pisos disponibles, conectores verticales (ascensores y escaleras) y tiempos para las rutas entre pisos
 const EDIFICIO_RESPALDO = {
   pisoInicial: 'PB',
-  pisos: [{ id: 'PB', nombre: 'Planta baja', corto: 'PB', nivel: 0, disponible: true, datos: 'pb/datos.json', config: 'pb/config.json', glb: 'pb/solca_pb.glb' }],
+  pisos: [{ id: 'PB', nombre: 'Planta baja', corto: 'PB', nivel: 0, disponible: true, datos: 'pisos/pb/datos.json', config: 'pisos/pb/config.json', glb: 'pisos/pb/solca_pb.glb' }],
   conectores: [],
   tiempos: { velocidadMs: 1.2, ascensorEsperaS: 45, ascensorPorPisoS: 5, escaleraPorPisoS: 15 },
 }
-// origen del dibujo (ver geometria.js): un proveedor por origen; sin `geo`, public/ como siempre
+// origen del dibujo (ver geometria.js): un proveedor por origen y carpeta de respaldo; sin `geo`, public/
+// `respaldo`: carpeta del respaldo local (carpetaRespaldo de sedes.js, sedes/<sede>/<edificio>/)
 const proveedores = new Map()
-export function proveedorGeo(geo = null) {
-  const k = geo?.url || ''
-  if (!proveedores.has(k)) proveedores.set(k, crearProveedor({ geo, base: BASE, version: __VERSION__ }))
+export function proveedorGeo(geo = null, respaldo = CARPETA_DEFECTO) {
+  const k = `${geo?.url || ''}|${respaldo}`
+  if (!proveedores.has(k)) proveedores.set(k, crearProveedor({ geo, base: BASE, carpeta: respaldo, version: __VERSION__ }))
   return proveedores.get(k)
 }
 /** @param geo origen del dibujo ({ url, vista } de origenGeoDeUrl); sin él, public/ */
-export async function cargarEdificio(geo = null) {
-  const e = await proveedorGeo(geo).edificio()
+export async function cargarEdificio(geo = null, respaldo = CARPETA_DEFECTO) {
+  const e = await proveedorGeo(geo, respaldo).edificio()
   return e || EDIFICIO_RESPALDO
 }
 
-// Reglas propias de cada piso. En public/<piso>/config.json quedan solo las geométricas: pasos (muros y pasos
+// Reglas propias de cada piso. En pisos/<piso>/config.json quedan solo las geométricas: pasos (muros y pasos
 // trazados) y puertasAuto (ids de los cuartos cuya puerta el plano no dibuja). Las demás (soloPersonal, ventanillas,
 // renombres, ajustes, lugares, letreros) ya no vienen en el plano: esa información llega de OM3; se siguen leyendo
 // si alguna vez se ponen en el config.json de un piso.
@@ -73,6 +75,7 @@ export function compilarConfig(c = {}) {
  * @param opciones.cambiosUrl de dónde leer la configuración publicada en OM3 (?config=); si no, CONFIG_OM3_URL
  * @param opciones.sinPublicados no leer la publicada (editor de OM3: el borrador ya es el estado completo)
  * @param opciones.geo origen del dibujo (OM3 o public/, ver geometria.js); solo cambia de dónde salen los archivos
+ * @param opciones.respaldo carpeta del respaldo local (sedes/<sede>/<edificio>/); por defecto quito/principal
  * Si la configuración no llega (o no trae nada del piso), el piso se dibuja y traza rutas igual, sin nombres:
  * d.sinInformacion = true (la app lo avisa).
  */
@@ -87,8 +90,8 @@ export async function cargarDatos(cambiosLocales = null, opciones = {}) {
 }
 
 async function cargarDatosDe(cambiosLocales, opciones) {
-  const prov = proveedorGeo(opciones.geo)
-  const edificio = await cargarEdificio(opciones.geo)
+  const prov = proveedorGeo(opciones.geo, opciones.respaldo)
+  const edificio = await cargarEdificio(opciones.geo, opciones.respaldo)
   const piso = edificio.pisos.find((p) => p.id === (opciones.pisoId || edificio.pisoInicial) && p.disponible)
   if (!piso) throw new Error('Ese piso todavía no tiene plano')
   const d = await prov.json(piso.datos, { obligatorio: true })
@@ -99,7 +102,7 @@ async function cargarDatosDe(cambiosLocales, opciones) {
   d.cfgCruda = (piso.config && (await prov.json(piso.config))) || {}
   d.cfg = compilarConfig(d.cfgCruda)
   // pisos altos: el perfil del hospital (contorno de la planta baja) se dibuja debajo, como en el plano de cada piso
-  d.perfil = piso.nivel > 0 ? ((await pedirJson(`${BASE}perfil.json?v=${__VERSION__}`))?.huella || []) : []
+  d.perfil = piso.nivel > 0 ? ((await pedirJson(await prov.urlRespaldo('perfil.json')))?.huella || []) : []
   // alrededores tomados de la foto satelital (parqueaderos, canchas y zonas de árboles): ver planta_real/pisos/exterior.py
   if (piso.nivel === 0) {
     const ext = await prov.json('exterior.json')

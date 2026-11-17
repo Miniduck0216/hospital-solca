@@ -7,7 +7,7 @@ import matplotlib; matplotlib.use('Agg'); import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection, PatchCollection
 from matplotlib.patches import Polygon as MPoly
 REG = json.load(open('/home/claude/hospital-solca/planta_real/planos/p1_zonas/registro.json'))['zonas']
-D = json.load(open(sys.argv[2] if len(sys.argv) > 2 else '/home/claude/hospital-solca/public/p1/datos.json'))
+D = json.load(open(sys.argv[2] if len(sys.argv) > 2 else '/home/claude/hospital-solca/public/sedes/quito/principal/pisos/p1/datos.json'))
 OUT = sys.argv[3] if len(sys.argv) > 3 else '/tmp'
 def pdf_segs(f):
     p = fitz.open(f)[0]; out = []; col = []

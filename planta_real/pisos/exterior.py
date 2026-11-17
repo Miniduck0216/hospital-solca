@@ -1,13 +1,13 @@
 """Exterior del 3D (y del 2D) tomado de la foto satelital de la zona, registrada contra la huella de la planta baja:
 parqueaderos, canchas y zonas de árboles. Los polígonos están en píxeles de la foto (1193 x 893, norte arriba);
 la foto se ajustó a la huella (giro, escala y desplazamiento) y aquí se pasan a lon/lat.
-Escribe public/exterior.json. Uso: python3 planta_real/pisos/exterior.py"""
+Escribe public/sedes/quito/principal/exterior.json. Uso: python3 planta_real/pisos/exterior.py"""
 import os
 import json
 import math
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
-PUB = os.path.join(AQUI, '..', '..', 'public')
+PUB = os.path.join(AQUI, '..', '..', 'public', 'sedes', 'quito', 'principal')   # respaldo local de la sede Quito, edificio principal
 
 PARQUEOS = {
     'Parqueadero norte': [(612, 150), (738, 100), (808, 190), (872, 408), (740, 432), (705, 345), (650, 255)],
@@ -60,7 +60,7 @@ def calles(EN, huella):
 
 
 def main():
-    d = json.load(open(os.path.join(PUB, 'pb', 'datos.json')))
+    d = json.load(open(os.path.join(PUB, 'pisos', 'pb', 'datos.json')))
     G = d['geo']
     reg = json.load(open(os.path.join(AQUI, 'exterior_registro.json')))
     a, s = math.radians(reg['ang']), reg['s']

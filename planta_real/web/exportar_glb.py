@@ -15,8 +15,9 @@ import trimesh
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.abspath(os.path.join(AQUI, '..', '..'))
+DATOS = os.path.join(RAIZ, 'public', 'sedes', 'quito', 'principal')   # respaldo local de la sede Quito, edificio principal
 ENTRADA = sys.argv[1] if len(sys.argv) > 1 else os.path.join(RAIZ, 'planta_real/revit/salida/solca_pb.ifc')
-SALIDA = sys.argv[2] if len(sys.argv) > 2 else os.path.join(RAIZ, 'public/pb/solca_pb.glb')
+SALIDA = sys.argv[2] if len(sys.argv) > 2 else os.path.join(DATOS, 'pisos', 'pb', 'solca_pb.glb')
 
 # grupos que la web puede mostrar u ocultar por separado
 def grupo(el):

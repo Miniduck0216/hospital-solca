@@ -1,5 +1,5 @@
 """
-Datos de un piso para la web (public/<piso>/datos.json), con el mismo formato que la planta baja
+Datos de un piso para la web (public/sedes/quito/principal/pisos/<piso>/datos.json), con el mismo formato que la planta baja
 (planta_real/web/exportar_datos.py): ambientes, muros, ventanas, puertas, trazos, muebles, gradas, entradas y la
 rejilla de navegación. Todo en el marco de la planta baja (mismo GEO): los pisos quedan uno sobre otro.
 
@@ -21,6 +21,7 @@ from shapely.ops import unary_union, polylabel
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.abspath(os.path.join(AQUI, '..', '..'))
+DATOS = os.path.join(RAIZ, 'public', 'sedes', 'quito', 'principal')   # respaldo local de la sede Quito, edificio principal
 sys.path.insert(0, os.path.join(RAIZ, 'planta_real', 'revit'))
 sys.path.insert(0, os.path.join(RAIZ, 'planta_real', 'web'))
 sys.path.insert(0, AQUI)
@@ -1413,4 +1414,4 @@ if __name__ == '__main__':
     import modelo_piso
     __main__.ModeloPiso = modelo_piso.ModeloPiso   # modelos guardados al correr modelo_piso.py como script
     m = pickle.load(open(sys.argv[2] if len(sys.argv) > 2 else f'/tmp/modelo_{piso}.pkl', 'rb'))
-    exportar(m, piso, os.path.join(RAIZ, 'public', piso.lower(), 'datos.json'))
+    exportar(m, piso, os.path.join(DATOS, 'pisos', piso.lower(), 'datos.json'))

@@ -2,7 +2,8 @@
 // solo personal, ventanillas, lugares, nombres de las entradas y letreros) sale de la base de OM3
 // (OMN_DBA.OMN_ADM_PLANO_*, GET /api/v1/administracion/mapa/publicado). Ver README → «Datos del mapa».
 //
-// Uso: node scripts/vaciar_datos.mjs   (reescribe public/<piso>/datos.json y public/<piso>/config.json)
+// Uso: node scripts/vaciar_datos.mjs [carpeta]   (reescribe pisos/<piso>/datos.json y config.json del respaldo local;
+//   carpeta por defecto: public/sedes/quito/principal)
 // Es idempotente: se puede volver a correr sobre un plano ya vaciado. Antes de vaciar un plano regenerado desde el DWG,
 // genere la semilla de OM3 desde esta carpeta (OMNIUM_MS_GESTION_HOSPITALARIA: npm run plano:semilla -- <carpeta>).
 //
@@ -17,7 +18,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const PUB = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'public')
+const RAIZ = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
+const PUB = path.resolve(RAIZ, (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url) && process.argv[2]) || 'public/sedes/quito/principal')
 const leer = (rel) => JSON.parse(fs.readFileSync(path.join(PUB, rel), 'utf8'))
 // mismo formato que los escribe planta_real (datos.json compacto; config.json con sangría de 1), con LF
 const escribir = (rel, v, sangria) => fs.writeFileSync(path.join(PUB, rel), JSON.stringify(v, null, sangria), 'utf8')

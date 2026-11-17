@@ -21,9 +21,30 @@ El plano del repositorio solo trae geometría e ids. Toda la información de los
 
 | Archivo | Qué queda |
 |---|---|
-| `public/<piso>/datos.json` | `fuente`, `geo`, `altura`, `huella`, `muros`, `ventanas`, `barandas`, `puertas`, `trazos_puertas`, `trazos`, `muebles`, `gradas`, `viseras`, `nav`, `parqueos`, `poi`. Por ambiente: `id`, `cat` (solo el tipo estructural: `circulacion`, `espera`, `escaleras`, `ascensores` o `banos`; el resto, `otro`), `area`, `pg`, `lbl`, `dest` (puerta según el plano) y `paso`. Por entrada: `id`, `x`, `y`, `fx`, `fy`, `ancho`. |
-| `public/<piso>/config.json` | `piso`, `nota`, `pasos` (muros y pasos trazados) y `puertasAuto` (ids de cuartos cuya puerta el plano no dibuja). |
+| `public/sedes/<sede>/<edificio>/pisos/<piso>/datos.json` | `fuente`, `geo`, `altura`, `huella`, `muros`, `ventanas`, `barandas`, `puertas`, `trazos_puertas`, `trazos`, `muebles`, `gradas`, `viseras`, `nav`, `parqueos`, `poi`. Por ambiente: `id`, `cat` (solo el tipo estructural: `circulacion`, `espera`, `escaleras`, `ascensores` o `banos`; el resto, `otro`), `area`, `pg`, `lbl`, `dest` (puerta según el plano) y `paso`. Por entrada: `id`, `x`, `y`, `fx`, `fy`, `ancho`. |
+| `public/sedes/<sede>/<edificio>/pisos/<piso>/config.json` | `piso`, `nota`, `pasos` (muros y pasos trazados) y `puertasAuto` (ids de cuartos cuya puerta el plano no dibuja). |
 | OM3 (`/mapa/publicado`) | Por ambiente: `nombre`, `cat`, `icono`, `personal`, `oculto`, `ventanilla`, `dest`. Además `lugares`, el nombre de cada entrada (`entradas`), los `letreros` y los pasos del editor. |
+
+### Respaldo local por hospital
+
+El dibujo publicado en OM3 (`/geo`) manda cuando existe. Si no, el mapa usa el respaldo que viaja con el sitio,
+organizado por hospital (una sede de OM3 = un hospital por ciudad) y por edificio:
+
+```
+public/
+  index.html, sw.js, marca/          la aplicación
+  sedes/quito/principal/             edificio.json, exterior.json, perfil.json, techos.json
+    pisos/sb|pb|p1|p2|p3/            datos.json, config.json y los .glb de cada piso
+```
+
+- La carpeta sale de `?sede=&edificio=` o de los mismos parámetros dentro de `?geo=` o `?config=`. La sede puede ser
+  el número de OM3 o el nombre: 1 quito, 2 imbabura, 3 santo-domingo, 4 tungurahua, 5 chimborazo, 6 manabi,
+  7 machala, 8 cuenca, 21 loja (`src/pb/sedes.js`). El edificio por defecto es `principal`.
+- Si esa sede no tiene carpeta, se usa `quito/principal` y se avisa en la consola.
+- Las rutas de `edificio.json` son relativas a la carpeta del edificio (`pisos/pb/datos.json`).
+- `npm run build` (GitHub Pages) y `npm run build:portal` (portal de OM3, `dist-portal/`) usan la misma carpeta.
+  El prototipo anterior (`/prototipo/`) solo va en Pages.
+- `npm run plano:paquete -- --sede 1 --edificio PRINCIPAL` lee la carpeta de esa sede y edificio.
 
 - De dónde se lee: `?config=<url>` (tótem, celular y editor de OM3) o, sin parámetro, `VITE_CONFIG_OM3_URL` al compilar
   (por defecto `https://dev-omniumportal.solcaquito.org.ec/api/v1/administracion/mapa/publicado`).
