@@ -1,5 +1,5 @@
 """Techos del edificio para el 3D: la parte de cada piso que no tapa ningún piso de arriba (azotea), con sus
-patios y tragaluces abiertos. Escribe public/techos.json: { piso: [[anillo, huecos...], ...] }.
+patios y tragaluces abiertos. Escribe public/sedes/quito/principal/techos.json: { piso: [[anillo, huecos...], ...] }.
 Uso: python3 planta_real/pisos/techos.py"""
 import os
 import json
@@ -7,7 +7,7 @@ from shapely.geometry import Polygon, MultiPolygon
 from shapely.ops import unary_union
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
-PUB = os.path.join(AQUI, '..', '..', 'public')
+PUB = os.path.join(AQUI, '..', '..', 'public', 'sedes', 'quito', 'principal')   # respaldo local de la sede Quito, edificio principal
 
 
 def huella(piso):

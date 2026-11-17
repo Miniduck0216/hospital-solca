@@ -1,5 +1,5 @@
 """
-Ajustes por piso que el dibujo no resuelve solo. Se escriben en public/<piso>/config.json → «ajustes»
+Ajustes por piso que el dibujo no resuelve solo. Se escriben en public/sedes/quito/principal/pisos/<piso>/config.json → «ajustes»
 (ver compilarConfig en src/pb/datos.js), con el id del ambiente y su nombre como control: si al volver a
 importar el plano el id ya no tiene ese nombre, el ajuste no se aplica.
 - ventanilla: se atiende por una ventanilla hacia la circulación (Información, Recepción): la ruta llega al
@@ -16,6 +16,7 @@ from shapely.geometry import Polygon
 from shapely.ops import nearest_points
 
 RAIZ = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+DATOS = os.path.join(RAIZ, 'public', 'sedes', 'quito', 'principal')   # respaldo local de la sede Quito, edificio principal
 
 # (nombre, punto aproximado del rótulo, ajuste)
 AJUSTES = {
@@ -660,17 +661,17 @@ def frente(d, a):
 
 
 def main():
-    edificio = json.load(open(os.path.join(RAIZ, 'public', 'edificio.json')))
+    edificio = json.load(open(os.path.join(DATOS, 'edificio.json')))
     # perfil del hospital: contorno de la planta baja, que los planos de los pisos altos traen como referencia
-    pb = json.load(open(os.path.join(RAIZ, 'public', 'pb', 'datos.json')))
-    json.dump({'huella': pb['huella']}, open(os.path.join(RAIZ, 'public', 'perfil.json'), 'w'), separators=(',', ':'))
+    pb = json.load(open(os.path.join(DATOS, 'pisos', 'pb', 'datos.json')))
+    json.dump({'huella': pb['huella']}, open(os.path.join(DATOS, 'perfil.json'), 'w'), separators=(',', ':'))
     personales = {}
     for c in edificio['conectores']:
         if c.get('personal'):
             for s in c['paradas']:
                 personales.setdefault(s['piso'], []).append(s['ambiente'])
     for piso in [p['id'] for p in edificio['pisos']]:
-        carpeta = os.path.join(RAIZ, 'public', piso.lower())
+        carpeta = os.path.join(DATOS, 'pisos', piso.lower())
         d = json.load(open(os.path.join(carpeta, 'datos.json')))
         cfg_p = os.path.join(carpeta, 'config.json')
         cfg = json.load(open(cfg_p))

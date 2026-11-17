@@ -8,7 +8,7 @@ import { armarPaquete, generarZip } from '../scripts/plano_paquete.mjs'
 import { validarPaquete, validarDatosPiso, clasificarRuta } from '../scripts/plano_estructura.mjs'
 import { leerZip } from '../scripts/zip.mjs'
 
-const PUB = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'public')
+const PUB = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'public', 'sedes', 'quito', 'principal')
 const { zip, archivos, manifiesto, avisos } = generarZip({ sede: 1, edificio: 'PRINCIPAL', generado: '2026-11-16T00:00:00Z' })
 const mapa = () => new Map(archivos)
 const conCambio = (ruta, fn) => {
@@ -24,8 +24,8 @@ test('el paquete trae manifest, edificio, exterior y, por piso, datos, config y 
   for (const c of ['SB', 'PB', 'P1', 'P2', 'P3']) for (const f of ['datos.json', 'config.json']) assert.ok(rutas.includes(`pisos/${c}/${f}`), `${c}/${f}`)
   assert.ok(rutas.includes('pisos/PB/solca_pb_este.glb'))
   const m = new Map(archivos)
-  assert.deepEqual(m.get('pisos/PB/datos.json'), fs.readFileSync(path.join(PUB, 'pb', 'datos.json')))
-  assert.deepEqual(m.get('pisos/SB/solca_sb.glb'), fs.readFileSync(path.join(PUB, 'sb', 'solca_sb.glb')))
+  assert.deepEqual(m.get('pisos/PB/datos.json'), fs.readFileSync(path.join(PUB, 'pisos', 'pb', 'datos.json')))
+  assert.deepEqual(m.get('pisos/SB/solca_sb.glb'), fs.readFileSync(path.join(PUB, 'pisos', 'sb', 'solca_sb.glb')))
   assert.deepEqual(avisos, [])
 })
 
@@ -78,7 +78,7 @@ test('validación: falta un datos.json, clave mal escrita, .glb falso, conector 
 })
 
 test('estructura mínima de datos.json: geo, listas, ambientes aN y rejilla nav del tamaño w·h', () => {
-  const d = JSON.parse(fs.readFileSync(path.join(PUB, 'p2', 'datos.json'), 'utf8'))
+  const d = JSON.parse(fs.readFileSync(path.join(PUB, 'pisos', 'p2', 'datos.json'), 'utf8'))
   assert.deepEqual(validarDatosPiso('p2', d).errores, [])
   assert.equal(validarDatosPiso('p2', d).ids.length, d.ambientes.length)
   const malo = structuredClone(d)

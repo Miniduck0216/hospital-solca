@@ -3,6 +3,7 @@ import QRCode from 'qrcode'
 import { cargarDatos, cambiosDelPiso, usarGeo, CATS, ICONO_LUGAR, plano, dentro } from './datos.js'
 import { cargarDatosEnHilo } from './cargaEnHilo.js'
 import { origenGeoDeUrl } from './geometria.js'
+import { carpetaRespaldo } from './sedes.js'
 import { buscarRuta, indicaciones, metrosHasta, proximoPaso } from './ruta.js'
 import { rutaEdificio } from './rutaEdificio.js'
 import { listaPasos } from './pasoAPaso.js'
@@ -223,6 +224,8 @@ const URL_REL = (u) => { try { return u ? URL_OK(new URL(u, location.href).href)
 const CONFIG_URL = URL_REL(PARAMS.get('config'))?.href || null
 // origen del dibujo: OM3 con ?geo= (o derivado de ?config=), borrador con ?modo=admin&vista=<token>; si no, public/
 const GEO = origenGeoDeUrl(location.search)
+// respaldo local por hospital (public/sedes/<sede>/<edificio>/): de ?sede=&edificio= o de los de ?geo=/?config=
+const RESPALDO = carpetaRespaldo(location.search)
 // preferencias de ruta: ?via=ascensor|escalera|cualquiera (entre pisos) y ?accesible=1 (sin escalones)
 const VIA_INICIAL = ['ascensor', 'escalera', 'cualquiera'].includes(PARAMS.get('via')) ? PARAMS.get('via') : 'ascensor'
 const ACCESIBLE_INICIAL = PARAMS.get('accesible') === '1'
@@ -376,7 +379,7 @@ export default function App() {
   // los pisos que no se ven se preparan en otro hilo: así el mapa no se traba mientras tanto (el tótem es lento)
   const cargarPiso = (c, piso, ver = true) => {
     const n = ver ? ++turno.current : 0
-    return (ver ? cargarDatos : cargarDatosEnHilo)(c, { pisoId: piso || undefined, cambiosUrl: CONFIG_URL, sinPublicados: MODO_ADMIN, geo: GEO })
+    return (ver ? cargarDatos : cargarDatosEnHilo)(c, { pisoId: piso || undefined, cambiosUrl: CONFIG_URL, sinPublicados: MODO_ADMIN, geo: GEO, respaldo: RESPALDO })
       .then((datos) => {
         usarGeo(datos.geo)
         setPisos((ps) => ({ ...ps, [datos.piso.id]: datos }))
@@ -924,7 +927,7 @@ export default function App() {
       {d.sinInformacion && <div className="pb-sin-info" role="status">No se pudo cargar la información del hospital</div>}
       {pedirClave && <Clave onOk={() => { setAdmin(true); setPedirClave(false) }} onCerrar={() => setPedirClave(false)} />}
       {qr && origen && <QR lugar={{ ...origen, pisoNombre: pisos[origen.piso]?.piso?.nombre }} onCerrar={() => setQr(false)} />}
-      {!INSERTADO && <a className="pb-proto" href={`${import.meta.env.BASE_URL}prototipo/`}>Prototipo anterior (5 pisos)</a>}
+      {!INSERTADO && import.meta.env.MODE !== 'portal' && <a className="pb-proto" href={`${import.meta.env.BASE_URL}prototipo/`}>Prototipo anterior (5 pisos)</a>}
     </div>
   )
 }

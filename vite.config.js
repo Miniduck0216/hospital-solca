@@ -6,8 +6,10 @@ import { resolve } from 'node:path'
 // - GitHub Pages (npm run build → dist/): https://miniduck0216.github.io/hospital-solca/
 // - Portal de OM3 (npm run build:portal → dist-portal/): https://<portal>/mapa/, en el mismo origen que la API de OM3
 //   (el navegador no deja que una página pública pida datos a una dirección de la red interna). Las variables de
-//   ese build están en .env.portal; OMNIUM_FRONTEND copia dist-portal/ a su dist/mapa/ (npm run mapa:incluir).
-// Página principal: planta baja real (index.html). El prototipo anterior de 5 pisos sigue en /prototipo/.
+//   ese build están en .env.portal. OMNIUM_FRONTEND guarda una copia en su carpeta mapa/ (npm run mapa:actualizar) y la
+//   pone en su dist/mapa/ al compilar.
+// Página principal: planta baja real (index.html). El prototipo anterior de 5 pisos sigue en /prototipo/, solo en Pages.
+// Los datos del respaldo local van por hospital: public/sedes/<sede>/<edificio>/ (ver src/pb/sedes.js).
 export default defineConfig(({ mode }) => {
   const portal = mode === 'portal'
   return {
@@ -18,7 +20,11 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: portal ? 'dist-portal' : 'dist',
       chunkSizeWarningLimit: 9000,
-      rollupOptions: { input: { main: resolve(__dirname, 'index.html'), prototipo: resolve(__dirname, 'prototipo/index.html') } },
+      rollupOptions: {
+        input: portal
+          ? { main: resolve(__dirname, 'index.html') }
+          : { main: resolve(__dirname, 'index.html'), prototipo: resolve(__dirname, 'prototipo/index.html') },
+      },
     },
   }
 })

@@ -3,7 +3,7 @@ Fuente de los pisos: el DXF del edificio completo (Planos_actualizados_HOSPITAL_
 DWG). Trae todos los pisos apilados en el mismo dibujo (unidades: metros), con las mismas capas y bloques que
 el plano de la planta baja que ya usa la web (PA, VE, PU, MU, GR, COL, NO, TA, -COL40-, P-DE, P-IZ, -MP…).
 
-Cada piso se recorta por su caja y se lleva al marco de la planta baja actual (public/pb/datos.json):
+Cada piso se recorta por su caja y se lleva al marco de la planta baja actual (public/sedes/quito/principal/pisos/pb/datos.json):
     local = dxf + T_PB + DESPLAZA[piso]
 T_PB se obtuvo alineando las 131 columnas de la planta baja vieja con las de este DXF (residuo 1,6 mm);
 DESPLAZA[piso], alineando las columnas de cada piso con las de la planta baja (la estructura es la misma).

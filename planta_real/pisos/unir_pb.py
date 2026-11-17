@@ -22,9 +22,10 @@ from shapely.ops import unary_union
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.abspath(os.path.join(AQUI, '..', '..'))
+DATOS = os.path.join(RAIZ, 'public', 'sedes', 'quito', 'principal')   # respaldo local de la sede Quito, edificio principal
 VIEJA = os.path.join(AQUI, 'pb_vieja.json')
 NUEVA = '/tmp/pb_nueva.json'
-SALIDA = os.path.join(RAIZ, 'public', 'pb', 'datos.json')
+SALIDA = os.path.join(DATOS, 'pisos', 'pb', 'datos.json')
 
 # Muros del DWG 2025 que la planta vieja no trae (auditoría de nov 2026, marco de la web): fachada norte junto al hall
 # de vidrio de la torre (P0 - Paredes con su par en Rebars), cara norte de la caja de las gradas de emergencia (par PA

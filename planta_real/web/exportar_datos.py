@@ -20,11 +20,12 @@ from shapely import affinity
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.abspath(os.path.join(AQUI, '..', '..'))
+DATOS = os.path.join(RAIZ, 'public', 'sedes', 'quito', 'principal')   # respaldo local de la sede Quito, edificio principal
 sys.path.insert(0, os.path.join(RAIZ, 'planta_real', 'revit'))
 from categorias import categoria  # noqa: E402
 from modelo import lista_polis, min_ancho  # noqa: E402
 
-SALIDA = os.path.join(RAIZ, 'public', 'pb', 'datos.json')
+SALIDA = os.path.join(DATOS, 'pisos', 'pb', 'datos.json')
 
 # ---------------------------------------------------------------- georreferencia
 # El contorno del plano real cabe en la huella del hospital de OpenStreetMap («Hospital Oncológico de Solca»)

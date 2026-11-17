@@ -4,7 +4,8 @@ import './fetchPublic.js'
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { cargarDatos } from '../src/pb/datos.js'
-import { origenGeoDeUrl, urlArchivo, unirPisos } from '../src/pb/geometria.js'
+import { origenGeoDeUrl, urlArchivo, unirPisos, crearProveedor } from '../src/pb/geometria.js'
+import { carpetaRespaldo, carpetaSede, CARPETA_DEFECTO } from '../src/pb/sedes.js'
 import { armarPaquete } from '../scripts/plano_paquete.mjs'
 
 const OM3 = 'https://om3.test/api/v1/administracion/mapa'
@@ -63,9 +64,37 @@ test('origen: sin parámetros, public/; ?geo= y ?config= (…/publicado) llevan 
   assert.deepEqual(origenGeoDeUrl(`?modo=guia&vista=3d&geo=${encodeURIComponent(`${OM3}/geo?sede=1&edificio=PRINCIPAL`)}`), { url: `${OM3}/geo?sede=1&edificio=PRINCIPAL`, vista: null })
 })
 
+test('respaldo por hospital: la carpeta sale de ?sede=&edificio= o de ?geo=/?config=; sin sede, quito/principal', () => {
+  assert.equal(CARPETA_DEFECTO, 'sedes/quito/principal/')
+  assert.equal(carpetaRespaldo(''), 'sedes/quito/principal/')
+  assert.equal(carpetaRespaldo('?modo=totem'), 'sedes/quito/principal/')
+  assert.equal(carpetaRespaldo('?sede=3'), 'sedes/santo-domingo/principal/')
+  assert.equal(carpetaRespaldo('?sede=21&edificio=ANEXO'), 'sedes/loja/anexo/')
+  assert.equal(carpetaRespaldo('?sede=MANABÍ'), 'sedes/manabi/principal/')
+  assert.equal(carpetaRespaldo(`?geo=${encodeURIComponent(`${OM3}/geo?sede=8&edificio=PRINCIPAL`)}`), 'sedes/cuenca/principal/')
+  assert.equal(carpetaRespaldo(`?config=${encodeURIComponent('/api/v1/administracion/mapa/publicado?sede=7')}`), 'sedes/machala/principal/')
+  assert.equal(carpetaRespaldo('?sede=99'), 'sedes/quito/principal/')
+  assert.equal(carpetaRespaldo('?sede=../../x&edificio=../y'), 'sedes/x/y/')
+  assert.deepEqual([1, 2, 3, 4, 5, 6, 7, 8, 21].map(carpetaSede), ['quito', 'imbabura', 'santo-domingo', 'tungurahua', 'chimborazo', 'manabi', 'machala', 'cuenca', 'loja'])
+})
+
+test('respaldo por hospital: si la sede no tiene carpeta se usa quito/principal y se avisa', async () => {
+  const avisos = []
+  const prov = crearProveedor({ base: '/', carpeta: 'sedes/loja/principal/', version: 't', avisar: (m) => avisos.push(m) })
+  const e = await prov.edificio()
+  assert.equal(e.origen.base, '/sedes/quito/principal/')
+  assert.equal(e.pisos.find((p) => p.id === 'PB').datos, 'pisos/pb/datos.json')
+  assert.equal(prov.url('pisos/pb/datos.json'), '/sedes/quito/principal/pisos/pb/datos.json?v=t')
+  assert.equal(await prov.urlRespaldo('techos.json'), '/sedes/quito/principal/techos.json?v=t')
+  assert.match(avisos.join(' '), /No hay respaldo local en sedes\/loja\/principal\//)
+  const d = await cargarDatos(null, { pisoId: 'P1', respaldo: 'sedes/quito/principal/' })
+  assert.ok(d.ambientes.length > 0 && d.perfil.length > 0)
+})
+
 test('public/: las direcciones son las de siempre (<base><ruta>?v=<versión>)', () => {
   assert.equal(urlArchivo(undefined, 'pb/solca_pb.glb', '/hospital-solca/', '123'), '/hospital-solca/pb/solca_pb.glb?v=123')
   assert.equal(urlArchivo({ tipo: 'public' }, 'pb/datos.json', '/', 'x'), '/pb/datos.json?v=x')
+  assert.equal(urlArchivo({ tipo: 'public', base: '/mapa/sedes/quito/principal/' }, 'pisos/pb/datos.json', '/mapa/', 'x'), '/mapa/sedes/quito/principal/pisos/pb/datos.json?v=x')
   assert.equal(urlArchivo({ tipo: 'om3', archivos: `${OM3}/geo/7/archivo`, vista: null }, 'pisos/PB/solca_pb.glb'), `${OM3}/geo/7/archivo?ruta=pisos%2FPB%2Fsolca_pb.glb`)
 })
 
@@ -96,7 +125,7 @@ test('OM3 da 404 (sin versión publicada) o no responde: se usa public/ y se avi
     try {
       const d = await cargarDatos(null, { geo: geoDe(`?geo=${encodeURIComponent(`${OM3}/geo?sede=9&edificio=X${i}`)}`), pisoId: 'P1' })
       assert.equal(d.edificio.origen.tipo, 'public')
-      assert.equal(d.piso.datos, 'p1/datos.json')
+      assert.equal(d.piso.datos, 'pisos/p1/datos.json')
       assert.ok(d.ambientes.length > 0)
       assert.match(s.avisos.join('\n'), new RegExp(`El plano de OM3 no está disponible \\(GET /geo respondió ${estado}\\)`))
     } finally { s.fin() }
@@ -109,7 +138,7 @@ test('un archivo de OM3 falla a mitad de carga: el piso se vuelve a leer de publ
   try {
     const d = await cargarDatos(null, { geo: geoDe(`?geo=${encodeURIComponent(`${OM3}/geo?sede=1&edificio=MITAD`)}`), pisoId: 'SB' })
     assert.equal(d.edificio.origen.tipo, 'public')
-    assert.equal(d.piso.datos, 'sb/datos.json')
+    assert.equal(d.piso.datos, 'pisos/sb/datos.json')
     assert.match(s.avisos.join('\n'), /pisos\/SB\/datos.json respondió 503/)
   } finally { s.fin() }
 })

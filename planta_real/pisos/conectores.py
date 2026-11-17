@@ -1,5 +1,5 @@
 """
-Conectores verticales del edificio (public/edificio.json): ascensores y escaleras con su parada en cada piso.
+Conectores verticales del edificio (public/sedes/quito/principal/edificio.json): ascensores y escaleras con su parada en cada piso.
 Los pisos comparten el marco de la planta baja, así que un mismo ascensor cae en el mismo lugar en todos: se agrupan
 los ambientes de categoría «ascensores» o «escaleras» de cada piso cuyo rótulo queda a menos de 1,6 m.
 Se conservan el id y el nombre de los conectores que ya estaban (por su parada en la planta baja) y los datos a mano
@@ -12,7 +12,8 @@ import os
 from shapely.geometry import Polygon, Point
 
 RAIZ = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
-EDIF = os.path.join(RAIZ, 'public', 'edificio.json')
+DATOS = os.path.join(RAIZ, 'public', 'sedes', 'quito', 'principal')   # respaldo local de la sede Quito, edificio principal
+EDIF = os.path.join(DATOS, 'edificio.json')
 PISOS = ['SB', 'PB', 'P1', 'P2', 'P3']
 NIVEL = {'SB': -1, 'PB': 0, 'P1': 1, 'P2': 2, 'P3': 3}
 NOMBRE_PISO = {'SB': 'Subsuelo 1', 'PB': 'Planta baja', 'P1': 'Piso 1', 'P2': 'Piso 2', 'P3': 'Piso 3'}
@@ -45,7 +46,7 @@ def manuales():
         for piso in PISOS:
             if piso not in m['paradas']:
                 continue
-            d = json.load(open(os.path.join(RAIZ, 'public', piso.lower(), 'datos.json')))
+            d = json.load(open(os.path.join(DATOS, 'pisos', piso.lower(), 'datos.json')))
             pt = Point(*m['paradas'][piso])
             dentro = [a for a in d['ambientes'] if a['pg'] and Polygon(a['pg'][0]).buffer(0).contains(pt)]
             if not dentro:
@@ -67,7 +68,7 @@ def main():
     edif = json.load(open(EDIF))
     grupos = []   # dict(tipo, x, y, paradas={piso: ambiente})
     for piso in PISOS:
-        ruta = os.path.join(RAIZ, 'public', piso.lower(), 'datos.json')
+        ruta = os.path.join(DATOS, 'pisos', piso.lower(), 'datos.json')
         if not os.path.exists(ruta):
             continue
         d = json.load(open(ruta))
@@ -104,14 +105,14 @@ def main():
         conectores.append(c)
     conectores += manuales()
     for p in edif['pisos']:
-        ruta = os.path.join(RAIZ, 'public', p['id'].lower(), 'datos.json')
+        ruta = os.path.join(DATOS, 'pisos', p['id'].lower(), 'datos.json')
         if os.path.exists(ruta):
-            carpeta = p['id'].lower()
+            carpeta = f"pisos/{p['id'].lower()}"
             # el 3D puede venir en partes (la planta baja: la de antes + la parte este nueva del plano 2025)
-            glb = [f'{carpeta}/{f}' for f in sorted(os.listdir(os.path.join(RAIZ, 'public', carpeta))) if f.endswith('.glb')]
+            glb = [f'{carpeta}/{f}' for f in sorted(os.listdir(os.path.join(DATOS, carpeta))) if f.endswith('.glb')]
             p.update(disponible=True, datos=f'{carpeta}/datos.json', glb=glb[0] if len(glb) == 1 else glb,
                      nombre=NOMBRE_PISO[p['id']])
-            if os.path.exists(os.path.join(RAIZ, 'public', carpeta, 'config.json')):
+            if os.path.exists(os.path.join(DATOS, carpeta, 'config.json')):
                 p['config'] = f'{carpeta}/config.json'
     edif['conectores'] = conectores
     edif['nota'] = ('Pisos importados del DWG del edificio (planta_real/pisos). Conectores generados con '

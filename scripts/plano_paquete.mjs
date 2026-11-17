@@ -1,5 +1,6 @@
 // Arma el paquete (.zip) del dibujo de un edificio para subirlo a OM3 (contrato de planos, fase 1), a partir de lo que
-// hoy está publicado en public/: edificio.json, exterior.json y, por piso, datos.json, config.json y los .glb.
+// hoy está en el respaldo local de la sede (public/sedes/<sede>/<edificio>/, ver src/pb/sedes.js): edificio.json,
+// exterior.json y, por piso, datos.json, config.json y los .glb.
 // Los archivos van tal cual (no se convierten); solo edificio.json cambia sus rutas a las del paquete (pisos/<CLAVE>/…).
 // Antes de escribir se valida la estructura (plano_estructura.mjs); si algo falla no se escribe nada.
 //
@@ -10,13 +11,21 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { escribirZip } from './zip.mjs'
 import { validarPaquete, CLAVE, LIMITES } from './plano_estructura.mjs'
+import { carpetaSede, carpetaEdificio } from '../src/pb/sedes.js'
 
 const RAIZ = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 
 /**
  * @returns {{ archivos: [string, Buffer][], manifiesto: object }}
  */
-export function armarPaquete({ publico = path.join(RAIZ, 'public'), sede, edificio, notas = '', generado = new Date().toISOString() }) {
+/** Carpeta del respaldo local de una sede y edificio de OM3 (1, PRINCIPAL → public/sedes/quito/principal) */
+export function carpetaPublica(sede, edificio) {
+  const s = carpetaSede(sede)
+  if (!s) throw new Error(`La sede ${sede} no tiene carpeta en src/pb/sedes.js`)
+  return path.join(RAIZ, 'public', 'sedes', s, carpetaEdificio(edificio))
+}
+
+export function armarPaquete({ sede, edificio, publico = carpetaPublica(sede, edificio), notas = '', generado = new Date().toISOString() }) {
   const leer = (rel) => fs.readFileSync(path.join(publico, rel))
   const edif = JSON.parse(leer('edificio.json').toString('utf8'))
   const pisos = (edif.pisos || []).filter((p) => p.disponible !== false).sort((a, b) => a.nivel - b.nivel)

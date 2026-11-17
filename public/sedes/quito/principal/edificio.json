@@ -8,9 +8,9 @@
    "corto": "SB",
    "nivel": -1,
    "disponible": true,
-   "datos": "sb/datos.json",
-   "glb": "sb/solca_sb.glb",
-   "config": "sb/config.json"
+   "datos": "pisos/sb/datos.json",
+   "glb": "pisos/sb/solca_sb.glb",
+   "config": "pisos/sb/config.json"
   },
   {
    "id": "PB",
@@ -18,11 +18,11 @@
    "corto": "PB",
    "nivel": 0,
    "disponible": true,
-   "datos": "pb/datos.json",
-   "config": "pb/config.json",
+   "datos": "pisos/pb/datos.json",
+   "config": "pisos/pb/config.json",
    "glb": [
-    "pb/solca_pb.glb",
-    "pb/solca_pb_este.glb"
+    "pisos/pb/solca_pb.glb",
+    "pisos/pb/solca_pb_este.glb"
    ]
   },
   {
@@ -31,9 +31,9 @@
    "corto": "P1",
    "nivel": 1,
    "disponible": true,
-   "datos": "p1/datos.json",
-   "glb": "p1/solca_p1.glb",
-   "config": "p1/config.json"
+   "datos": "pisos/p1/datos.json",
+   "glb": "pisos/p1/solca_p1.glb",
+   "config": "pisos/p1/config.json"
   },
   {
    "id": "P2",
@@ -41,9 +41,9 @@
    "corto": "P2",
    "nivel": 2,
    "disponible": true,
-   "datos": "p2/datos.json",
-   "glb": "p2/solca_p2.glb",
-   "config": "p2/config.json"
+   "datos": "pisos/p2/datos.json",
+   "glb": "pisos/p2/solca_p2.glb",
+   "config": "pisos/p2/config.json"
   },
   {
    "id": "P3",
@@ -51,9 +51,9 @@
    "corto": "P3",
    "nivel": 3,
    "disponible": true,
-   "datos": "p3/datos.json",
-   "glb": "p3/solca_p3.glb",
-   "config": "p3/config.json"
+   "datos": "pisos/p3/datos.json",
+   "glb": "pisos/p3/solca_p3.glb",
+   "config": "pisos/p3/config.json"
   }
  ],
  "conectores": [
