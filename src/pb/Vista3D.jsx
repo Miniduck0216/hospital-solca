@@ -6,8 +6,8 @@ import maplibregl from 'maplibre-gl'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls, useGLTF, Line, Html } from '@react-three/drei'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
-import { BASE, aLonLat, rumbo, dePlano, CATS, proveedorGeo } from './datos.js'
-import { urlArchivo, origenGeoDeUrl } from './geometria.js'
+import { BASE, aLonLat, rumbo, dePlano, CATS, proveedorGeo, CONFIG_OM3_URL } from './datos.js'
+import { urlArchivo, origenGeoDeUrl, geoDeSede } from './geometria.js'
 import { carpetaRespaldo } from './sedes.js'
 import { Cargando } from './Cargando.jsx'
 import { Exterior } from './Exterior3D.jsx'
@@ -982,8 +982,9 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
     let vivo = true
     // techos.json sale siempre del respaldo local de la sede (también con el dibujo de OM3)
     const q = location.search
-    proveedorGeo(origenGeoDeUrl(q), carpetaRespaldo(q)).urlRespaldo('techos.json').then((u) => fetch(u))
-      .then((r) => (r.ok ? r.json() : {})).then((t) => vivo && setTechos(t)).catch(() => {})
+    proveedorGeo(origenGeoDeUrl(q) || geoDeSede(q, CONFIG_OM3_URL), carpetaRespaldo(q)).urlRespaldo('techos.json')
+      .then((u) => (u ? fetch(u) : null))
+      .then((r) => (r?.ok ? r.json() : {})).then((t) => vivo && setTechos(t)).catch(() => {})
     return () => { vivo = false }
   }, [])
   const controles = useRef()
@@ -1116,6 +1117,8 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
 })
 
 // (con el dibujo desde OM3 no se adelanta el modelo de public/: no se usaría)
-if (typeof location === 'undefined' || !origenGeoDeUrl(location.search)) {
-  useGLTF.preload?.(`${BASE}${carpetaRespaldo(typeof location === 'undefined' ? '' : location.search)}pisos/pb/solca_pb.glb?v=${__VERSION__}`)
+// (ni para una sede sin respaldo local: solo Quito lo tiene)
+const RESPALDO_3D = carpetaRespaldo(typeof location === 'undefined' ? '' : location.search)
+if (RESPALDO_3D && (typeof location === 'undefined' || !origenGeoDeUrl(location.search))) {
+  useGLTF.preload?.(`${BASE}${RESPALDO_3D}pisos/pb/solca_pb.glb?v=${__VERSION__}`)
 }

@@ -1,0 +1,28 @@
+{
+ "sede": 2,
+ "edificio": "PRINCIPAL",
+ "nombre": "Hospital SOLCA Imbabura",
+ "fuente": "Hospital SOLCA IMBABURA - 112026.dxf",
+ "dxf": "C:/Users/ASUS/Downloads/Hospital SOLCA IMBABURA - 112026.dxf",
+ "unidad": 0.001,
+ "traslado": [72.0, 50.0],
+ "pisos": [
+  {"clave": "PB", "nombre": "Planta baja", "nivel": 0, "altura": 4.0, "caja": [-70000, -66000, 71000, 77000]}
+ ],
+ "capas": {
+  "PA": ["Interior - Paredes", "Exterior - Paredes", "Estructura - Muros"],
+  "VE": ["Ventanas Archicad", "P02 Vidrio"],
+  "COL": ["Estructura - Columnas"],
+  "GR": ["Escaleras & Barandillas"]
+ },
+ "rellenos": ["Interior - Paredes", "Exterior - Paredes", "Estructura - Muros", "Estructura - Columnas"],
+ "textos": ["P0 - Textos"],
+ "textos_ignorar": ["Ref\\.", "_", "desag", "autoclave", "conexi[óo]n", "^inox$", "pendiente", "^sec\\.?$", "^ref$", "^[+-]?\\d+([,.]\\d+)?$", "^[a-zA-Z]$"],
+ "puertas": {"simple": ["^Puerta (26|con Tarja)"], "doble": ["^Puerta Doble"]},
+ "conservar": ["^Lavabo"],
+ "renombrar_bloques": [["^Lavabo", "AS-03"]],
+ "geo": {
+  "lat0": 0.3449, "lon0": -78.1469, "ang": 0,
+  "nota": "Por calibrar (confianza baja). El plano es el hospital nuevo de SOLCA Imbabura en el sector Huertos Familiares de Ibarra (Edición Médica, El Norte), cuya ubicación exacta no figura en OSM; se usa el final de la línea de bus 14 «Pugacho – Huertos Familiares» (OSM). El DXF no trae flecha del norte: giro 0."
+ }
+}

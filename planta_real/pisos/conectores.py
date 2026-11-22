@@ -11,12 +11,15 @@ import math
 import os
 from shapely.geometry import Polygon, Point
 
+import sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import sede  # noqa: E402
 RAIZ = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
-DATOS = os.path.join(RAIZ, 'public', 'sedes', 'quito', 'principal')   # respaldo local de la sede Quito, edificio principal
+DATOS = sede.SALIDA   # Quito: respaldo local public/sedes/quito/principal; otra sede: planta_real/salida_sedes/<sede>/<edificio>
 EDIF = os.path.join(DATOS, 'edificio.json')
-PISOS = ['SB', 'PB', 'P1', 'P2', 'P3']
-NIVEL = {'SB': -1, 'PB': 0, 'P1': 1, 'P2': 2, 'P3': 3}
-NOMBRE_PISO = {'SB': 'Subsuelo 1', 'PB': 'Planta baja', 'P1': 'Piso 1', 'P2': 'Piso 2', 'P3': 'Piso 3'}
+PISOS = list(sede.PISOS)
+NIVEL = dict(sede.NIVEL)
+NOMBRE_PISO = dict(sede.NOMBRE)
 # nombres por posición (centro aproximado en el marco de la planta baja)
 NOMBRES = [
     ((78.8, 49.1), dict(id='ascensores-hall', nombre='Ascensores del Hall')),
@@ -37,6 +40,21 @@ MANUALES = [
     dict(id='escalera-banco-sangre', tipo='escalera', nombre='Escalera del Banco de Sangre', personal=True,
          paradas={'PB': (98.4, 97.0), 'P1': (101.5, 96.0)}),   # P1: el área que reparte, junto al recuadro
 ]
+
+if not sede.ES_QUITO:
+    # nombres de los conectores de otra sede: config.json → conectores [{x, y, id, nombre, personal}]
+    NOMBRES = [((c['x'], c['y']), {k: v for k, v in c.items() if k not in ('x', 'y')})
+               for c in sede.CFG.get('conectores', [])]
+    MANUALES = []
+
+
+def edificio_nuevo():
+    """edificio.json de una sede que todavía no lo tiene: sus pisos según config.json."""
+    return dict(nombre=sede.NOMBRE_EDIFICIO,
+                pisoInicial=next((p for p in PISOS if NIVEL[p] == 0), PISOS[0]),
+                pisos=[dict(id=p, nombre=NOMBRE_PISO[p], corto=p, nivel=NIVEL[p], disponible=False) for p in PISOS],
+                conectores=[],
+                tiempos=dict(velocidadMs=1.2, ascensorEsperaS=45, ascensorPorPisoS=5, escaleraPorPisoS=15))
 
 
 def manuales():
@@ -65,7 +83,7 @@ def manuales():
 
 
 def main():
-    edif = json.load(open(EDIF))
+    edif = json.load(open(EDIF)) if os.path.exists(EDIF) else edificio_nuevo()
     grupos = []   # dict(tipo, x, y, paradas={piso: ambiente})
     for piso in PISOS:
         ruta = os.path.join(DATOS, 'pisos', piso.lower(), 'datos.json')
@@ -114,6 +132,8 @@ def main():
                      nombre=NOMBRE_PISO[p['id']])
             if os.path.exists(os.path.join(DATOS, carpeta, 'config.json')):
                 p['config'] = f'{carpeta}/config.json'
+            if not glb:
+                p.pop('glb', None)
     edif['conectores'] = conectores
     edif['nota'] = ('Pisos importados del DWG del edificio (planta_real/pisos). Conectores generados con '
                     'planta_real/pisos/conectores.py: un ascensor o escalera es el mismo si cae en el mismo lugar en '

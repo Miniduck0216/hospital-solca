@@ -3,7 +3,7 @@ Modelo de un piso cualquiera con el mismo proceso de la planta baja (revit/model
 ventanas, puertas, tabiques, escaleras, ambientes con nombre, mobiliario.
 Los ajustes a mano de modelo.py (CIERRES, ZONAS, NOMBRES…) son de la planta baja vieja: aquí se vacían,
 y cada piso puede traer los suyos en AJUSTES.
-Uso: python3 planta_real/pisos/modelo_piso.py P1   (deja /tmp/modelo_P1.pkl)
+Uso: python3 planta_real/pisos/modelo_piso.py P1   (deja /tmp/modelo_P1.pkl; otra sede: sede.pkl(piso))
 """
 import os
 import sys
@@ -99,6 +99,14 @@ SEPARADORES_PB = {
 # muros macizos de cada piso (polígonos en metros del marco de la planta baja) que deja corregir(): se suman rellenos
 # a los muros del modelo (el contorno dibujado solo cierra muros de hasta 0,6 m)
 MACIZOS = {}
+
+import sede  # noqa: E402
+if not sede.ES_QUITO:
+    # las correcciones de arriba son del DWG de Quito: otra sede trae las suyas (por ahora ninguna) en su config.json
+    AJUSTES = {p: {} for p in sede.PISOS}
+    CORRECCIONES = {}
+    SEPARADORES_PB = {}
+    MOD.SUELTOS_MAX = float(sede.CFG.get('sueltos_max', 1.5))
 
 
 def macizo(c, planos, textos):
@@ -418,4 +426,4 @@ if __name__ == '__main__':
     m = MP(piso)
     print(piso, 'ambientes', len(getattr(m, 'ambientes', [])), 'puertas', len(getattr(m, 'puertas', [])),
           'muros', len(getattr(m, 'muros', [])), 'origen', m.origen, 'fallos', m.fallos)
-    pickle.dump(m, open(f'/tmp/modelo_{piso}.pkl', 'wb'))
+    pickle.dump(m, open(sede.pkl(piso), 'wb'))

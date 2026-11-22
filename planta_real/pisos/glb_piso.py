@@ -14,7 +14,9 @@ import pickle
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.abspath(os.path.join(AQUI, '..', '..'))
-DATOS = os.path.join(RAIZ, 'public', 'sedes', 'quito', 'principal')   # respaldo local de la sede Quito, edificio principal
+sys.path.insert(0, AQUI)
+import sede  # noqa: E402
+DATOS = sede.SALIDA   # Quito: respaldo local public/sedes/quito/principal; otra sede: planta_real/salida_sedes/<sede>/<edificio>
 sys.path.insert(0, os.path.join(RAIZ, 'planta_real', 'revit'))
 sys.path.insert(0, os.path.join(RAIZ, 'planta_real', 'web'))
 sys.path.insert(0, AQUI)
@@ -618,7 +620,7 @@ def arreglar(m, piso):
             import __main__
             import modelo_piso
             __main__.ModeloPiso = modelo_piso.ModeloPiso
-            ref = pickle.load(open(f"/tmp/modelo_{c['como']}.pkl", 'rb'))
+            ref = pickle.load(open(sede.pkl(c['como']), 'rb'))
             rx, ry = ref.origen
             pares += [affinity.translate(g, rx - ox, ry - oy) for g in muros_de_pares(ref, c['zona'], c['capas'])]
         if pares:
@@ -1293,6 +1295,11 @@ def marquesinas(esc, piso, ox, oy):
         print('marquesina', mq['nombre'], n, 'triángulos')
 
 
+if not sede.ES_QUITO:
+    # cajas de escalera, aberturas, muros forzados y marquesinas de arriba son del DWG de Quito
+    CAJAS_ESCALERA, ABIERTOS, FORZAR_MURO, MARQUESINAS = {}, {}, {}, {}
+
+
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith('--')]
     piso = args[0]
@@ -1301,7 +1308,7 @@ def main():
     import __main__
     import modelo_piso
     __main__.ModeloPiso = modelo_piso.ModeloPiso
-    m = pickle.load(open(f'/tmp/modelo_{piso}.pkl', 'rb'))
+    m = pickle.load(open(sede.pkl(piso), 'rb'))
     ox, oy = m.origen
     # las mismas correcciones del plano que el 2D (muros, puertas, ventanas, mobiliario, escaleras, ambientes)
     EP.preparar(m, piso)
@@ -1329,7 +1336,7 @@ def main():
     # hormigón macizo de los búnkeres (modelo_piso.CORRECCIONES, tipo «macizo»): sin losa debajo (ver a_ifc.escribir)
     m.sin_losa = EP.macizos(m)
     from a_ifc import escribir
-    ifc = f'/tmp/solca_{piso.lower()}.ifc'
+    ifc = sede.ifc(piso)
     escribir(m, ifc, web=True)
     import exportar_glb as EG
     EG.ENTRADA, EG.SALIDA = ifc, salida

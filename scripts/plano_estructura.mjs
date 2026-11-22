@@ -2,15 +2,21 @@
 // La usa `npm run plano:paquete` antes de escribir el zip; OM3 (MS_ADMINISTRACION) valida lo mismo al subirlo.
 //
 // Paquete:
-//   manifest.json             { formato: 1, sede, edificio, pisos: [{ clave, nombre, nivel, altura }], generado, fuente, notas }
+//   manifest.json             { formato: 1, sede, edificio, edificioNombre?, pisos: [{ clave, nombre, nivel, altura }], generado, fuente, notas }
 //   edificio.json             obligatorio: pisos (con datos/config/glb apuntando dentro del paquete) y conectores
 //   exterior.json             opcional
 //   pisos/<CLAVE>/datos.json  obligatorio por piso del manifiesto
 //   pisos/<CLAVE>/config.json opcional
 //   pisos/<CLAVE>/*.glb       opcional
+//   pisos/<CLAVE>/nombres.json opcional: { "a12": { "nombre": "Consultorio 3", "cat": "consulta" }, … } con los nombres que
+//                             trae el DXF (sedes nuevas). Al publicar, OM3 crea en la base los ambientes que todavía no
+//                             existen con ese nombre y categoría; los datos.json siguen sin nombres.
 
 export const CLAVE = /^[A-Z0-9]{1,3}$/
 export const LIMITES = { zipMB: 60, archivoMB: 25 }
+// categorías de ambiente que entiende el mapa y OM3 (OMNIUM_MS_ADMINISTRACION, CATEGORIAS de mapaConfig.service.ts)
+export const CATEGORIAS = ['consulta', 'espera', 'banos', 'farmacia', 'administracion', 'circulacion', 'apoyo', 'escaleras', 'ascensores', 'otro']
+const ID_AMBIENTE = /^a\d{1,5}$/
 
 const esObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
 const num = (v) => typeof v === 'number' && Number.isFinite(v)
@@ -88,8 +94,29 @@ export function clasificarRuta(ruta) {
   if (!m || !CLAVE.test(m[1])) return null
   if (m[2] === 'datos.json') return { tipo: 'datos', piso: m[1] }
   if (m[2] === 'config.json') return { tipo: 'config', piso: m[1] }
+  if (m[2] === 'nombres.json') return { tipo: 'nombres', piso: m[1] }
   if (/^[A-Za-z0-9._-]+\.glb$/.test(m[2])) return { tipo: 'glb', piso: m[1] }
   return null
+}
+
+/**
+ * pisos/<CLAVE>/nombres.json: { "<id>": { nombre, cat } } con ids que existen en el datos.json del piso,
+ * nombre de 1 a 200 caracteres y cat de CATEGORIAS.
+ * @param ids ids de ambientes del datos.json del piso (null si no se pudo leer)
+ */
+export function validarNombres(ruta, n, ids = null) {
+  const e = []
+  if (!esObj(n)) return [`${ruta} debe ser un objeto { "<id>": { nombre, cat } }`]
+  const existen = ids ? new Set(ids) : null
+  for (const [id, v] of Object.entries(n)) {
+    const donde = `${ruta}: ${id}`
+    if (!ID_AMBIENTE.test(id)) { e.push(`${donde}: el id debe ser «a<número>» (hasta 5 cifras)`); continue }
+    if (existen && !existen.has(id)) e.push(`${donde}: no está en pisos/${ruta.split('/')[1]}/datos.json`)
+    if (!esObj(v)) { e.push(`${donde} debe ser { nombre, cat }`); continue }
+    if (typeof v.nombre !== 'string' || !v.nombre.trim() || v.nombre.length > 200) e.push(`${donde}.nombre debe ser texto de 1 a 200 caracteres`)
+    if (typeof v.cat !== 'string' || v.cat.length > 40 || !CATEGORIAS.includes(v.cat)) e.push(`${donde}.cat debe ser una de: ${CATEGORIAS.join(', ')}`)
+  }
+  return e
 }
 
 /**
@@ -120,6 +147,9 @@ export function validarPaquete(archivos, { tamanoZip = null, limites = LIMITES }
     if (m.formato !== 1) errores.push('manifest.json: formato debe ser 1')
     if (!ent(m.sede) || m.sede <= 0) errores.push('manifest.json: sede debe ser un entero mayor que 0')
     if (typeof m.edificio !== 'string' || !m.edificio.trim()) errores.push('manifest.json: edificio debe ser texto')
+    if (m.edificioNombre != null && (typeof m.edificioNombre !== 'string' || !m.edificioNombre.trim() || m.edificioNombre.length > 200)) {
+      errores.push('manifest.json: edificioNombre debe ser texto de 1 a 200 caracteres si viene')
+    }
     if (!Array.isArray(m.pisos) || !m.pisos.length) errores.push('manifest.json: pisos debe ser una lista con al menos un piso')
     else m.pisos.forEach((p, i) => {
       if (!esObj(p) || typeof p.clave !== 'string' || !CLAVE.test(p.clave)) { errores.push(`manifest.json: pisos[${i}].clave debe cumplir ${CLAVE}`); return }
@@ -145,7 +175,9 @@ export function validarPaquete(archivos, { tamanoZip = null, limites = LIMITES }
     if (r?.piso && claves.length && !claves.includes(r.piso)) errores.push(`${ruta}: el piso ${r.piso} no está en manifest.json`)
   }
   for (const [ruta, c] of json) {
-    if (clasificarRuta(ruta)?.tipo === 'config' && !esObj(c)) errores.push(`${ruta} debe ser un objeto`)
+    const r = clasificarRuta(ruta)
+    if (r?.tipo === 'config' && !esObj(c)) errores.push(`${ruta} debe ser un objeto`)
+    if (r?.tipo === 'nombres') errores.push(...validarNombres(ruta, c, ids[r.piso] ?? null))
   }
   const ext = json.get('exterior.json')
   if (json.has('exterior.json') && !esObj(ext)) errores.push('exterior.json debe ser un objeto')

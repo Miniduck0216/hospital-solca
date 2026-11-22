@@ -2,8 +2,11 @@
 // solo personal, ventanillas, lugares, nombres de las entradas y letreros) sale de la base de OM3
 // (OMN_DBA.OMN_ADM_PLANO_*, GET /api/v1/administracion/mapa/publicado). Ver README → «Datos del mapa».
 //
-// Uso: node scripts/vaciar_datos.mjs [carpeta]   (reescribe pisos/<piso>/datos.json y config.json del respaldo local;
-//   carpeta por defecto: public/sedes/quito/principal)
+// Uso: node scripts/vaciar_datos.mjs [carpeta] [--nombres]   (reescribe pisos/<piso>/datos.json y config.json del
+//   respaldo local; carpeta por defecto: public/sedes/quito/principal)
+// --nombres (sedes nuevas, planta_real/pisos/regenerar.sh --sede): antes de vaciar guarda los nombres que trae el DXF
+//   en pisos/<piso>/nombres.json ({ "a12": { "nombre": "Consultorio 3", "cat": "consulta" } }); va en el paquete y OM3
+//   crea con ellos, al publicar, los ambientes que todavía no tiene. Si el piso no tiene config.json, lo crea vacío.
 // Es idempotente: se puede volver a correr sobre un plano ya vaciado. Antes de vaciar un plano regenerado desde el DWG,
 // genere la semilla de OM3 desde esta carpeta (OMNIUM_MS_GESTION_HOSPITALARIA: npm run plano:semilla -- <carpeta>).
 //
@@ -17,9 +20,13 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+// categorías que entienden el mapa y OM3 (CATEGORIAS); otra cualquiera queda «otro»
+import { CATEGORIAS } from './plano_estructura.mjs'
 
 const RAIZ = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
-const PUB = path.resolve(RAIZ, (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url) && process.argv[2]) || 'public/sedes/quito/principal')
+const ES_CLI = !!process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+const ARGS = ES_CLI ? process.argv.slice(2) : []
+const PUB = path.resolve(RAIZ, ARGS.find((a) => !a.startsWith('--')) || 'public/sedes/quito/principal')
 const leer = (rel) => JSON.parse(fs.readFileSync(path.join(PUB, rel), 'utf8'))
 // mismo formato que los escribe planta_real (datos.json compacto; config.json con sangría de 1), con LF
 const escribir = (rel, v, sangria) => fs.writeFileSync(path.join(PUB, rel), JSON.stringify(v, null, sangria), 'utf8')
@@ -31,6 +38,17 @@ const CAMPOS_ENTRADA = ['id', 'x', 'y', 'fx', 'fy', 'ancho']
 const CAMPOS_CONFIG = ['piso', 'nota', 'pasos', 'puertasAuto']
 const NOTA = 'Solo geometría del piso: pasos (muros y pasos trazados) y puertasAuto (ids de cuartos con puerta que el '
   + 'plano no dibuja). Los nombres, categorías, íconos, ventanillas, lugares, entradas y letreros vienen de OM3.'
+
+/** Nombres que trae el plano (antes de vaciarlo): { id: { nombre, cat } } de los ambientes con nombre */
+export function nombresDelPiso(datos) {
+  const out = {}
+  for (const a of datos.ambientes || []) {
+    const nombre = typeof a.nombre === 'string' ? a.nombre.trim().slice(0, 200) : ''
+    if (!nombre || !/^a\d{1,5}$/.test(a.id)) continue
+    out[a.id] = { nombre, cat: CATEGORIAS.includes(a.cat) ? a.cat : 'otro' }
+  }
+  return out
+}
 
 const elegir = (o, campos) => Object.fromEntries(campos.filter((k) => o[k] !== undefined).map((k) => [k, o[k]]))
 const esId = (s) => /^a\d+$/.test(s)
@@ -78,10 +96,22 @@ export function vaciarPiso(datos, config = {}) {
   return { datos: nuevoDatos, config: nuevoConfig }
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (ES_CLI) {
   const edificio = leer('edificio.json')
+  const conNombres = ARGS.includes('--nombres')
   for (const p of edificio.pisos) {
     if (!p.datos) continue
+    if (conNombres) {
+      const n = nombresDelPiso(leer(p.datos))
+      const rutaN = path.posix.join(path.posix.dirname(p.datos), 'nombres.json')
+      // (idempotente: un plano ya vaciado no trae nombres y no borra los que ya se guardaron)
+      if (Object.keys(n).length || !fs.existsSync(path.join(PUB, rutaN))) escribir(rutaN, n, 1)
+      console.log(`${p.id}: ${Object.keys(n).length} nombres del plano en nombres.json`)
+      if (!p.config) {
+        p.config = path.posix.join(path.posix.dirname(p.datos), 'config.json')
+        if (!fs.existsSync(path.join(PUB, p.config))) escribir(p.config, { pasos: [], puertasAuto: [] }, 1)
+      }
+    }
     const config = p.config && fs.existsSync(path.join(PUB, p.config)) ? leer(p.config) : {}
     const v = vaciarPiso(leer(p.datos), config)
     escribir(p.datos, v.datos)
@@ -89,4 +119,5 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     console.log(`${p.id}: ${v.datos.ambientes.length} ambientes, ${v.datos.entradas.length} entradas, `
       + `${v.config.pasos.length} pasos, ${v.config.puertasAuto.length} puertas automáticas`)
   }
+  if (conNombres) escribir('edificio.json', edificio, 1)
 }

@@ -4,8 +4,9 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { armarPaquete, generarZip } from '../scripts/plano_paquete.mjs'
-import { validarPaquete, validarDatosPiso, clasificarRuta } from '../scripts/plano_estructura.mjs'
+import { armarPaquete, generarZip, carpetaPublica } from '../scripts/plano_paquete.mjs'
+import { validarPaquete, validarDatosPiso, clasificarRuta, validarNombres, CATEGORIAS } from '../scripts/plano_estructura.mjs'
+import os from 'node:os'
 import { leerZip } from '../scripts/zip.mjs'
 
 const PUB = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'public', 'sedes', 'quito', 'principal')
@@ -33,6 +34,7 @@ test('manifest: formato 1, sede, edificio y cada piso con nombre, nivel y altura
   assert.equal(manifiesto.formato, 1)
   assert.equal(manifiesto.sede, 1)
   assert.equal(manifiesto.edificio, 'PRINCIPAL')
+  assert.equal(manifiesto.edificioNombre, 'Hospital SOLCA Quito')
   assert.deepEqual(manifiesto.pisos.map((p) => [p.clave, p.nivel]), [['SB', -1], ['PB', 0], ['P1', 1], ['P2', 2], ['P3', 3]])
   assert.equal(manifiesto.pisos[1].nombre, 'Planta baja')
   assert.ok(manifiesto.pisos.every((p) => p.altura === 384))
@@ -90,4 +92,49 @@ test('estructura mínima de datos.json: geo, listas, ambientes aN y rejilla nav 
   const e = validarDatosPiso('p2', malo).errores
   for (const t of ['geo.ang', 'muros debe ser una lista', 'ambientes[0].id', 'ambientes[1].pg', 'nav.celdas debe tener']) assert.ok(e.some((x) => x.includes(t)), t)
   assert.ok(validarDatosPiso('x', []).errores.length)
+})
+
+test('nombres.json (opcional por piso): ids del datos.json, nombre de 1 a 200 caracteres y categoría conocida', () => {
+  assert.deepEqual(clasificarRuta('pisos/PB/nombres.json'), { tipo: 'nombres', piso: 'PB' })
+  assert.deepEqual(CATEGORIAS, ['consulta', 'espera', 'banos', 'farmacia', 'administracion', 'circulacion', 'apoyo', 'escaleras', 'ascensores', 'otro'])
+  const ids = JSON.parse(new Map(archivos).get('pisos/P2/datos.json').toString('utf8')).ambientes.map((a) => a.id)
+  const bueno = { [ids[0]]: { nombre: 'Consultorio 3', cat: 'consulta' }, [ids[1]]: { nombre: 'Bodega', cat: 'otro' } }
+  const m = mapa(); m.set('pisos/P2/nombres.json', Buffer.from(JSON.stringify(bueno)))
+  assert.deepEqual(validarPaquete(m).errores, [])
+  const malo = { b1: { nombre: 'x', cat: 'otro' }, a999999: { nombre: 'x', cat: 'otro' }, a99999: { nombre: 'x', cat: 'otro' },
+    [ids[0]]: { nombre: '', cat: 'consulta' }, [ids[1]]: { nombre: 'x'.repeat(201), cat: 'vertical' }, [ids[2]]: 'Bodega' }
+  const e = validarNombres('pisos/P2/nombres.json', malo, ids)
+  for (const t of ['b1: el id', 'a999999: el id', 'a99999: no está', `${ids[0]}.nombre`, `${ids[1]}.nombre`, `${ids[1]}.cat`, `${ids[2]} debe ser`]) assert.ok(e.some((x) => x.includes(t)), t)
+  const m2 = mapa(); m2.set('pisos/P2/nombres.json', Buffer.from('[]'))
+  assert.ok(validarPaquete(m2).errores.some((x) => x.includes('nombres.json debe ser un objeto')))
+  const m3 = mapa(); m3.set('pisos/P9/nombres.json', Buffer.from('{}'))
+  assert.ok(validarPaquete(m3).errores.some((x) => /P9 no está en manifest.json/.test(x)))
+})
+
+test('manifest: edificioNombre es opcional, texto de 1 a 200 caracteres', () => {
+  assert.ok(validarPaquete(conCambio('manifest.json', (x) => { x.edificioNombre = 5 })).errores.some((e) => e.includes('edificioNombre')))
+  assert.deepEqual(validarPaquete(conCambio('manifest.json', (x) => { delete x.edificioNombre })).errores, [])
+})
+
+test('carpeta de origen: Quito, public/; las demás sedes, la carpeta de trabajo del pipeline (fuera de public/)', () => {
+  assert.equal(carpetaPublica(1, 'PRINCIPAL'), PUB)
+  assert.equal(carpetaPublica(3, 'PRINCIPAL'), path.join(PUB, '..', '..', '..', '..', 'planta_real', 'salida_sedes', 'santo-domingo', 'principal'))
+  assert.equal(carpetaPublica(2, 'PRINCIPAL').split(path.sep).slice(-3).join('/'), 'salida_sedes/imbabura/principal')
+  assert.throws(() => carpetaPublica(99, 'PRINCIPAL'), /no tiene carpeta/)
+})
+
+test('sede nueva: el paquete sale de la carpeta de trabajo (--carpeta) e incluye nombres.json por piso', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'plano-sede-'))
+  try {
+    fs.mkdirSync(path.join(dir, 'pisos', 'pb'), { recursive: true })
+    const d = JSON.parse(fs.readFileSync(path.join(PUB, 'pisos', 'p2', 'datos.json'), 'utf8'))
+    fs.writeFileSync(path.join(dir, 'pisos', 'pb', 'datos.json'), JSON.stringify(d))
+    fs.writeFileSync(path.join(dir, 'pisos', 'pb', 'nombres.json'), JSON.stringify({ [d.ambientes[0].id]: { nombre: 'Hall', cat: 'circulacion' } }))
+    fs.writeFileSync(path.join(dir, 'edificio.json'), JSON.stringify({ nombre: 'Hospital SOLCA Prueba', pisoInicial: 'PB', conectores: [],
+      pisos: [{ id: 'PB', nombre: 'Planta baja', corto: 'PB', nivel: 0, disponible: true, datos: 'pisos/pb/datos.json' }] }))
+    const r = generarZip({ sede: 3, edificio: 'PRINCIPAL', publico: dir, generado: '2026-11-22T00:00:00Z' })
+    assert.deepEqual(r.archivos.map(([x]) => x), ['manifest.json', 'edificio.json', 'pisos/PB/datos.json', 'pisos/PB/nombres.json'])
+    assert.equal(r.manifiesto.sede, 3)
+    assert.equal(r.manifiesto.edificioNombre, 'Hospital SOLCA Prueba')
+  } finally { fs.rmSync(dir, { recursive: true, force: true }) }
 })

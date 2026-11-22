@@ -407,3 +407,9 @@ body { background: #E9EDF1; }
 
 /* flecha del recorrido en modo ligero (tótem): un ícono que el mapa solo mueve y gira */
 .pb-flecha-ligera { pointer-events: none; line-height: 0; }
+/* sede sin plano publicado en OM3: mapa base de la ciudad con el aviso encima */
+.pb-sin-plano { position: fixed; inset: 0; background: #E9EDF1; }
+.pb-sin-plano-mapa { position: absolute; inset: 0; }
+.pb-sin-plano-aviso { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); max-width: min(92vw, 520px); padding: 18px 22px; display: flex; flex-direction: column; gap: 6px; text-align: center; font: 600 1rem "Nunito Sans", system-ui, sans-serif; color: #14181F; background: #fff; border-radius: 12px; box-shadow: 0 6px 24px rgba(20, 24, 31, .18); }
+.pb-sin-plano-aviso strong { font-size: 1.1rem; }
+.pb-sin-plano-aviso span { color: #5B6472; font-weight: 600; }

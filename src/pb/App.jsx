@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, lazy, Suspense } from 'react'
 import QRCode from 'qrcode'
-import { cargarDatos, cambiosDelPiso, usarGeo, CATS, ICONO_LUGAR, plano, dentro } from './datos.js'
+import { cargarDatos, cambiosDelPiso, usarGeo, CATS, ICONO_LUGAR, plano, dentro, CONFIG_OM3_URL } from './datos.js'
 import { cargarDatosEnHilo } from './cargaEnHilo.js'
-import { origenGeoDeUrl } from './geometria.js'
-import { carpetaRespaldo } from './sedes.js'
+import { origenGeoDeUrl, geoDeSede, SinPlano } from './geometria.js'
+import { carpetaRespaldo, sedeDeBusqueda } from './sedes.js'
+import { SinPlanoSede } from './SinPlano.jsx'
 import { buscarRuta, indicaciones, metrosHasta, proximoPaso } from './ruta.js'
 import { rutaEdificio } from './rutaEdificio.js'
 import { listaPasos } from './pasoAPaso.js'
@@ -223,9 +224,11 @@ const PADRE_TOTEM = INSERTADO === 'totem' ? URL_OK(PARAMS.get('padre') || '')?.o
 const URL_REL = (u) => { try { return u ? URL_OK(new URL(u, location.href).href) : null } catch { return null } }
 const CONFIG_URL = URL_REL(PARAMS.get('config'))?.href || null
 // origen del dibujo: OM3 con ?geo= (o derivado de ?config=), borrador con ?modo=admin&vista=<token>; si no, public/
-const GEO = origenGeoDeUrl(location.search)
-// respaldo local por hospital (public/sedes/<sede>/<edificio>/): de ?sede=&edificio= o de los de ?geo=/?config=
+// (una sede sin respaldo local —todas menos Quito— sin ?geo= ni ?config= lo pide al /geo del OM3 por defecto)
+const GEO = origenGeoDeUrl(location.search) || geoDeSede(location.search, CONFIG_OM3_URL)
+// respaldo local (solo Quito: public/sedes/quito/<edificio>/); las demás sedes no tienen: null
 const RESPALDO = carpetaRespaldo(location.search)
+const SEDE = sedeDeBusqueda(location.search)
 // preferencias de ruta: ?via=ascensor|escalera|cualquiera (entre pisos) y ?accesible=1 (sin escalones)
 const VIA_INICIAL = ['ascensor', 'escalera', 'cualquiera'].includes(PARAMS.get('via')) ? PARAMS.get('via') : 'ascensor'
 const ACCESIBLE_INICIAL = PARAMS.get('accesible') === '1'
@@ -390,14 +393,15 @@ export default function App() {
   const cargar = (c, piso = pisoId) => cargarPiso(c, piso, true)
   useEffect(() => {
     const pedido = PISO_INICIAL
-    cargar(cambios, pedido).catch(() => (pedido ? cargar(cambios, null) : Promise.reject(new Error('sin plano'))))
+    cargar(cambios, pedido)
+      .catch((e) => (e instanceof SinPlano ? Promise.reject(e) : pedido ? cargar(cambios, null) : Promise.reject(new Error('sin plano'))))
       .then((datos) => {
         // los demás pisos se cargan después, sin apuro: hacen falta para buscar en todo el edificio y trazar entre pisos
         if (!datos || MODO_ADMIN) return
         const otros = (datos.edificio?.pisos || []).filter((p) => p.disponible && p.id !== datos.piso.id)
         return otros.reduce((pr, p) => pr.then(() => new Promise((ok) => enReposo(ok))).then(() => cargarPiso(cambios, p.id, false).catch(() => setFallidos((f) => [...f, p.id]))), Promise.resolve())
       })
-      .catch((e) => setError(e.message))
+      .catch((e) => setError(e))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   // editor en OM3: OM3 manda el borrador (estado completo) y recibe cada cambio
@@ -727,7 +731,8 @@ export default function App() {
     if (!origen || l.piso === origen.piso) { if (l.piso !== pisoId) verPiso(l.piso); setFoco({ ...l, id: l.local, t: Date.now() }) }
   }
 
-  if (error) return <div className="pb-error">No se pudo cargar el plano: {error}</div>
+  if (error instanceof SinPlano) return <SinPlanoSede sede={SEDE} mensaje={error.message} />
+  if (error) return <div className="pb-error">No se pudo cargar el plano: {error.message || String(error)}</div>
   if (!d) return <Cargando texto="Cargando el plano del hospital…" />
 
   const minutos = rutaOk ? Math.max(1, Math.round((rutaOk.segundos || rutaOk.metros / 1.2) / 60)) : 0
