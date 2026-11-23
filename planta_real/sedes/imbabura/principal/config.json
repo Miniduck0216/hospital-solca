@@ -22,7 +22,7 @@
  "conservar": ["^Lavabo"],
  "renombrar_bloques": [["^Lavabo", "AS-03"]],
  "geo": {
-  "lat0": 0.3449, "lon0": -78.1469, "ang": 0,
-  "nota": "Por calibrar (confianza baja). El plano es el hospital nuevo de SOLCA Imbabura en el sector Huertos Familiares de Ibarra (Edición Médica, El Norte), cuya ubicación exacta no figura en OSM; se usa el final de la línea de bus 14 «Pugacho – Huertos Familiares» (OSM). El DXF no trae flecha del norte: giro 0."
+  "lat0": 0.334809, "lon0": -78.125021, "ang": -99.5,
+  "nota": "Por calibrar. Sede de SOLCA Imbabura en Yacucalle, Ibarra: manzana entre Av. Rafael Sánchez, Tobías Mena y Gral. Julio Andrade (posición que dio Andrés, calles de OSM), centro de la manzana 0.334773, -78.125025. El edificio del DXF (99 × 102 m) no cabe en esa manzana (65 × 140 m sin calles ni veredas): centrado y alineado con las calles, queda dentro un 78 % y sobresale hasta 20 m sobre Av. Rafael Sánchez y Julio Andrade. El giro alinea el dibujo con la cuadrícula de calles (rumbo 9,5°) con «arriba» del dibujo hacia el este, como la captura de Google Maps; el DXF no trae flecha del norte."
  }
 }
