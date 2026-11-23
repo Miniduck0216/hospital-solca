@@ -159,3 +159,17 @@ test('validación como OM3: código del edificio, de 1 a 50 pisos, nivel entre -
   const cfg = validarPaquete(conCambio('pisos/PB/config.json', (c) => { c.pasos = {}; c.puertasAuto = 'a1' })).errores
   assert.ok(cfg.some((e) => e.includes('pasos debe ser una lista')) && cfg.some((e) => e.includes('puertasAuto debe ser una lista')))
 })
+
+test('techos.json y perfil.json (opcionales) van en el paquete tal cual y se validan como en OM3', () => {
+  const rutas = archivos.map(([r]) => r)
+  assert.ok(rutas.includes('techos.json') && rutas.includes('perfil.json'))
+  assert.deepEqual(new Map(archivos).get('techos.json'), fs.readFileSync(path.join(PUB, 'techos.json')))
+  assert.deepEqual(clasificarRuta('techos.json'), { tipo: 'techos' })
+  assert.deepEqual(clasificarRuta('perfil.json'), { tipo: 'perfil' })
+  const t = mapa(); t.set('techos.json', Buffer.from('[]'))
+  assert.ok(validarPaquete(t).errores.includes('techos.json debe ser un objeto'))
+  const p = mapa(); p.set('perfil.json', Buffer.from('{"huella":{}}'))
+  assert.ok(validarPaquete(p).errores.includes('perfil.json debe ser un objeto con huella (lista)'))
+  const sin = mapa(); sin.delete('techos.json'); sin.delete('perfil.json')
+  assert.deepEqual(validarPaquete(sin).errores, [])
+})

@@ -5,6 +5,8 @@
 //   manifest.json             { formato: 1, sede, edificio, edificioNombre?, pisos: [{ clave, nombre, nivel, altura }], generado, fuente, notas }
 //   edificio.json             obligatorio: pisos (con datos/config/glb apuntando dentro del paquete) y conectores
 //   exterior.json             opcional
+//   techos.json               opcional: { <piso>: [[anillo, huecos…], …] } (techos del 3D, como el de Quito)
+//   perfil.json               opcional: { huella: [...] } (contorno de la planta baja bajo los pisos altos)
 //   pisos/<CLAVE>/datos.json  obligatorio por piso del manifiesto
 //   pisos/<CLAVE>/config.json opcional
 //   pisos/<CLAVE>/*.glb       opcional
@@ -93,6 +95,8 @@ export function clasificarRuta(ruta) {
   if (ruta === 'manifest.json') return { tipo: 'manifest' }
   if (ruta === 'edificio.json') return { tipo: 'edificio' }
   if (ruta === 'exterior.json') return { tipo: 'exterior' }
+  if (ruta === 'techos.json') return { tipo: 'techos' }
+  if (ruta === 'perfil.json') return { tipo: 'perfil' }
   const m = ruta.match(/^pisos\/([^/]+)\/([^/]+)$/)
   if (!m || !CLAVE.test(m[1])) return null
   if (m[2] === 'datos.json') return { tipo: 'datos', piso: m[1] }
@@ -190,6 +194,11 @@ export function validarPaquete(archivos, { tamanoZip = null, limites = LIMITES }
   }
   const ext = json.get('exterior.json')
   if (json.has('exterior.json') && !esObj(ext)) errores.push('exterior.json debe ser un objeto')
+  if (json.has('techos.json') && !esObj(json.get('techos.json'))) errores.push('techos.json debe ser un objeto')
+  if (json.has('perfil.json')) {
+    const pf = json.get('perfil.json')
+    if (!esObj(pf) || !Array.isArray(pf.huella)) errores.push('perfil.json debe ser un objeto con huella (lista)')
+  }
 
   const e = json.get('edificio.json')
   if (json.has('edificio.json')) {

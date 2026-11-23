@@ -107,8 +107,8 @@ async function cargarDatosDe(cambiosLocales, opciones) {
   d.cfgCruda = (piso.config && (await prov.json(piso.config))) || {}
   d.cfg = compilarConfig(d.cfgCruda)
   // pisos altos: el perfil del hospital (contorno de la planta baja) se dibuja debajo, como en el plano de cada piso
-  const urlPerfil = piso.nivel > 0 ? await prov.urlRespaldo('perfil.json') : null
-  d.perfil = urlPerfil ? ((await pedirJson(urlPerfil))?.huella || []) : []
+  // (perfil.json: del paquete de OM3 o del respaldo local; ninguno = sin perfil)
+  d.perfil = piso.nivel > 0 ? ((await prov.opcional('perfil.json'))?.huella || []) : []
   // alrededores tomados de la foto satelital (parqueaderos, canchas y zonas de árboles): ver planta_real/pisos/exterior.py
   if (piso.nivel === 0) {
     const ext = await prov.json('exterior.json')
@@ -117,6 +117,10 @@ async function cargarDatosDe(cambiosLocales, opciones) {
     d.zonasArboles = ext?.arboles || []
     d.calles = ext?.calles || []
     d.veredasExt = ext?.veredas || []
+    // sedes cuyo edificio no cabe en la manzana real (exterior_sede.py): las calles de OSM que quedaron en otro lugar se
+    // tapan en el mapa base y el mapa dibuja encima las calles abiertas, sus veredas y sus nombres
+    d.tapa = ext?.tapa || []
+    d.nombresCalles = ext?.nombresCalles || []
   }
   // información de los ambientes publicada en OM3 (?config= o CONFIG_OM3_URL)
   // (en el editor de OM3 el borrador ya es el estado completo: no se suman los publicados)

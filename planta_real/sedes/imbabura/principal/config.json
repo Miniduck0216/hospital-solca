@@ -22,8 +22,9 @@
  "sanitarios_relleno": ["Mobiliario_Pluma_Nº__255$"],
  "conservar": ["^Lavabo"],
  "renombrar_bloques": [["^Lavabo", "AS-03"]],
+ "exterior": {"calles_osm": "calles_osm.json", "vereda": 3.0, "margen": 25, "transicion": 90, "rumbo_calles": 9.5},
  "geo": {
-  "lat0": 0.334809, "lon0": -78.125021, "ang": -99.5,
-  "nota": "Por calibrar. Sede de SOLCA Imbabura en Yacucalle, Ibarra: manzana entre Av. Rafael Sánchez, Tobías Mena y Gral. Julio Andrade (posición que dio Andrés, calles de OSM), centro de la manzana 0.334773, -78.125025. El edificio del DXF (99 × 102 m) no cabe en esa manzana (65 × 140 m sin calles ni veredas): centrado y alineado con las calles, queda dentro un 78 % y sobresale hasta 20 m sobre Av. Rafael Sánchez y Julio Andrade. El giro alinea el dibujo con la cuadrícula de calles (rumbo 9,5°) con «arriba» del dibujo hacia el este, como la captura de Google Maps; el DXF no trae flecha del norte."
+  "lat0": 0.334815, "lon0": -78.125061, "ang": -99.5,
+  "nota": "Sede de SOLCA Imbabura en Yacucalle, Ibarra (confirmado por Andrés): manzana entre Tobías Mena, Av. Rafael Sánchez, Gral. Julio Andrade y Río Blanco, calles de OSM. El edificio va centrado en la manzana y alineado con las calles (rumbo 9,5°, «arriba» del dibujo hacia el este). Como el edificio (99 × 102 m) es más ancho que la manzana real (65 m sin calles), exterior.json abre Av. Rafael Sánchez y Gral. Julio Andrade lo justo para que quepa con 3 m de vereda (planta_real/pisos/exterior_sede.py)."
  }
 }

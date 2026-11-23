@@ -33,6 +33,13 @@ def main():
                         for q in partes if q.area > 1.0]
         print(p['id'], 'techo', round(sum(q.area for q in partes), 1), 'm²', len(out[p['id']]), 'partes')
     json.dump(out, open(os.path.join(PUB, 'techos.json'), 'w'), separators=(',', ':'))
+    if not sede.ES_QUITO:
+        # perfil del hospital: contorno de la planta baja (nivel 0), que el mapa dibuja bajo los pisos altos. En Quito
+        # lo escribe ajustes.py
+        pb = next((p for p in pisos if p['nivel'] == 0), pisos[0])
+        d = json.load(open(os.path.join(PUB, pb['datos'])))
+        json.dump({'huella': d['huella']}, open(os.path.join(PUB, 'perfil.json'), 'w'), separators=(',', ':'))
+        print('perfil: huella de', pb['id'])
 
 
 if __name__ == '__main__':

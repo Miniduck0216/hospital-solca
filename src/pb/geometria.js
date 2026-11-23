@@ -214,10 +214,26 @@ export function crearProveedor({ geo = null, base = '/', carpeta = CARPETA_DEFEC
       return edificioP
     },
     url(ruta) { return urlArchivo(origen, ruta, base, version) },
-    /** Archivo que solo está en el respaldo local (perfil.json, techos.json), también cuando el dibujo llega de OM3 */
+    /** Archivo del respaldo local de la sede (null si la sede no tiene), también cuando el dibujo llega de OM3 */
     async urlRespaldo(ruta) {
       const r = await respaldo()
       return r.origen ? urlArchivo(r.origen, ruta, base, version) : null
+    },
+    /**
+     * Un .json opcional del edificio (techos.json, perfil.json): del paquete de OM3 si el dibujo llega de ahí; si OM3
+     * no lo tiene (404) o no responde, del respaldo local de la sede (solo Quito tiene); si tampoco, null. Nunca lanza
+     * CaidaOm3 ni hace caer el resto del dibujo a public/.
+     */
+    async opcional(ruta) {
+      if (!origen) await this.edificio()
+      if (origen?.tipo === 'om3') {
+        try {
+          const r = await conPlazo(urlArchivo(origen, ruta), { cache: origen.vista ? 'no-store' : 'default' })
+          if (r.ok) return await r.json()
+        } catch { /* sin el archivo de OM3: el respaldo, si hay */ }
+      }
+      const u = await this.urlRespaldo(ruta)
+      return u ? pedirJson(u) : null
     },
     /**
      * Un .json del dibujo (null si no existe). Si OM3 falla a mitad de carga, el proveedor pasa a public/ y lanza

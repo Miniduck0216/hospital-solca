@@ -44,6 +44,7 @@ QUITO_NOMBRE = {'SB': 'Subsuelo 1', 'PB': 'Planta baja', 'P1': 'Piso 1', 'P2': '
 
 if ES_QUITO:
     CFG = None
+    CFG_RUTA = None
     SALIDA = os.path.join(RAIZ, 'public', 'sedes', 'quito', 'principal')
     TMP = '/tmp'
     CACHE = os.path.join(AQUI, 'cache')
@@ -57,6 +58,7 @@ else:
     if not os.path.exists(_ruta):
         raise SystemExit(f'No existe {_ruta}: cree la configuración de la sede {SEDE}, edificio {EDIFICIO}')
     CFG = json.load(open(_ruta, encoding='utf-8'))
+    CFG_RUTA = _ruta
     SALIDA = os.path.join(RAIZ, 'planta_real', 'salida_sedes', SEDE, EDIFICIO)
     TMP = os.path.join(SALIDA, '_trabajo')
     CACHE = os.path.join(TMP, 'cache')
