@@ -280,6 +280,9 @@ def extraer_sede(ents, caja, desplaza):
     dx, dy = tx + desplaza[0], ty + desplaza[1]
     capas = [(k, _re(v)) for k, v in C['capas'].items()]
     rellenos = _re(C.get('rellenos'))
+    # rellenos que dibujan aparatos sanitarios (ArchiCAD no usa bloques de inodoro): cada uno pasa a ser un bloque
+    # «INOD», que modelo.py toma como sanitario y con el que nombra SS.HH. al cuarto sin rótulo que lo contiene
+    sanitarios = _re(C.get('sanitarios_relleno'))
     textos_re = _re(C.get('textos'))
     textos_no = _re(C.get('textos_excluir'))
     p_simple = _re(C.get('puertas', {}).get('simple'))
@@ -401,6 +404,20 @@ def extraer_sede(ents, caja, desplaza):
             texto(e, capa)
             return
         if t == 'HATCH':
+            if sanitarios and sanitarios.search(capa):
+                try:
+                    from ezdxf import path as epath
+                    for pa in epath.from_hatch(e):
+                        q = [(v.x, v.y) for v in pa.flattening(0.01 / u)]
+                        if len(q) >= 3 and dentro(q):
+                            pm = [mm(a_) for a_ in q] + [mm(q[0])]
+                            cx = sum(x for x, _ in pm[:-1]) / (len(pm) - 1)
+                            cy = sum(y for _, y in pm[:-1]) / (len(pm) - 1)
+                            bloques.append(dict(nombre='INOD (relleno sanitario)', x=cx, y=cy, rot=0.0, sx=1.0, sy=1.0,
+                                                capa=capa, geo=[(capa, pm, True, 'LWPOLYLINE')]))
+                except Exception:
+                    pass
+                return
             if rellenos and rellenos.search(capa):
                 try:
                     from ezdxf import path as epath

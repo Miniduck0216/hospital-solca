@@ -101,11 +101,40 @@ SEPARADORES_PB = {
 MACIZOS = {}
 
 import sede  # noqa: E402
+def _zona(z):
+    """[x0, y0, x1, y1] o [[x, y], …] (metros del marco local) -> polígono shapely"""
+    return box(*z) if len(z) == 4 and all(isinstance(v, (int, float)) for v in z) else Polygon(z)
+
+
+def correcciones_de(cfg_piso):
+    """Correcciones del piso escritas en config.json (pisos[].correcciones), con los mismos tipos que las de Quito
+    (muro, vidrio, borrar, quitar, capa, pares, lineas_muro, macizo): zona en metros del marco local; capas, lista."""
+    out = []
+    for c in cfg_piso.get('correcciones', []):
+        c = dict(c)
+        c['zona'] = _zona(c['zona'])
+        for k in ('capas',):
+            if k in c:
+                c[k] = set(c[k])
+        if 'excluir' in c:
+            c['excluir'] = _zona(c['excluir'])
+        if 'cierres' in c:
+            c['cierres'] = [tuple(map(tuple, q)) for q in c['cierres']]
+        if 'textos' in c:
+            c['textos'] = tuple(c['textos'])
+        out.append(c)
+    return out
+
+
 if not sede.ES_QUITO:
-    # las correcciones de arriba son del DWG de Quito: otra sede trae las suyas (por ahora ninguna) en su config.json
+    # las correcciones de arriba son del DWG de Quito: otra sede trae las suyas en su config.json (pisos[]):
+    # correcciones (muros, vidrios, borrados…), separadores (límites entre ambientes sin muro en el dibujo) y nombres
+    # ({«x,y»: nombre}: el ambiente que contiene ese punto se llama así, como modelo.NOMBRES en Quito)
     AJUSTES = {p: {} for p in sede.PISOS}
-    CORRECCIONES = {}
-    SEPARADORES_PB = {}
+    CORRECCIONES = {p['clave']: correcciones_de(p) for p in sede.CFG['pisos']}
+    SEPARADORES_PB = {p['clave']: [tuple(map(tuple, q)) for q in p.get('separadores', [])] for p in sede.CFG['pisos']}
+    NOMBRES_SEDE = {p['clave']: {tuple(float(v) for v in k.split(',')): n for k, n in p.get('nombres', {}).items()}
+                    for p in sede.CFG['pisos']}
     MOD.SUELTOS_MAX = float(sede.CFG.get('sueltos_max', 1.5))
 
 
@@ -307,6 +336,8 @@ class ModeloPiso(MOD.Modelo):
         o = (self.x0 / 1000.0, self.y0 / 1000.0)
         MOD.SEPARADORES = list(MOD.SEPARADORES) + [((a[0] - o[0], a[1] - o[1]), (b[0] - o[0], b[1] - o[1]))
                                                    for a, b in SEPARADORES_PB.get(piso, [])]
+        if not sede.ES_QUITO:
+            MOD.NOMBRES = {(x - o[0], y - o[1]): n for (x, y), n in NOMBRES_SEDE.get(piso, {}).items()}
         from shapely import affinity
         polis = list(polis) + [affinity.translate(q, -self.x0 / 1000.0, -self.y0 / 1000.0)
                                for q in MACIZOS.get(piso, [])]

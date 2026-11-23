@@ -18,7 +18,13 @@ config.json (ejemplos en planta_real/sedes/santo-domingo/principal e imbabura/pr
   renombrar_bloques [[regex, nombre de Quito]] (muebles: INOD, AS-03…), textos_ignorar [regex del texto],
   textos_reemplazar [[regex, texto]], sueltos_max (m²: piezas sueltas que no cierran el exterior, 1,5 por defecto),
   conectores [{x, y, id, nombre, personal}] (nombres de ascensores y escaleras, marco local en metros),
-  pisos[].extra [{nombre, caja}] (ambientes que el dibujo no cierra, marco local en metros) y
+  pisos[].extra [{nombre, caja}] (ambientes que el dibujo no cierra, marco local en metros),
+  pisos[].correcciones [{tipo, zona, …}] (los mismos tipos que modelo_piso.CORRECCIONES de Quito: muro, vidrio,
+  borrar, quitar, capa, pares, lineas_muro, macizo; zona [x0, y0, x1, y1] o polígono), pisos[].separadores
+  [[[x, y], [x, y]]] (límites entre ambientes sin muro), pisos[].nombres {«x,y»: nombre} (el ambiente que contiene el
+  punto se llama así), pisos[].fusionar [[x, y]] (cuarto chico que se une al vecino mayor),
+  sanitarios_relleno [regex de capas de HATCH que dibujan aparatos sanitarios: el cuarto sin rótulo que los tiene
+  es SS.HH., como con los bloques de inodoro de Quito] y
   geo {lat0, lon0, ang (grados, como datos.json), nota}. Con «calibrar»: true un piso se alinea con el de nivel 0 por
   sus columnas (fuente.calibrar_sede).
 """

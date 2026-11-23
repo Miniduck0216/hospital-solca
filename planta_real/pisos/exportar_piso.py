@@ -1421,6 +1421,8 @@ if not sede.ES_QUITO:
         globals()[_k] = {}
     # ambientes que el dibujo no cierra (ascensores sin muros, cuartos abiertos): config.json → pisos[].extra
     EXTRA = {p['clave']: [(e['nombre'], box(*e['caja'])) for e in p.get('extra', [])] for p in sede.CFG['pisos']}
+    # cuartos chicos que el dibujo corta de uno mayor (pisos[].fusionar: puntos del marco local), como FUSIONAR en Quito
+    FUSIONAR = {p['clave']: [tuple(q) for q in p.get('fusionar', [])] for p in sede.CFG['pisos']}
     BANOS_HUECO = set()
     PUERTAS_ARCO = set()
     HUECOS_ROTULADOS = set(PISOS_CALLE)

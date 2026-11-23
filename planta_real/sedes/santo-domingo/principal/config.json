@@ -26,7 +26,7 @@
  },
  "rellenos": [],
  "textos": ["^TEX$"],
- "textos_ignorar": ["^P[ÚU]BLICO$", "puerta cortafuego", "contin[úu]an", "trinchera", "^total:", "^ducto hacia", "^hacia ", "cielo falso", "^escape incendio", "^ASCENSOR", "puestos", "^Viga", "Proyecci", "^N[ %+-]", "\\d+x\\d+ ?cm", "^h[:=]", "ALTURA", "ANTEPECHO", "Ver detalle", "^\\d+$", "^[a-zA-Z]$", "Doble altura", "Pérgola", "MARQUESINA", "Ducto de instalaci", "bajo cielo", "puerta de hierro", "^Rampa", "%%%"],
+ "textos_ignorar": ["^P[ÚU]BLICO$", "puerta cortafuego", "contin[úu]an", "trinchera", "^total:", "^ducto hacia", "^hacia ", "cielo falso", "^escape incendio", "^ASCENSOR", "puestos", "^Viga", "Proyecci", "^N[ %+-]", "\\d+x\\d+ ?cm", "^h[:=]", "ALTURA", "ANTEPECHO", "Ver detalle", "^\\d+$", "^[a-zA-Z]$", "Doble altura", "MARQUESINA", "Ducto de instalaci", "bajo cielo", "puerta de hierro", "%%%"],
  "textos_reemplazar": [["^\\s*(sube|baja|SUBE|BAJA)\\s+\\d+\\s*esc.*$", "ESCALERA"]],
  "puertas": {"simple": ["^P\\d{1,2}-\\d{1,2}D?$", "^PU$", "^1x1\\.75"], "doble": []},
  "conservar": ["^AS-0[1-6]"],
