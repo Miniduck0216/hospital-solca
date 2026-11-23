@@ -39,11 +39,21 @@ const CAMPOS_CONFIG = ['piso', 'nota', 'pasos', 'puertasAuto']
 const NOTA = 'Solo geometría del piso: pasos (muros y pasos trazados) y puertasAuto (ids de cuartos con puerta que el '
   + 'plano no dibuja). Los nombres, categorías, íconos, ventanillas, lugares, entradas y letreros vienen de OM3.'
 
+// «Vestidor Vestidor · Vestidor» → «Vestidor»: rótulos repetidos que el plano deja dos veces en el mismo cuarto
+export function limpiarNombre(n) {
+  const partes = []
+  for (const p of String(n || '').split(' · ')) {
+    const q = p.split(/\s+/).filter((w, i, ws) => w && (i === 0 || w.toLowerCase() !== ws[i - 1].toLowerCase())).join(' ')
+    if (q && !partes.some((x) => x.toLowerCase() === q.toLowerCase())) partes.push(q)
+  }
+  return partes.join(' · ')
+}
+
 /** Nombres que trae el plano (antes de vaciarlo): { id: { nombre, cat } } de los ambientes con nombre */
 export function nombresDelPiso(datos) {
   const out = {}
   for (const a of datos.ambientes || []) {
-    const nombre = typeof a.nombre === 'string' ? a.nombre.trim().slice(0, 200) : ''
+    const nombre = typeof a.nombre === 'string' ? limpiarNombre(a.nombre.trim()).slice(0, 200) : ''
     if (!nombre || !/^a\d{1,5}$/.test(a.id)) continue
     out[a.id] = { nombre, cat: CATEGORIAS.includes(a.cat) ? a.cat : 'otro' }
   }

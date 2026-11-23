@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url'
 import { armarPaquete, generarZip, carpetaPublica } from '../scripts/plano_paquete.mjs'
 import { validarPaquete, validarDatosPiso, clasificarRuta, validarNombres, CATEGORIAS } from '../scripts/plano_estructura.mjs'
 import os from 'node:os'
+import { limpiarNombre, nombresDelPiso } from '../scripts/vaciar_datos.mjs'
 import { leerZip } from '../scripts/zip.mjs'
 
 const PUB = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'public', 'sedes', 'quito', 'principal')
@@ -137,4 +138,12 @@ test('sede nueva: el paquete sale de la carpeta de trabajo (--carpeta) e incluye
     assert.equal(r.manifiesto.sede, 3)
     assert.equal(r.manifiesto.edificioNombre, 'Hospital SOLCA Prueba')
   } finally { fs.rmSync(dir, { recursive: true, force: true }) }
+})
+
+test('nombres.json: rótulos repetidos en el mismo cuarto se dicen una vez; categorías fuera de la lista quedan «otro»', () => {
+  assert.equal(limpiarNombre('Vestidor Vestidor · Vestidor'), 'Vestidor')
+  assert.equal(limpiarNombre('Utileria Limpia · Estacion Enfermería'), 'Utileria Limpia · Estacion Enfermería')
+  assert.equal(limpiarNombre('Sshh · SSHH'), 'Sshh')
+  const n = nombresDelPiso({ ambientes: [{ id: 'a1', nombre: 'Bodega Bodega', cat: 'apoyo' }, { id: 'a2', nombre: 'Gradas', cat: 'vertical' }, { id: 'a3', nombre: '', cat: 'otro' }] })
+  assert.deepEqual(n, { a1: { nombre: 'Bodega', cat: 'apoyo' }, a2: { nombre: 'Gradas', cat: 'otro' } })
 })

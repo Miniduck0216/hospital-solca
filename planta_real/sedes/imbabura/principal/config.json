@@ -16,7 +16,7 @@
   "GR": ["Escaleras & Barandillas"]
  },
  "rellenos": ["Interior - Paredes", "Exterior - Paredes", "Estructura - Muros", "Estructura - Columnas"],
- "textos": ["P0 - Textos"],
+ "textos": ["P0 - Textos", "Notas - Textos_Pluma_Nº__1$"],
  "textos_ignorar": ["Ref\\.", "_", "desag", "autoclave", "conexi[óo]n", "^inox$", "pendiente", "^sec\\.?$", "^ref$", "^[+-]?\\d+([,.]\\d+)?$", "^[a-zA-Z]$"],
  "puertas": {"simple": ["^Puerta (26|con Tarja)"], "doble": ["^Puerta Doble"]},
  "conservar": ["^Lavabo"],

@@ -253,6 +253,24 @@ def _puntos_sede(e):
     return q, c
 
 
+def _centro_texto(e):
+    """Centro (unidades del dibujo) de un MTEXT con su giro, su anclaje y sus líneas; None si no se puede.
+    El ancho se estima como en modelo._etiquetas (0,62 de la altura por letra), sin medir la fuente."""
+    try:
+        lineas = [x for x in e.plain_text().split('\n') if x.strip()] or ['']
+        h = e.dxf.char_height
+        w = max(len(x) for x in lineas) * h * 0.62
+        alto = len(lineas) * h * 1.35
+        ap = e.dxf.get('attachment_point', 1)
+        col, fila = (ap - 1) % 3, (ap - 1) // 3          # 0 izq/arriba, 1 centro, 2 der/abajo
+        dx, dy = w * (0.5 - 0.5 * col), -alto * (0.5 - 0.5 * fila)
+        ref = e.dxf.insert
+        c, s_ = math.cos(math.radians(e.get_rotation())), math.sin(math.radians(e.get_rotation()))
+        return (ref.x + c * dx - s_ * dy, ref.y + s_ * dx + c * dy)
+    except Exception:
+        return None
+
+
 def extraer_sede(ents, caja, desplaza):
     """Como extraer(), con las reglas de config.json: capas renombradas, bloques explotados, puertas y columnas."""
     C = sede.CFG
@@ -328,11 +346,17 @@ def extraer_sede(ents, caja, desplaza):
         txt = txt.strip()
         if not txt or (ign and ign.search(txt)):
             return
-        if t == 'MTEXT':
-            textos.append((capa, txt, *mm((ip.x, ip.y)), e.dxf.char_height * u * 1000,
-                           e.dxf.get('attachment_point', 1)))
+        h = (e.dxf.char_height if t == 'MTEXT' else e.dxf.get('height', 0.2)) * u * 1000
+        # MTEXT: el rótulo va en el centro real del texto (con su giro, su anclaje y sus líneas), con anclaje 5
+        # (centro): correr el punto de inserción como si el texto fuera horizontal lo sacaba del cuarto en el ala
+        # girada de Imbabura. TEXT: como en Quito (inserción y anclaje 1)
+        c = _centro_texto(e) if t == 'MTEXT' else None
+        if c is not None:
+            textos.append((capa, txt, *mm(c), h, 5))
+        elif t == 'MTEXT':
+            textos.append((capa, txt, *mm((ip.x, ip.y)), h, e.dxf.get('attachment_point', 1)))
         else:
-            textos.append((capa, txt, *mm((ip.x, ip.y)), e.dxf.get('height', 0.2) * u * 1000, 1))
+            textos.append((capa, txt, *mm((ip.x, ip.y)), h, 1))
 
     def recorrer(e, heredada=None, nivel=0):
         t = e.dxftype()

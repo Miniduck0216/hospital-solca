@@ -318,6 +318,36 @@ class ModeloPiso(MOD.Modelo):
             except Exception as e:   # un paso propio de la planta baja que no aplica a este piso
                 self.fallos.append((paso, repr(e)))
                 traceback.print_exc()
+        if not sede.ES_QUITO:
+            self._rotulos_sueltos()
+
+    # Otras sedes: un rótulo que el dibujo deja sobre el muro (centro del texto dentro de ningún cuarto, sobre un muro
+    # o columna y a menos de DIST_ROTULO de un cuarto) nombra al cuarto más cercano si este quedó sin nombre. Los
+    # rótulos en un espacio libre se dejan: exportar_piso.huecos_rotulados arma con ellos su propio ambiente. En Quito
+    # los nombres que el dibujo no resuelve van en ajustes.py; aquí no se toca nada de Quito.
+    DIST_ROTULO = 0.8
+
+    def _rotulos_sueltos(self):
+        from shapely.geometry import Point as PT
+        from modelo import unir_nombres
+        textos = self._etiquetas()
+        duro = unary_union([self.muros_raw] + list(self.columnas)).buffer(0.05)
+        sueltos = {}
+        for t in textos:
+            p = PT(t[1], t[2])
+            if any(a['poligono'].contains(p) for a in self.ambientes) or not duro.contains(p):
+                continue
+            cerca = [(a['poligono'].distance(p), i) for i, a in enumerate(self.ambientes)]
+            cerca = [c for c in cerca if c[0] <= self.DIST_ROTULO]
+            if cerca:
+                sueltos.setdefault(min(cerca)[1], []).append(t)
+        n = 0
+        for i, ts in sueltos.items():
+            a = self.ambientes[i]
+            if not a.get('nombre'):
+                a['nombre'] = unir_nombres(ts)
+                n += 1
+        print(self.piso, 'rótulos sobre el muro que nombran un cuarto sin nombre:', n)
 
     @property
     def origen(self):
