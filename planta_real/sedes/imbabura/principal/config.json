@@ -1,0 +1,29 @@
+{
+ "sede": 2,
+ "edificio": "PRINCIPAL",
+ "nombre": "Hospital SOLCA Imbabura",
+ "fuente": "Hospital SOLCA IMBABURA - 112026.dxf",
+ "dxf": "C:/Users/ASUS/Downloads/Hospital SOLCA IMBABURA - 112026.dxf",
+ "unidad": 0.001,
+ "traslado": [72.0, 50.0],
+ "pisos": [
+  {"clave": "PB", "nombre": "Planta baja", "nivel": 0, "altura": 4.0, "caja": [-70000, -66000, 71000, 77000]}
+ ],
+ "capas": {
+  "PA": ["Interior - Paredes", "Exterior - Paredes", "Estructura - Muros"],
+  "VE": ["Ventanas Archicad", "P02 Vidrio"],
+  "COL": ["Estructura - Columnas"],
+  "GR": ["Escaleras & Barandillas"]
+ },
+ "rellenos": ["Interior - Paredes", "Exterior - Paredes", "Estructura - Muros", "Estructura - Columnas"],
+ "textos": ["P0 - Textos", "Notas - Textos_Pluma_Nº__1$"],
+ "textos_ignorar": ["Ref\\.", "_", "desag", "autoclave", "conexi[óo]n", "^inox$", "pendiente", "^sec\\.?$", "^ref$", "^[+-]?\\d+([,.]\\d+)?$", "^[a-zA-Z]$"],
+ "puertas": {"simple": ["^Puerta (26|con Tarja)"], "doble": ["^Puerta Doble"]},
+ "sanitarios_relleno": ["Mobiliario_Pluma_Nº__255$"],
+ "conservar": ["^Lavabo"],
+ "renombrar_bloques": [["^Lavabo", "AS-03"]],
+ "geo": {
+  "lat0": 0.334809, "lon0": -78.125021, "ang": -99.5,
+  "nota": "Por calibrar. Sede de SOLCA Imbabura en Yacucalle, Ibarra: manzana entre Av. Rafael Sánchez, Tobías Mena y Gral. Julio Andrade (posición que dio Andrés, calles de OSM), centro de la manzana 0.334773, -78.125025. El edificio del DXF (99 × 102 m) no cabe en esa manzana (65 × 140 m sin calles ni veredas): centrado y alineado con las calles, queda dentro un 78 % y sobresale hasta 20 m sobre Av. Rafael Sánchez y Julio Andrade. El giro alinea el dibujo con la cuadrícula de calles (rumbo 9,5°) con «arriba» del dibujo hacia el este, como la captura de Google Maps; el DXF no trae flecha del norte."
+ }
+}

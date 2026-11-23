@@ -3,7 +3,7 @@ Modelo de un piso cualquiera con el mismo proceso de la planta baja (revit/model
 ventanas, puertas, tabiques, escaleras, ambientes con nombre, mobiliario.
 Los ajustes a mano de modelo.py (CIERRES, ZONAS, NOMBRES…) son de la planta baja vieja: aquí se vacían,
 y cada piso puede traer los suyos en AJUSTES.
-Uso: python3 planta_real/pisos/modelo_piso.py P1   (deja /tmp/modelo_P1.pkl)
+Uso: python3 planta_real/pisos/modelo_piso.py P1   (deja /tmp/modelo_P1.pkl; otra sede: sede.pkl(piso))
 """
 import os
 import sys
@@ -99,6 +99,43 @@ SEPARADORES_PB = {
 # muros macizos de cada piso (polígonos en metros del marco de la planta baja) que deja corregir(): se suman rellenos
 # a los muros del modelo (el contorno dibujado solo cierra muros de hasta 0,6 m)
 MACIZOS = {}
+
+import sede  # noqa: E402
+def _zona(z):
+    """[x0, y0, x1, y1] o [[x, y], …] (metros del marco local) -> polígono shapely"""
+    return box(*z) if len(z) == 4 and all(isinstance(v, (int, float)) for v in z) else Polygon(z)
+
+
+def correcciones_de(cfg_piso):
+    """Correcciones del piso escritas en config.json (pisos[].correcciones), con los mismos tipos que las de Quito
+    (muro, vidrio, borrar, quitar, capa, pares, lineas_muro, macizo): zona en metros del marco local; capas, lista."""
+    out = []
+    for c in cfg_piso.get('correcciones', []):
+        c = dict(c)
+        c['zona'] = _zona(c['zona'])
+        for k in ('capas',):
+            if k in c:
+                c[k] = set(c[k])
+        if 'excluir' in c:
+            c['excluir'] = _zona(c['excluir'])
+        if 'cierres' in c:
+            c['cierres'] = [tuple(map(tuple, q)) for q in c['cierres']]
+        if 'textos' in c:
+            c['textos'] = tuple(c['textos'])
+        out.append(c)
+    return out
+
+
+if not sede.ES_QUITO:
+    # las correcciones de arriba son del DWG de Quito: otra sede trae las suyas en su config.json (pisos[]):
+    # correcciones (muros, vidrios, borrados…), separadores (límites entre ambientes sin muro en el dibujo) y nombres
+    # ({«x,y»: nombre}: el ambiente que contiene ese punto se llama así, como modelo.NOMBRES en Quito)
+    AJUSTES = {p: {} for p in sede.PISOS}
+    CORRECCIONES = {p['clave']: correcciones_de(p) for p in sede.CFG['pisos']}
+    SEPARADORES_PB = {p['clave']: [tuple(map(tuple, q)) for q in p.get('separadores', [])] for p in sede.CFG['pisos']}
+    NOMBRES_SEDE = {p['clave']: {tuple(float(v) for v in k.split(',')): n for k, n in p.get('nombres', {}).items()}
+                    for p in sede.CFG['pisos']}
+    MOD.SUELTOS_MAX = float(sede.CFG.get('sueltos_max', 1.5))
 
 
 def macizo(c, planos, textos):
@@ -299,6 +336,8 @@ class ModeloPiso(MOD.Modelo):
         o = (self.x0 / 1000.0, self.y0 / 1000.0)
         MOD.SEPARADORES = list(MOD.SEPARADORES) + [((a[0] - o[0], a[1] - o[1]), (b[0] - o[0], b[1] - o[1]))
                                                    for a, b in SEPARADORES_PB.get(piso, [])]
+        if not sede.ES_QUITO:
+            MOD.NOMBRES = {(x - o[0], y - o[1]): n for (x, y), n in NOMBRES_SEDE.get(piso, {}).items()}
         from shapely import affinity
         polis = list(polis) + [affinity.translate(q, -self.x0 / 1000.0, -self.y0 / 1000.0)
                                for q in MACIZOS.get(piso, [])]
@@ -310,6 +349,36 @@ class ModeloPiso(MOD.Modelo):
             except Exception as e:   # un paso propio de la planta baja que no aplica a este piso
                 self.fallos.append((paso, repr(e)))
                 traceback.print_exc()
+        if not sede.ES_QUITO:
+            self._rotulos_sueltos()
+
+    # Otras sedes: un rótulo que el dibujo deja sobre el muro (centro del texto dentro de ningún cuarto, sobre un muro
+    # o columna y a menos de DIST_ROTULO de un cuarto) nombra al cuarto más cercano si este quedó sin nombre. Los
+    # rótulos en un espacio libre se dejan: exportar_piso.huecos_rotulados arma con ellos su propio ambiente. En Quito
+    # los nombres que el dibujo no resuelve van en ajustes.py; aquí no se toca nada de Quito.
+    DIST_ROTULO = 0.8
+
+    def _rotulos_sueltos(self):
+        from shapely.geometry import Point as PT
+        from modelo import unir_nombres
+        textos = self._etiquetas()
+        duro = unary_union([self.muros_raw] + list(self.columnas)).buffer(0.05)
+        sueltos = {}
+        for t in textos:
+            p = PT(t[1], t[2])
+            if any(a['poligono'].contains(p) for a in self.ambientes) or not duro.contains(p):
+                continue
+            cerca = [(a['poligono'].distance(p), i) for i, a in enumerate(self.ambientes)]
+            cerca = [c for c in cerca if c[0] <= self.DIST_ROTULO]
+            if cerca:
+                sueltos.setdefault(min(cerca)[1], []).append(t)
+        n = 0
+        for i, ts in sueltos.items():
+            a = self.ambientes[i]
+            if not a.get('nombre'):
+                a['nombre'] = unir_nombres(ts)
+                n += 1
+        print(self.piso, 'rótulos sobre el muro que nombran un cuarto sin nombre:', n)
 
     @property
     def origen(self):
@@ -418,4 +487,4 @@ if __name__ == '__main__':
     m = MP(piso)
     print(piso, 'ambientes', len(getattr(m, 'ambientes', [])), 'puertas', len(getattr(m, 'puertas', [])),
           'muros', len(getattr(m, 'muros', [])), 'origen', m.origen, 'fallos', m.fallos)
-    pickle.dump(m, open(f'/tmp/modelo_{piso}.pkl', 'wb'))
+    pickle.dump(m, open(sede.pkl(piso), 'wb'))

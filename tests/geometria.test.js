@@ -4,9 +4,11 @@ import './fetchPublic.js'
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { cargarDatos } from '../src/pb/datos.js'
-import { origenGeoDeUrl, urlArchivo, unirPisos, crearProveedor } from '../src/pb/geometria.js'
-import { carpetaRespaldo, carpetaSede, CARPETA_DEFECTO } from '../src/pb/sedes.js'
+import { origenGeoDeUrl, urlArchivo, unirPisos, crearProveedor, geoDeSede, SinPlano, MENSAJE_SIN_PLANO } from '../src/pb/geometria.js'
+import { carpetaRespaldo, carpetaSede, CARPETA_DEFECTO, SEDES_INFO, sedeDeBusqueda, tieneRespaldo, claveCambios, leerCambiosLocales } from '../src/pb/sedes.js'
 import { armarPaquete } from '../scripts/plano_paquete.mjs'
+import { leerPagina, consultaCompartir, enlaceQR, nombreHospital, PARAMS_CONSERVAR } from '../src/pb/paginaInicial.js'
+import { configDeSede } from '../src/pb/geometria.js'
 
 const OM3 = 'https://om3.test/api/v1/administracion/mapa'
 const { archivos, manifiesto } = armarPaquete({ sede: 1, edificio: 'PRINCIPAL', generado: '2026-11-16T00:00:00Z' })
@@ -49,13 +51,18 @@ test('origen: sin parámetros, public/; ?geo= y ?config= (…/publicado) llevan 
   assert.equal(origenGeoDeUrl(''), null)
   assert.equal(origenGeoDeUrl('?modo=totem&vista=3d'), null)
   assert.equal(origenGeoDeUrl(`?geo=${encodeURIComponent(`${OM3}/geo?sede=2&edificio=NORTE`)}&geo2=x`).url, `${OM3}/geo?sede=2&edificio=NORTE`)
-  assert.equal(origenGeoDeUrl(`?config=${encodeURIComponent(`${OM3}/publicado?sede=1`)}`).url, `${OM3}/geo?sede=1&edificio=PRINCIPAL`)
+  assert.equal(origenGeoDeUrl(`?config=${encodeURIComponent(`${OM3}/publicado?sede=1&edificio=PRINCIPAL`)}`).url, `${OM3}/geo?sede=1&edificio=PRINCIPAL`)
+  // sin sede o sin edificio no se supone ninguno (antes: 1 y PRINCIPAL): no hay origen y el mapa avisa SinPlano
+  assert.equal(origenGeoDeUrl(`?config=${encodeURIComponent(`${OM3}/publicado?sede=1`)}`), null)
+  assert.equal(origenGeoDeUrl(`?config=${encodeURIComponent(`${OM3}/publicado`)}`), null)
+  assert.equal(origenGeoDeUrl(`?geo=${encodeURIComponent(`${OM3}/geo?edificio=PRINCIPAL`)}`), null)
   assert.equal(origenGeoDeUrl(`?config=${encodeURIComponent(`${OM3}/otra`)}`), null)
   assert.equal(origenGeoDeUrl(`?config=${encodeURIComponent(`${OM3}/publicado`)}&geo=0`), null)
   const admin = origenGeoDeUrl(`?modo=admin&vista=tok123&config=${encodeURIComponent(`${OM3}/publicado?sede=1&edificio=PRINCIPAL`)}`)
   assert.equal(admin.vista, 'tok123')
   assert.equal(new URL(admin.url).searchParams.get('vista'), 'tok123')
-  assert.equal(origenGeoDeUrl(`?modo=admin&vista=3d&geo=${encodeURIComponent(`${OM3}/geo`)}`).vista, null)
+  assert.equal(origenGeoDeUrl(`?modo=admin&vista=3d&geo=${encodeURIComponent(`${OM3}/geo?sede=1&edificio=PRINCIPAL`)}`).vista, null)
+  assert.equal(origenGeoDeUrl(`?modo=admin&vista=3d&geo=${encodeURIComponent(`${OM3}/geo`)}`), null)
   assert.equal(origenGeoDeUrl('?geo=javascript:alert(1)'), null)
   // OM3 manda el token dentro de ?geo= (y también en ?vista=): la URL de geo se usa tal cual
   const enGeo = origenGeoDeUrl(`?modo=admin&vista=tokA&geo=${encodeURIComponent(`${OM3}/geo?sede=1&edificio=PRINCIPAL&vista=tokA`)}`)
@@ -64,29 +71,133 @@ test('origen: sin parámetros, public/; ?geo= y ?config= (…/publicado) llevan 
   assert.deepEqual(origenGeoDeUrl(`?modo=guia&vista=3d&geo=${encodeURIComponent(`${OM3}/geo?sede=1&edificio=PRINCIPAL`)}`), { url: `${OM3}/geo?sede=1&edificio=PRINCIPAL`, vista: null })
 })
 
-test('respaldo por hospital: la carpeta sale de ?sede=&edificio= o de ?geo=/?config=; sin sede, quito/principal', () => {
+test('respaldo local: solo Quito lo tiene; la sede sale de ?sede=&edificio= o de ?geo=/?config=; solo la página base es Quito', () => {
   assert.equal(CARPETA_DEFECTO, 'sedes/quito/principal/')
   assert.equal(carpetaRespaldo(''), 'sedes/quito/principal/')
   assert.equal(carpetaRespaldo('?modo=totem'), 'sedes/quito/principal/')
-  assert.equal(carpetaRespaldo('?sede=3'), 'sedes/santo-domingo/principal/')
-  assert.equal(carpetaRespaldo('?sede=21&edificio=ANEXO'), 'sedes/loja/anexo/')
-  assert.equal(carpetaRespaldo('?sede=MANABÍ'), 'sedes/manabi/principal/')
-  assert.equal(carpetaRespaldo(`?geo=${encodeURIComponent(`${OM3}/geo?sede=8&edificio=PRINCIPAL`)}`), 'sedes/cuenca/principal/')
-  assert.equal(carpetaRespaldo(`?config=${encodeURIComponent('/api/v1/administracion/mapa/publicado?sede=7')}`), 'sedes/machala/principal/')
-  assert.equal(carpetaRespaldo('?sede=99'), 'sedes/quito/principal/')
-  assert.equal(carpetaRespaldo('?sede=../../x&edificio=../y'), 'sedes/x/y/')
+  assert.equal(carpetaRespaldo('?sede=1&edificio=ANEXO'), 'sedes/quito/anexo/')
+  assert.equal(carpetaRespaldo('?sede=quito'), 'sedes/quito/principal/')
+  // las demás sedes no tienen respaldo (null): nunca caen al plano de Quito
+  assert.equal(carpetaRespaldo('?sede=3'), null)
+  assert.equal(carpetaRespaldo('?sede=21&edificio=ANEXO'), null)
+  assert.equal(carpetaRespaldo('?sede=MANABÍ'), null)
+  assert.equal(carpetaRespaldo(`?geo=${encodeURIComponent(`${OM3}/geo?sede=8&edificio=PRINCIPAL`)}`), null)
+  assert.equal(carpetaRespaldo(`?config=${encodeURIComponent('/api/v1/administracion/mapa/publicado?sede=7')}`), null)
+  assert.equal(carpetaRespaldo('?sede=../../x&edificio=../y'), null)
+  // sede desconocida: ninguna (antes caía a Quito)
+  assert.equal(carpetaRespaldo('?sede=99'), null)
+  assert.equal(carpetaRespaldo('?sede=9'), null)
+  assert.equal(carpetaRespaldo('?sede=abc'), null)
+  // ?config= o ?geo= sin sede o sin edificio: ninguna
+  assert.equal(carpetaRespaldo(`?config=${encodeURIComponent('/api/v1/administracion/mapa/publicado')}`), null)
+  assert.equal(carpetaRespaldo(`?config=${encodeURIComponent('/api/v1/administracion/mapa/publicado?sede=1')}`), null)
+  assert.equal(carpetaRespaldo(`?config=${encodeURIComponent('/api/v1/administracion/mapa/publicado?sede=1&edificio=PRINCIPAL')}`), 'sedes/quito/principal/')
   assert.deepEqual([1, 2, 3, 4, 5, 6, 7, 8, 21].map(carpetaSede), ['quito', 'imbabura', 'santo-domingo', 'tungurahua', 'chimborazo', 'manabi', 'machala', 'cuenca', 'loja'])
+  assert.deepEqual(Object.values(SEDES_INFO).filter((s) => tieneRespaldo(s.carpeta)).map((s) => s.carpeta), ['quito'])
 })
 
-test('respaldo por hospital: si la sede no tiene carpeta se usa quito/principal y se avisa', async () => {
+test('sede de la página: base = Quito; ?sede= desconocida o ?geo=/?config= sin sede o edificio = ninguna', () => {
+  assert.deepEqual(sedeDeBusqueda(''), { ...sedeDeBusqueda(''), sede: 'quito', edificio: 'principal', id: 1, base: true })
+  assert.equal(sedeDeBusqueda('?modo=totem&vista=3d').sede, 'quito')
+  assert.equal(sedeDeBusqueda('?geo=0').sede, 'quito')
+  for (const q of ['?sede=9', '?sede=abc', '?sede=0', `?geo=${encodeURIComponent(`${OM3}/geo?edificio=PRINCIPAL`)}`, `?config=${encodeURIComponent(`${OM3}/publicado`)}`]) {
+    const s = sedeDeBusqueda(q)
+    assert.equal(s.sede, null, q)
+    assert.equal(s.info, null, q)
+    assert.equal(s.base, false, q)
+  }
+  assert.equal(sedeDeBusqueda(`?config=${encodeURIComponent(`${OM3}/publicado?sede=3`)}`).edificio, null)
+  assert.equal(sedeDeBusqueda('?sede=3').edificio, 'principal')
+  assert.equal(carpetaSede('abc'), null)
+  assert.equal(carpetaSede('Santo Domingo'), 'santo-domingo')
+})
+
+test('cambios del administrador en el navegador: una clave por sede y edificio; la vieja solo pasa a quito/principal', () => {
+  const almacen = () => {
+    const m = new Map()
+    return { m, getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k) }
+  }
+  assert.equal(claveCambios('quito', 'principal'), 'solca-admin-cambios:quito:principal')
+  assert.equal(claveCambios('imbabura', 'principal'), 'solca-admin-cambios:imbabura:principal')
+  assert.equal(claveCambios(null, 'principal'), null)
+  // otra sede no hereda la clave vieja (era de Quito)
+  const a = almacen(); a.setItem('solca-admin-cambios', '{"version":2,"pisos":{"PB":{}}}')
+  assert.equal(leerCambiosLocales(a, 'santo-domingo', 'principal'), null)
+  assert.equal(leerCambiosLocales(a, 'quito', 'anexo'), null)
+  assert.ok(a.m.has('solca-admin-cambios'))
+  // quito/principal la hereda: se copia a la nueva y la vieja se deja (una pestaña vieja abierta sigue guardando ahí)
+  assert.equal(leerCambiosLocales(a, 'quito', 'principal'), '{"version":2,"pisos":{"PB":{}}}')
+  assert.equal(a.m.get('solca-admin-cambios:quito:principal'), '{"version":2,"pisos":{"PB":{}}}')
+  assert.ok(a.m.has('solca-admin-cambios'))
+  // ya copiada, manda la nueva aunque la vieja cambie
+  a.setItem('solca-admin-cambios', '{"viejo":1}')
+  assert.equal(leerCambiosLocales(a, 'quito', 'principal'), '{"version":2,"pisos":{"PB":{}}}')
+  // cada sede lee solo la suya; sin sede, nada
+  a.setItem('solca-admin-cambios:imbabura:principal', '{"x":1}')
+  assert.equal(leerCambiosLocales(a, 'imbabura', 'principal'), '{"x":1}')
+  assert.equal(leerCambiosLocales(a, 'santo-domingo', 'principal'), null)
+  assert.equal(leerCambiosLocales(a, null, null), null)
+})
+
+test('sedes: las 9 de OM3 con su carpeta y el centro de su ciudad (lon, lat dentro del Ecuador)', () => {
+  assert.deepEqual(Object.keys(SEDES_INFO).map(Number), [1, 2, 3, 4, 5, 6, 7, 8, 21])
+  for (const s of Object.values(SEDES_INFO)) {
+    const [lon, lat] = s.centro
+    assert.ok(lon > -81.5 && lon < -75 && lat > -5.1 && lat < 1.5, s.carpeta)
+    assert.ok(s.nombre)
+  }
+  const sd = sedeDeBusqueda('?sede=santo-domingo&edificio=principal')
+  assert.equal(sd.id, 3)
+  assert.equal(sd.edificio, 'principal')
+  assert.deepEqual(sd.info.centro, SEDES_INFO[3].centro)
+  assert.equal(sedeDeBusqueda(`?geo=${encodeURIComponent(`${OM3}/geo?sede=2&edificio=PRINCIPAL`)}`).sede, 'imbabura')
+})
+
+test('sede sin respaldo y sin ?geo=: el dibujo se pide al /geo del OM3 por defecto (Quito no)', () => {
+  const pub = `${OM3}/publicado`
+  assert.deepEqual(geoDeSede('?sede=3', pub), { url: `${OM3}/geo?sede=3&edificio=PRINCIPAL`, vista: null })
+  assert.equal(geoDeSede('?sede=imbabura&edificio=anexo', pub).url, `${OM3}/geo?sede=2&edificio=ANEXO`)
+  assert.equal(geoDeSede('?sede=1', pub), null)
+  assert.equal(geoDeSede('', pub), null)
+  assert.equal(geoDeSede('?sede=3', null), null)
+  assert.equal(geoDeSede('?sede=3&geo=0', pub), null)
+  assert.equal(geoDeSede('?sede=3', `${OM3}/otra`), null)
+})
+
+test('sede sin respaldo: sin plano en OM3 (404, caída o sin ?geo=) avisa «sin plano publicado» y no cae a Quito', async () => {
+  const prov = crearProveedor({ base: '/', carpeta: null, version: 't', avisar: () => {} })
+  assert.equal(await prov.edificio(), null)
+  assert.equal(await prov.urlRespaldo('techos.json'), null)
+  assert.equal(await prov.json('pisos/pb/datos.json'), null)
+  await assert.rejects(cargarDatos(null, { respaldo: null }), (e) => e instanceof SinPlano && e.message === MENSAJE_SIN_PLANO)
+  const s = silenciar()
+  try {
+    simularOm3({ geo: 404 })
+    await assert.rejects(cargarDatos(null, { geo: { url: `${OM3}/geo?sede=3&edificio=PRINCIPAL`, vista: null }, respaldo: null }), SinPlano)
+    simularOm3({ archivo: (r) => (r === 'edificio.json' ? 500 : 200) })
+    await assert.rejects(cargarDatos(null, { geo: { url: `${OM3}/geo?sede=21&edificio=PRINCIPAL`, vista: null }, respaldo: null }), SinPlano)
+    assert.match(s.avisos.join(' '), /no tiene respaldo local/)
+    assert.doesNotMatch(s.avisos.join(' '), /se usa el de public/)
+  } finally { s.fin(); globalThis.fetch = publico }
+})
+
+test('sede sin respaldo con plano publicado en OM3: se dibuja el de OM3 (sin perfil ni techos de Quito)', async () => {
+  try {
+    simularOm3()
+    const d = await cargarDatos(null, { pisoId: 'P1', geo: { url: `${OM3}/geo?sede=5&edificio=PRINCIPAL`, vista: null }, respaldo: null })
+    assert.equal(d.edificio.origen.tipo, 'om3')
+    assert.ok(d.ambientes.length > 0)
+    assert.deepEqual(d.perfil, [])
+  } finally { globalThis.fetch = publico }
+})
+
+test('respaldo de Quito: otro edificio sin carpeta propia no tiene respaldo (no cae a quito/principal)', async () => {
   const avisos = []
-  const prov = crearProveedor({ base: '/', carpeta: 'sedes/loja/principal/', version: 't', avisar: (m) => avisos.push(m) })
-  const e = await prov.edificio()
-  assert.equal(e.origen.base, '/sedes/quito/principal/')
-  assert.equal(e.pisos.find((p) => p.id === 'PB').datos, 'pisos/pb/datos.json')
-  assert.equal(prov.url('pisos/pb/datos.json'), '/sedes/quito/principal/pisos/pb/datos.json?v=t')
-  assert.equal(await prov.urlRespaldo('techos.json'), '/sedes/quito/principal/techos.json?v=t')
-  assert.match(avisos.join(' '), /No hay respaldo local en sedes\/loja\/principal\//)
+  const prov = crearProveedor({ base: '/', carpeta: 'sedes/quito/anexo/', version: 't', avisar: (m) => avisos.push(m) })
+  assert.equal(await prov.edificio(), null)
+  assert.equal(await prov.urlRespaldo('techos.json'), null)
+  assert.match(avisos.join(' '), /No hay respaldo local en sedes\/quito\/anexo\//)
+  await assert.rejects(cargarDatos(null, { respaldo: 'sedes/quito/anexo/' }), SinPlano)
   const d = await cargarDatos(null, { pisoId: 'P1', respaldo: 'sedes/quito/principal/' })
   assert.ok(d.ambientes.length > 0 && d.perfil.length > 0)
 })
@@ -114,7 +225,10 @@ test('OM3 responde: el piso se lee del paquete y se dibuja igual que desde publi
   assert.deepEqual(d.cfgCruda, p.cfgCruda)
   assert.deepEqual(d.edificio.conectores, p.edificio.conectores)
   // los .glb salen de OM3 (sin ?v=: la versión ya va en la dirección y OM3 los marca immutable)
-  assert.equal(urlArchivo(d.edificio.origen, d.piso.glb[1]), `${OM3}/geo/7/archivo?ruta=pisos%2FPB%2Fsolca_pb_este.glb`)
+  assert.equal(urlArchivo(d.edificio.origen, d.piso.glb[1]), `${OM3}/geo/7/archivo?ruta=pisos%2FPB%2Fsolca_pb_este.glb&sede=1&edificio=PRINCIPAL`)
+  // cada archivo lleva la sede y el edificio pedidos (OM3 comprueba que la versión sea de ese edificio)
+  const archivos = pedidos.filter((x) => x.url.searchParams.get('ruta'))
+  assert.ok(archivos.length && archivos.every((x) => x.url.searchParams.get('sede') === '1' && x.url.searchParams.get('edificio') === 'PRINCIPAL'))
   assert.ok(pedidos.every((x) => x.init.cache !== 'no-store'))
 })
 
@@ -123,7 +237,7 @@ test('OM3 da 404 (sin versión publicada) o no responde: se usa public/ y se avi
     simularOm3({ geo: estado })
     const s = silenciar()
     try {
-      const d = await cargarDatos(null, { geo: geoDe(`?geo=${encodeURIComponent(`${OM3}/geo?sede=9&edificio=X${i}`)}`), pisoId: 'P1' })
+      const d = await cargarDatos(null, { geo: geoDe(`?geo=${encodeURIComponent(`${OM3}/geo?sede=1&edificio=PRINCIPAL&prueba=${i}`)}`), pisoId: 'P1' })
       assert.equal(d.edificio.origen.tipo, 'public')
       assert.equal(d.piso.datos, 'pisos/p1/datos.json')
       assert.ok(d.ambientes.length > 0)
@@ -182,8 +296,68 @@ test('pisos dinámicos: la lista sale del manifiesto (nombre, nivel, altura) cua
 
 test('portal de OM3 (/mapa/): ?config= y ?geo= relativos a la página; sin página siguen pidiendo dirección completa', () => {
   const pagina = 'https://portal.test/mapa/?modo=totem'
-  const r = origenGeoDeUrl('?config=/api/v1/administracion/mapa/publicado', pagina)
+  const r = origenGeoDeUrl(`?config=${encodeURIComponent('/api/v1/administracion/mapa/publicado?sede=1&edificio=PRINCIPAL')}`, pagina)
   assert.equal(r.url, 'https://portal.test/api/v1/administracion/mapa/geo?sede=1&edificio=PRINCIPAL')
-  assert.equal(origenGeoDeUrl('?geo=/api/v1/administracion/mapa/geo?sede=2', pagina).url, 'https://portal.test/api/v1/administracion/mapa/geo?sede=2')
-  assert.equal(origenGeoDeUrl('?config=/api/v1/administracion/mapa/publicado', undefined), null)
+  assert.equal(origenGeoDeUrl(`?geo=${encodeURIComponent('/api/v1/administracion/mapa/geo?sede=2&edificio=PRINCIPAL')}`, pagina).url, 'https://portal.test/api/v1/administracion/mapa/geo?sede=2&edificio=PRINCIPAL')
+  // sin sede o sin edificio: nada (no se supone sede 1 ni PRINCIPAL)
+  assert.equal(origenGeoDeUrl('?config=/api/v1/administracion/mapa/publicado', pagina), null)
+  assert.equal(origenGeoDeUrl('?geo=/api/v1/administracion/mapa/geo?sede=2', pagina), null)
+  assert.equal(origenGeoDeUrl(`?config=${encodeURIComponent('/api/v1/administracion/mapa/publicado?sede=1&edificio=PRINCIPAL')}`, undefined), null)
+})
+
+test('URL reescrita (origen y destino): conserva modo, padre, config, sede, edificio, geo y vista', () => {
+  const geo = `${OM3}/geo?sede=3&edificio=PRINCIPAL`
+  const p = new URLSearchParams(`?sede=3&edificio=principal&geo=${encodeURIComponent(geo)}&vista=tok9&modo=admin&padre=https%3A%2F%2Fom3.test&config=${encodeURIComponent(`${OM3}/publicado?sede=3&edificio=PRINCIPAL`)}&otro=x`)
+  const q = new URLSearchParams(consultaCompartir(p, { origen: 'entrada-pb-acceso-pb-1', destino: 'a12', via: 'escalera', accesible: true }))
+  for (const k of PARAMS_CONSERVAR) assert.equal(q.get(k), p.get(k), k)
+  assert.equal(q.get('origen'), 'entrada-pb-acceso-pb-1')
+  assert.equal(q.get('destino'), 'a12')
+  assert.equal(q.get('via'), 'escalera')
+  assert.equal(q.get('accesible'), '1')
+  assert.equal(q.get('otro'), null)
+  // al recargar con la URL reescrita, la sede sigue siendo la misma (no Quito)
+  assert.equal(sedeDeBusqueda(`?${q}`).sede, 'santo-domingo')
+})
+
+test('QR «Usted está aquí»: lleva sede, edificio, config y geo de la página, y el nombre del hospital de esa sede', () => {
+  const p = new URLSearchParams(`?sede=2&edificio=PRINCIPAL&modo=totem&origen=x`)
+  const u = new URL(enlaceQR('https://mapa.test/', p, 'entrada-pb-acceso-pb-3'))
+  assert.equal(u.searchParams.get('sede'), '2')
+  assert.equal(u.searchParams.get('edificio'), 'PRINCIPAL')
+  assert.equal(u.searchParams.get('origen'), 'entrada-pb-acceso-pb-3')
+  assert.equal(u.searchParams.get('modo'), null)
+  assert.equal(nombreHospital({ nombre: 'Hospital SOLCA Imbabura' }), 'Hospital SOLCA Imbabura')
+  assert.equal(nombreHospital({ manifiesto: { edificioNombre: 'Torre B' }, nombre: 'x' }), 'Torre B')
+  assert.equal(nombreHospital(null, sedeDeBusqueda('?sede=3')), 'Hospital SOLCA Santo Domingo')
+  assert.equal(nombreHospital(null, sedeDeBusqueda('')), 'Hospital SOLCA Quito')
+})
+
+test('página inicial: se lee una vez (sede, origen del dibujo, respaldo y config) y no depende de la URL de después', () => {
+  const pub = `${OM3}/publicado`
+  const sd = leerPagina('?sede=3', 'https://mapa.test/')
+  assert.equal(sd.sede.sede, 'santo-domingo')
+  assert.equal(sd.respaldo, null)
+  // sin ?config= ni ?geo=, el OM3 por defecto (en las pruebas, el de datos.js) con la sede y el edificio
+  assert.match(sd.config, /\/publicado\?sede=3&edificio=PRINCIPAL$/)
+  assert.match(sd.geo.url, /\/geo\?sede=3&edificio=PRINCIPAL$/)
+  const q = leerPagina('', 'https://mapa.test/')
+  assert.equal(q.respaldo, 'sedes/quito/principal/')
+  assert.equal(q.geo, null)
+  assert.match(q.config, /\/publicado\?sede=1&edificio=PRINCIPAL$/)
+  // configDeSede: ?config= tal cual; sin sede reconocible, nada
+  assert.equal(configDeSede(`?config=${encodeURIComponent(`${pub}?sede=2&edificio=PRINCIPAL`)}`, pub), `${pub}?sede=2&edificio=PRINCIPAL`)
+  assert.equal(configDeSede('?sede=abc', pub), null)
+  assert.equal(configDeSede('?sede=8&edificio=torre_b', pub), `${pub}?sede=8&edificio=TORRE_B`)
+})
+
+test('?geo=/?config= mandan sobre ?sede=: si no coinciden no hay sede; el código del edificio va tal cual a OM3', () => {
+  const g = (s, e) => encodeURIComponent(`${OM3}/geo?sede=${s}&edificio=${e}`)
+  assert.equal(sedeDeBusqueda(`?sede=1&geo=${g(3, 'PRINCIPAL')}`).sede, null)
+  assert.equal(carpetaRespaldo(`?sede=1&geo=${g(3, 'PRINCIPAL')}`), null)
+  assert.equal(sedeDeBusqueda(`?sede=3&geo=${g(3, 'PRINCIPAL')}`).sede, 'santo-domingo')
+  assert.equal(sedeDeBusqueda(`?sede=santo-domingo&geo=${g(3, 'PRINCIPAL')}`).sede, 'santo-domingo')
+  assert.equal(sedeDeBusqueda(`?edificio=ANEXO&geo=${g(3, 'PRINCIPAL')}`).edificio, null)
+  assert.equal(sedeDeBusqueda(`?geo=${g(3, 'TORRE_B')}`).codigo, 'TORRE_B')
+  assert.equal(geoDeSede('?sede=3&edificio=torre_b', `${OM3}/publicado`).url, `${OM3}/geo?sede=3&edificio=TORRE_B`)
+  assert.equal(geoDeSede('?sede=3&edificio=no%20vale', `${OM3}/publicado`), null)
 })

@@ -7,7 +7,10 @@ from shapely.geometry import Polygon, MultiPolygon
 from shapely.ops import unary_union
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
-PUB = os.path.join(AQUI, '..', '..', 'public', 'sedes', 'quito', 'principal')   # respaldo local de la sede Quito, edificio principal
+import sys
+sys.path.insert(0, AQUI)
+import sede  # noqa: E402
+PUB = sede.SALIDA   # Quito: respaldo local public/sedes/quito/principal; otra sede: planta_real/salida_sedes/<sede>/<edificio>
 
 
 def huella(piso):

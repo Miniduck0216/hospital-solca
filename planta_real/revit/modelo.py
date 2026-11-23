@@ -59,6 +59,10 @@ NOMBRES_ZONA = [(box(64.5, 27.3, 74.0, 29.1), 'GESTIÓN PRIVADOS')]
 # sus muros son parapetos.
 EXTERIORES = [box(66.45, 104.75, 70.1, 108.5)]
 H_PARAPETO = 1.00
+# Otras sedes (planta_real/pisos/modelo_piso.py): al decidir qué es exterior no cuentan las piezas sueltas de menos de
+# estos m² (columnas de un patio o de un área cubierta exterior, que con el cierre de 2,6 m encerraban el patio como si
+# fuera un ambiente). 0 = como siempre (Quito).
+SUELTOS_MAX = 0.0
 
 
 def lista_polis(g):
@@ -807,7 +811,14 @@ class Modelo:
         ocup = ocup | cierres
         k = 130
         pad = k + 20
-        oc2 = np.pad(ocup | bajo_techo, pad)
+        ocup_c = ocup
+        if SUELTOS_MAX:
+            et_s, n_s = ndimage.label(ocup)
+            tam_s = ndimage.sum(np.ones_like(et_s), et_s, index=np.arange(1, n_s + 1)) * M.RES ** 2
+            chicos = np.zeros(n_s + 1, bool)
+            chicos[1:] = tam_s < SUELTOS_MAX
+            ocup_c = ocup & ~chicos[et_s]
+        oc2 = np.pad(ocup_c | bajo_techo, pad)
         cerrado = ndimage.binary_dilation(oc2, structure=np.ones((3, 3), bool), iterations=k)
         e2, _ = ndimage.label(~cerrado)
         ext = e2 == e2[0, 0]

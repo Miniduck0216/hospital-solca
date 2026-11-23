@@ -2,8 +2,10 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore, lazy, Suspe
 import QRCode from 'qrcode'
 import { cargarDatos, cambiosDelPiso, usarGeo, CATS, ICONO_LUGAR, plano, dentro } from './datos.js'
 import { cargarDatosEnHilo } from './cargaEnHilo.js'
-import { origenGeoDeUrl } from './geometria.js'
-import { carpetaRespaldo } from './sedes.js'
+import { SinPlano } from './geometria.js'
+import { claveCambios, leerCambiosLocales } from './sedes.js'
+import { PAGINA, consultaCompartir, enlaceQR, nombreHospital } from './paginaInicial.js'
+import { SinPlanoSede } from './SinPlano.jsx'
 import { buscarRuta, indicaciones, metrosHasta, proximoPaso } from './ruta.js'
 import { rutaEdificio } from './rutaEdificio.js'
 import { listaPasos } from './pasoAPaso.js'
@@ -21,8 +23,10 @@ import { ErrorBoundary } from './ErrorBoundary.jsx'
 
 const Vista3D = lazy(() => import('./Vista3D.jsx').then((m) => ({ default: m.Vista3D })))
 
-// cambios del administrador guardados en este navegador (se suman a los publicados en el repositorio)
-const CLAVE_LOCAL = 'solca-admin-cambios'
+// cambios del administrador guardados en este navegador (se suman a los publicados): una clave por sede y edificio
+// (solca-admin-cambios:<sede>:<edificio>; la clave vieja, de Quito, pasa a quito/principal). Sin sede: ninguna
+const SEDE_PAGINA = PAGINA.sede
+const CLAVE_LOCAL = claveCambios(SEDE_PAGINA.sede, SEDE_PAGINA.edificio)
 // formato 2 de cambios (por piso). El formato 1 ({ ambientes }) del primer administrador era de la planta baja.
 export function aFormato2(c) {
   if (!c || typeof c !== 'object') return { version: 2, pisos: {} }
@@ -30,7 +34,7 @@ export function aFormato2(c) {
   return { version: 2, pisos: c.ambientes ? { PB: { ambientes: c.ambientes } } : {} }
 }
 function leerCambios() {
-  try { return aFormato2(JSON.parse(localStorage.getItem(CLAVE_LOCAL))) } catch { return aFormato2(null) }
+  try { return aFormato2(JSON.parse(leerCambiosLocales(localStorage, SEDE_PAGINA.sede, SEDE_PAGINA.edificio))) } catch { return aFormato2(null) }
 }
 
 // categorías de la barra (atajos de búsqueda)
@@ -183,16 +187,17 @@ function Buscador({ lugares, pisos, origen, modo, cat, onElegir, onCerrar }) {
   )
 }
 
-function QR({ lugar, onCerrar }) {
+function QR({ lugar, hospital, onCerrar }) {
   const [svg, setSvg] = useState('')
-  const url = `${location.origin}${location.pathname}?origen=${encodeURIComponent(lugar.id)}`
+  // el enlace lleva la sede, el edificio y el origen del dibujo de esta página (si no, abriría Quito)
+  const url = enlaceQR(`${location.origin}${location.pathname}`, new URLSearchParams(PAGINA.busqueda), lugar.id)
   useEffect(() => { QRCode.toString(url, { type: 'svg', margin: 1, color: { dark: '#14181F', light: '#FFFFFF' } }).then(setSvg) }, [url])
   return (
     <div className="qr-fondo" onClick={onCerrar}>
       <div className="qr-tarjeta" role="dialog" aria-label={`Código QR de ${lugar.nombre}`} onClick={(e) => e.stopPropagation()}>
         <small>Usted está aquí</small>
         <h3>{lugar.nombre}</h3>
-        <p>{lugar.pisoNombre || 'Planta baja'} · Hospital SOLCA Quito</p>
+        <p>{lugar.pisoNombre || 'Planta baja'} · {hospital}</p>
         <div className="qr-img" dangerouslySetInnerHTML={{ __html: svg }} />
         <p className="qr-nota">Escanea para ver cómo llegar a cualquier servicio desde este punto.</p>
         <input readOnly value={url} onFocus={(e) => e.target.select()} aria-label="Enlace" />
@@ -221,11 +226,14 @@ const PADRE_TOTEM = INSERTADO === 'totem' ? URL_OK(PARAMS.get('padre') || '')?.o
 // información de los ambientes publicada en OM3 (?config=<url pública>); sin parámetro, la de CONFIG_OM3_URL (datos.js)
 // (puede ser relativa a la página: en el portal de OM3, /api/v1/administracion/mapa/publicado)
 const URL_REL = (u) => { try { return u ? URL_OK(new URL(u, location.href).href) : null } catch { return null } }
-const CONFIG_URL = URL_REL(PARAMS.get('config'))?.href || null
+// (sin ?config=, la de CONFIG_OM3_URL con la sede y el edificio pedidos: ver paginaInicial.js)
+const CONFIG_URL = URL_REL(PARAMS.get('config'))?.href || PAGINA.config
 // origen del dibujo: OM3 con ?geo= (o derivado de ?config=), borrador con ?modo=admin&vista=<token>; si no, public/
-const GEO = origenGeoDeUrl(location.search)
-// respaldo local por hospital (public/sedes/<sede>/<edificio>/): de ?sede=&edificio= o de los de ?geo=/?config=
-const RESPALDO = carpetaRespaldo(location.search)
+// (una sede sin respaldo local —todas menos Quito— sin ?geo= ni ?config= lo pide al /geo del OM3 por defecto)
+const GEO = PAGINA.geo
+// respaldo local (solo Quito: public/sedes/quito/<edificio>/); las demás sedes no tienen: null
+const RESPALDO = PAGINA.respaldo
+const SEDE = SEDE_PAGINA
 // preferencias de ruta: ?via=ascensor|escalera|cualquiera (entre pisos) y ?accesible=1 (sin escalones)
 const VIA_INICIAL = ['ascensor', 'escalera', 'cualquiera'].includes(PARAMS.get('via')) ? PARAMS.get('via') : 'ascensor'
 const ACCESIBLE_INICIAL = PARAMS.get('accesible') === '1'
@@ -390,14 +398,15 @@ export default function App() {
   const cargar = (c, piso = pisoId) => cargarPiso(c, piso, true)
   useEffect(() => {
     const pedido = PISO_INICIAL
-    cargar(cambios, pedido).catch(() => (pedido ? cargar(cambios, null) : Promise.reject(new Error('sin plano'))))
+    cargar(cambios, pedido)
+      .catch((e) => (e instanceof SinPlano ? Promise.reject(e) : pedido ? cargar(cambios, null) : Promise.reject(new Error('sin plano'))))
       .then((datos) => {
         // los demás pisos se cargan después, sin apuro: hacen falta para buscar en todo el edificio y trazar entre pisos
         if (!datos || MODO_ADMIN) return
         const otros = (datos.edificio?.pisos || []).filter((p) => p.disponible && p.id !== datos.piso.id)
         return otros.reduce((pr, p) => pr.then(() => new Promise((ok) => enReposo(ok))).then(() => cargarPiso(cambios, p.id, false).catch(() => setFallidos((f) => [...f, p.id]))), Promise.resolve())
       })
-      .catch((e) => setError(e.message))
+      .catch((e) => setError(e))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   // editor en OM3: OM3 manda el borrador (estado completo) y recibe cada cambio
@@ -418,7 +427,7 @@ export default function App() {
   const guardar = (nuevo) => {
     setCambios(nuevo)
     if (MODO_ADMIN) window.parent.postMessage({ tipo: 'mapa-cambios', cambios: nuevo }, PADRE)
-    else { try { localStorage.setItem(CLAVE_LOCAL, JSON.stringify(nuevo)) } catch { /* sin almacenamiento: solo en esta sesión */ } }
+    else if (CLAVE_LOCAL) { try { localStorage.setItem(CLAVE_LOCAL, JSON.stringify(nuevo)) } catch { /* sin almacenamiento: solo en esta sesión */ } }
     cargar(nuevo)
   }
   const cambiosPiso = cambiosDelPiso(cambios, pisoId) || {}
@@ -433,7 +442,7 @@ export default function App() {
   const onRestablecer = () => {
     // en OM3 se vuelve a lo guardado allá (OM3 responde con mapa-borrador); fuera, se borra todo lo local
     if (MODO_ADMIN) { setPick(null); window.parent.postMessage({ tipo: 'mapa-descartar' }, PADRE); return }
-    try { localStorage.removeItem(CLAVE_LOCAL) } catch { /* nada que borrar */ }
+    try { if (CLAVE_LOCAL) localStorage.removeItem(CLAVE_LOCAL) } catch { /* nada que borrar */ }
     guardar(aFormato2(null))
   }
   const redondo = (v) => Math.round(v * 100) / 100
@@ -703,13 +712,9 @@ export default function App() {
   // el enlace refleja el origen y el destino (para compartir)
   useEffect(() => {
     if (!origen) return
-    const p = new URLSearchParams()
-    // el modo y las opciones de inserción se conservan al cambiar origen o destino
-    for (const k of ['modo', 'padre', 'config']) if (PARAMS.get(k)) p.set(k, PARAMS.get(k))
-    if (via !== 'ascensor') p.set('via', via)
-    if (accesible) p.set('accesible', '1')
-    p.set('origen', origen.id)
-    if (destino) p.set('destino', destino.id)
+    // el modo, las opciones de inserción, la sede, el edificio y el origen del dibujo se conservan al cambiar origen o
+    // destino (si no, al recargar o guardar el enlace se abriría Quito)
+    const p = consultaCompartir(PARAMS, { origen: origen.id, destino: destino?.id, via, accesible })
     history.replaceState(null, '', `${location.pathname}?${p}`)
   }, [origen, destino, accesible, via])
 
@@ -727,7 +732,8 @@ export default function App() {
     if (!origen || l.piso === origen.piso) { if (l.piso !== pisoId) verPiso(l.piso); setFoco({ ...l, id: l.local, t: Date.now() }) }
   }
 
-  if (error) return <div className="pb-error">No se pudo cargar el plano: {error}</div>
+  if (error instanceof SinPlano) return <SinPlanoSede sede={SEDE} mensaje={error.message} />
+  if (error) return <div className="pb-error">No se pudo cargar el plano: {error.message || String(error)}</div>
   if (!d) return <Cargando texto="Cargando el plano del hospital…" />
 
   const minutos = rutaOk ? Math.max(1, Math.round((rutaOk.segundos || rutaOk.metros / 1.2) / 60)) : 0
@@ -926,7 +932,7 @@ export default function App() {
       {/* sin la información de OM3 el plano se dibuja y traza rutas, pero sin nombres */}
       {d.sinInformacion && <div className="pb-sin-info" role="status">No se pudo cargar la información del hospital</div>}
       {pedirClave && <Clave onOk={() => { setAdmin(true); setPedirClave(false) }} onCerrar={() => setPedirClave(false)} />}
-      {qr && origen && <QR lugar={{ ...origen, pisoNombre: pisos[origen.piso]?.piso?.nombre }} onCerrar={() => setQr(false)} />}
+      {qr && origen && <QR lugar={{ ...origen, pisoNombre: pisos[origen.piso]?.piso?.nombre }} hospital={nombreHospital(d?.edificio)} onCerrar={() => setQr(false)} />}
       {!INSERTADO && import.meta.env.MODE !== 'portal' && <a className="pb-proto" href={`${import.meta.env.BASE_URL}prototipo/`}>Prototipo anterior (5 pisos)</a>}
     </div>
   )

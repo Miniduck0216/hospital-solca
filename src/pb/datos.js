@@ -3,7 +3,7 @@
 // personal, ventanillas, lugares, nombres de las entradas y letreros vienen de OM3 (ver CONFIG_OM3_URL).
 // (en las pruebas con node no hay import.meta.env: se usa la raíz)
 export const BASE = import.meta.env?.BASE_URL ?? "/"
-import { crearProveedor, CaidaOm3 } from './geometria.js'
+import { crearProveedor, CaidaOm3, SinPlano } from './geometria.js'
 import { CARPETA_DEFECTO } from './sedes.js'
 
 // Configuración publicada en OM3 (GET /mapa/publicado, desde OMN_DBA.OMN_ADM_PLANO_*). El tótem, el celular y el
@@ -27,7 +27,7 @@ const pedirConfig = (url) => {
   return p
 }
 
-// Edificio: pisos disponibles, conectores verticales (ascensores y escaleras) y tiempos para las rutas entre pisos
+// Edificio de Quito, edificio principal, si public/ no entrega edificio.json (solo para quito/principal)
 const EDIFICIO_RESPALDO = {
   pisoInicial: 'PB',
   pisos: [{ id: 'PB', nombre: 'Planta baja', corto: 'PB', nivel: 0, disponible: true, datos: 'pisos/pb/datos.json', config: 'pisos/pb/config.json', glb: 'pisos/pb/solca_pb.glb' }],
@@ -44,8 +44,13 @@ export function proveedorGeo(geo = null, respaldo = CARPETA_DEFECTO) {
 }
 /** @param geo origen del dibujo ({ url, vista } de origenGeoDeUrl); sin él, public/ */
 export async function cargarEdificio(geo = null, respaldo = CARPETA_DEFECTO) {
-  const e = await proveedorGeo(geo, respaldo).edificio()
-  return e || EDIFICIO_RESPALDO
+  const prov = proveedorGeo(geo, respaldo)
+  const e = await prov.edificio()
+  if (e) return e
+  // Quito, edificio principal: si public/ no entrega edificio.json, el edificio de siempre (una planta baja)
+  if (respaldo === CARPETA_DEFECTO) return EDIFICIO_RESPALDO
+  // las demás sedes no caen a ningún plano ni a un edificio supuesto: el mapa avisa que no tienen plano publicado
+  throw new SinPlano(geo ? 'OM3 no tiene un plano publicado o no responde' : 'sin ?geo= ni respaldo propio')
 }
 
 // Reglas propias de cada piso. En pisos/<piso>/config.json quedan solo las geométricas: pasos (muros y pasos
@@ -102,7 +107,8 @@ async function cargarDatosDe(cambiosLocales, opciones) {
   d.cfgCruda = (piso.config && (await prov.json(piso.config))) || {}
   d.cfg = compilarConfig(d.cfgCruda)
   // pisos altos: el perfil del hospital (contorno de la planta baja) se dibuja debajo, como en el plano de cada piso
-  d.perfil = piso.nivel > 0 ? ((await pedirJson(await prov.urlRespaldo('perfil.json')))?.huella || []) : []
+  const urlPerfil = piso.nivel > 0 ? await prov.urlRespaldo('perfil.json') : null
+  d.perfil = urlPerfil ? ((await pedirJson(urlPerfil))?.huella || []) : []
   // alrededores tomados de la foto satelital (parqueaderos, canchas y zonas de árboles): ver planta_real/pisos/exterior.py
   if (piso.nivel === 0) {
     const ext = await prov.json('exterior.json')

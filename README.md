@@ -25,10 +25,10 @@ El plano del repositorio solo trae geometría e ids. Toda la información de los
 | `public/sedes/<sede>/<edificio>/pisos/<piso>/config.json` | `piso`, `nota`, `pasos` (muros y pasos trazados) y `puertasAuto` (ids de cuartos cuya puerta el plano no dibuja). |
 | OM3 (`/mapa/publicado`) | Por ambiente: `nombre`, `cat`, `icono`, `personal`, `oculto`, `ventanilla`, `dest`. Además `lugares`, el nombre de cada entrada (`entradas`), los `letreros` y los pasos del editor. |
 
-### Respaldo local por hospital
+### Respaldo local (solo Quito)
 
-El dibujo publicado en OM3 (`/geo`) manda cuando existe. Si no, el mapa usa el respaldo que viaja con el sitio,
-organizado por hospital (una sede de OM3 = un hospital por ciudad) y por edificio:
+El dibujo de cada sede (una sede de OM3 = un hospital por ciudad) lo publica OM3 (`/geo`). Solo Quito trae además un
+respaldo que viaja con el sitio y se usa si OM3 no responde:
 
 ```
 public/
@@ -40,11 +40,34 @@ public/
 - La carpeta sale de `?sede=&edificio=` o de los mismos parámetros dentro de `?geo=` o `?config=`. La sede puede ser
   el número de OM3 o el nombre: 1 quito, 2 imbabura, 3 santo-domingo, 4 tungurahua, 5 chimborazo, 6 manabi,
   7 machala, 8 cuenca, 21 loja (`src/pb/sedes.js`). El edificio por defecto es `principal`.
-- Si esa sede no tiene carpeta, se usa `quito/principal` y se avisa en la consola.
+- Las demás sedes no tienen respaldo: si OM3 no responde o no tiene un plano publicado, el mapa muestra «Esta sede
+  todavía no tiene plano publicado en OM3» sobre el mapa base, en el centro de la ciudad (`SEDES_INFO` en
+  `src/pb/sedes.js`). Nunca cae al plano de Quito. Sin `?geo=` ni `?config=`, el plano se pide al `/geo` del OM3 por
+  defecto (`VITE_CONFIG_OM3_URL` con `/geo`, `?sede=<n>&edificio=<E>`).
+- Cada sede va por separado. Solo la página base, sin `?sede=`, `?geo=` ni `?config=`, es Quito. Una `?sede=` que no
+  es una sede de OM3 (`9`, `abc`), o un `?geo=`/`?config=` sin `sede` o sin `edificio`, no cargan ningún plano: el
+  mapa muestra el aviso. Un edificio sin carpeta propia tampoco cae a `quito/principal`.
+- Los archivos de OM3 se piden con `/geo/:id/archivo?ruta=…&sede=<n>&edificio=<CÓDIGO>` (OM3 comprueba que la
+  versión sea de ese edificio).
+- Los cambios del administrador guardados en el navegador van por sede y edificio
+  (`solca-admin-cambios:<sede>:<edificio>`); la clave vieja `solca-admin-cambios` solo pasa a `quito:principal`.
 - Las rutas de `edificio.json` son relativas a la carpeta del edificio (`pisos/pb/datos.json`).
 - `npm run build` (GitHub Pages) y `npm run build:portal` (portal de OM3, `dist-portal/`) usan la misma carpeta.
   El prototipo anterior (`/prototipo/`) solo va en Pages.
-- `npm run plano:paquete -- --sede 1 --edificio PRINCIPAL` lee la carpeta de esa sede y edificio.
+- `npm run plano:paquete -- --sede 1 --edificio PRINCIPAL` lee la carpeta de esa sede y edificio (Quito: `public/`;
+  las demás: `planta_real/salida_sedes/<sede>/<edificio>/`, o la que se pase con `--carpeta`).
+
+### Plano de una sede nueva
+
+1. Configuración: `planta_real/sedes/<sede>/<edificio>/config.json` (ruta del DXF, unidad, traslado, caja, clave,
+   nombre, nivel y altura de cada piso, capas de muros, ventanas, columnas y gradas, capa de los nombres, bloques de
+   puerta y georreferencia). Ejemplos: `santo-domingo/principal` e `imbabura/principal`; detalle en
+   `planta_real/pisos/sede.py`.
+2. `bash planta_real/pisos/regenerar.sh --sede santo-domingo --edificio principal` (Python 3.12 con el venv, ver
+   CLAUDE.md). Escribe en `planta_real/salida_sedes/santo-domingo/principal/` (ignorada por git): `edificio.json` y,
+   por piso, `datos.json` sin nombres, `config.json`, `nombres.json` (los nombres del DXF) y el `.glb`.
+3. `npm run plano:paquete -- --sede 3 --edificio PRINCIPAL --salida plano.zip` y subirlo en OM3. Al publicar, OM3 crea
+   con `nombres.json` los ambientes que todavía no existen.
 
 - De dónde se lee: `?config=<url>` (tótem, celular y editor de OM3) o, sin parámetro, `VITE_CONFIG_OM3_URL` al compilar
   (por defecto `https://dev-omniumportal.solcaquito.org.ec/api/v1/administracion/mapa/publicado`).

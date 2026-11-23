@@ -21,7 +21,9 @@ from shapely.ops import unary_union, polylabel
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.abspath(os.path.join(AQUI, '..', '..'))
-DATOS = os.path.join(RAIZ, 'public', 'sedes', 'quito', 'principal')   # respaldo local de la sede Quito, edificio principal
+sys.path.insert(0, AQUI)
+import sede  # noqa: E402
+DATOS = sede.SALIDA   # Quito: respaldo local public/sedes/quito/principal; otra sede: planta_real/salida_sedes/<sede>/<edificio>
 sys.path.insert(0, os.path.join(RAIZ, 'planta_real', 'revit'))
 sys.path.insert(0, os.path.join(RAIZ, 'planta_real', 'web'))
 sys.path.insert(0, AQUI)
@@ -1088,7 +1090,7 @@ def exportar(m, piso, salida):
 
     # entradas desde la calle: solo en los pisos con puertas al exterior (subsuelo y planta baja)
     ent = []
-    if piso in ('SB', 'PB'):
+    if piso in PISOS_CALLE:
         textos = [(t, *m.L((x, y))) for c, t, x, y, h, ap in m.textos if t.strip().upper().startswith('PUERTA')]
         borde = hu.boundary
         cand = []
@@ -1217,9 +1219,9 @@ def exportar(m, piso, salida):
     if cuarto.dtype == np.uint16:
         nav['cuartoBits'] = 16
     datos = dict(
-        nombre=f'Hospital SOLCA Quito · {NOMBRES_PISO[piso]}',
-        fuente='Planos actualizados HOSPITAL SOLCA QUITO 2025 (DWG del edificio)',
-        geo=ED.GEO, altura=3.84,
+        nombre=f'{sede.NOMBRE_EDIFICIO} · {NOMBRES_PISO[piso]}',
+        fuente='Planos actualizados HOSPITAL SOLCA QUITO 2025 (DWG del edificio)' if sede.ES_QUITO else sede.CFG.get('fuente', ''),
+        geo=ED.GEO if sede.ES_QUITO else sede.geo(), altura=3.84 if sede.ES_QUITO else sede.ALTURA[piso],
         huella=ED.poli(hu, 0.05), ambientes=amb, muros=ED.poli(muros, 0.015), ventanas=ED.poli(vent, 0.015),
         barandas=ED.poli(unary_union(m.barandas), 0.015) if m.barandas else [],
         puertas=[dict(a=[r2(v) for v in p['a']], b=[r2(v) for v in p['b']], c=round(float((p['t0'] + p['t1']) / 2), 3),
@@ -1259,7 +1261,7 @@ def caja_gradas(m, piso):
             import __main__
             import modelo_piso
             __main__.ModeloPiso = modelo_piso.ModeloPiso
-            ref = pickle.load(open(f"/tmp/modelo_{c['como']}.pkl", 'rb'))
+            ref = pickle.load(open(sede.pkl(c['como']), 'rb'))
             rx, ry = ref.origen
             pares += [affinity.translate(g, rx - ox, ry - oy) for g in G.muros_de_pares(ref, c['zona'], c['capas'])]
     if not pares:
@@ -1408,10 +1410,29 @@ def trasladar(d, ox, oy):
     d['nav']['y0'] = round(d['nav']['y0'] + oy, 3)
 
 
+# pisos con puertas a la calle (entradas): en Quito el subsuelo y la planta baja; en otra sede, los de nivel 0 o menos
+PISOS_CALLE = ('SB', 'PB') if sede.ES_QUITO else tuple(p for p in sede.PISOS if sede.NIVEL[p] <= 0)
+if not sede.ES_QUITO:
+    # todas las correcciones de arriba son del DWG de Quito (coordenadas de su marco): otra sede empieza sin ninguna
+    for _k in ('EXTRA', 'HUECOS_PASO', 'FUSIONAR', 'REPARTE', 'MUROS_EXTRA', 'QUITAR_MUROS', 'QUITAR_VENTANAS',
+               'PUERTAS_VIDRIO', 'VENTANAS_A_MUROS', 'VENTANAS_EN_MURO', 'VENTANAS_EXTRA', 'VENTANILLAS_EXTRA',
+               'BARANDAS_EXTRA', 'PUERTAS_EXTRA', 'RECORTES', 'MESAS', 'ZONA_MESAS', 'MESONES_EXTRA', 'ESCALERAS_EXTRA',
+               'AREAS_LIBRES', 'PARTES_SUELTAS', 'PASOS_LIBRES', 'EXTERIOR'):
+        globals()[_k] = {}
+    # ambientes que el dibujo no cierra (ascensores sin muros, cuartos abiertos): config.json → pisos[].extra
+    EXTRA = {p['clave']: [(e['nombre'], box(*e['caja'])) for e in p.get('extra', [])] for p in sede.CFG['pisos']}
+    # cuartos chicos que el dibujo corta de uno mayor (pisos[].fusionar: puntos del marco local), como FUSIONAR en Quito
+    FUSIONAR = {p['clave']: [tuple(q) for q in p.get('fusionar', [])] for p in sede.CFG['pisos']}
+    BANOS_HUECO = set()
+    PUERTAS_ARCO = set()
+    HUECOS_ROTULADOS = set(PISOS_CALLE)
+    NOMBRES_PISO = dict(sede.NOMBRE)
+
+
 if __name__ == '__main__':
     piso = sys.argv[1]
     import __main__
     import modelo_piso
     __main__.ModeloPiso = modelo_piso.ModeloPiso   # modelos guardados al correr modelo_piso.py como script
-    m = pickle.load(open(sys.argv[2] if len(sys.argv) > 2 else f'/tmp/modelo_{piso}.pkl', 'rb'))
+    m = pickle.load(open(sys.argv[2] if len(sys.argv) > 2 else sede.pkl(piso), 'rb'))
     exportar(m, piso, os.path.join(DATOS, 'pisos', piso.lower(), 'datos.json'))

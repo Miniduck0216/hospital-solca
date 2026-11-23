@@ -1,28 +1,35 @@
-// Arma el paquete (.zip) del dibujo de un edificio para subirlo a OM3 (contrato de planos, fase 1), a partir de lo que
-// hoy está en el respaldo local de la sede (public/sedes/<sede>/<edificio>/, ver src/pb/sedes.js): edificio.json,
-// exterior.json y, por piso, datos.json, config.json y los .glb.
+// Arma el paquete (.zip) del dibujo de un edificio para subirlo a OM3 (contrato de planos, fase 1): edificio.json,
+// exterior.json y, por piso, datos.json, config.json, nombres.json y los .glb. Los toma de:
+//   - Quito (sede 1): el respaldo local public/sedes/quito/principal/ (ver src/pb/sedes.js);
+//   - otra sede: la carpeta de trabajo del pipeline, planta_real/salida_sedes/<sede>/<edificio>/ (la escribe
+//     planta_real/pisos/regenerar.sh --sede <s> --edificio <e>; no va en public/: el mapa la lee de OM3);
+//   - o la carpeta que se pase con --carpeta.
 // Los archivos van tal cual (no se convierten); solo edificio.json cambia sus rutas a las del paquete (pisos/<CLAVE>/…).
 // Antes de escribir se valida la estructura (plano_estructura.mjs); si algo falla no se escribe nada.
 //
-// Uso: npm run plano:paquete -- --sede 1 --edificio PRINCIPAL [--salida ruta.zip] [--notas "texto"]
+// Uso: npm run plano:paquete -- --sede 1 --edificio PRINCIPAL [--carpeta dir] [--salida ruta.zip] [--notas "texto"]
 //   (sin --salida: plano_<sede>_<edificio>.zip en la carpeta actual)
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { escribirZip } from './zip.mjs'
 import { validarPaquete, CLAVE, LIMITES } from './plano_estructura.mjs'
-import { carpetaSede, carpetaEdificio } from '../src/pb/sedes.js'
+import { carpetaSede, carpetaEdificio, tieneRespaldo } from '../src/pb/sedes.js'
 
 const RAIZ = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 
 /**
  * @returns {{ archivos: [string, Buffer][], manifiesto: object }}
  */
-/** Carpeta del respaldo local de una sede y edificio de OM3 (1, PRINCIPAL → public/sedes/quito/principal) */
+/**
+ * Carpeta de donde sale el dibujo de una sede y edificio de OM3: Quito (1, PRINCIPAL → public/sedes/quito/principal);
+ * las demás, la carpeta de trabajo del pipeline (3, PRINCIPAL → planta_real/salida_sedes/santo-domingo/principal).
+ */
 export function carpetaPublica(sede, edificio) {
   const s = carpetaSede(sede)
   if (!s) throw new Error(`La sede ${sede} no tiene carpeta en src/pb/sedes.js`)
-  return path.join(RAIZ, 'public', 'sedes', s, carpetaEdificio(edificio))
+  if (tieneRespaldo(s)) return path.join(RAIZ, 'public', 'sedes', s, carpetaEdificio(edificio))
+  return path.join(RAIZ, 'planta_real', 'salida_sedes', s, carpetaEdificio(edificio))
 }
 
 export function armarPaquete({ sede, edificio, publico = carpetaPublica(sede, edificio), notas = '', generado = new Date().toISOString() }) {
@@ -46,6 +53,10 @@ export function armarPaquete({ sede, edificio, publico = carpetaPublica(sede, ed
       delPiso.push([`${dir}/config.json`, leer(p.config)])
       nuevo.config = `${dir}/config.json`
     } else delete nuevo.config
+    // nombres que trae el DXF (sedes nuevas): OM3 los usa al publicar para crear los ambientes que aún no existen
+    if (fs.existsSync(path.join(publico, path.posix.dirname(p.datos), 'nombres.json'))) {
+      delPiso.push([`${dir}/nombres.json`, leer(path.posix.join(path.posix.dirname(p.datos), 'nombres.json'))])
+    }
     const glb = [].concat(p.glb ?? []).filter(Boolean).filter((g) => fs.existsSync(path.join(publico, g)))
     for (const g of glb) delPiso.push([`${dir}/${path.posix.basename(g)}`, leer(g)])
     const rutasGlb = glb.map((g) => `${dir}/${path.posix.basename(g)}`)
@@ -61,10 +72,11 @@ export function armarPaquete({ sede, edificio, publico = carpetaPublica(sede, ed
     formato: 1,
     sede: Number(sede),
     edificio: String(edificio),
+    ...(edif.nombre ? { edificioNombre: String(edif.nombre).slice(0, 200) } : {}),
     pisos: pisosManifiesto,
     generado,
     fuente: [...fuentes].join(' | '),
-    notas: notas || `Carga inicial desde public/ de hospital-solca (${edif.nombre || 'edificio'})`,
+    notas: notas || `Carga inicial desde ${path.relative(RAIZ, publico).split(path.sep).join('/')} de hospital-solca (${edif.nombre || 'edificio'})`,
   }
   archivos.push(['manifest.json', Buffer.from(JSON.stringify(manifiesto, null, 1) + '\n')])
   archivos.push(['edificio.json', Buffer.from(JSON.stringify(edificioPaquete, null, 1) + '\n')])
@@ -103,11 +115,11 @@ const mb = (n) => (n < 1024 * 1024 ? `${(n / 1024).toFixed(1)} KB` : `${(n / 102
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const a = argumentos(process.argv.slice(2))
   if (!a.sede || !a.edificio || !/^\d+$/.test(a.sede)) {
-    console.error('Uso: npm run plano:paquete -- --sede 1 --edificio PRINCIPAL [--salida ruta.zip] [--notas "texto"]')
+    console.error('Uso: npm run plano:paquete -- --sede 1 --edificio PRINCIPAL [--carpeta dir] [--salida ruta.zip] [--notas "texto"]')
     process.exit(2)
   }
   try {
-    const { zip, archivos, avisos } = generarZip({ sede: a.sede, edificio: a.edificio, notas: a.notas })
+    const { zip, archivos, avisos } = generarZip({ sede: a.sede, edificio: a.edificio, notas: a.notas, ...(a.carpeta ? { publico: path.resolve(a.carpeta) } : {}) })
     const salida = path.resolve(a.salida || `plano_${a.sede}_${a.edificio}.zip`)
     fs.writeFileSync(salida, zip)
     for (const [ruta, b] of archivos) console.log(`${ruta.padEnd(28)} ${mb(b.length).padStart(10)}`)

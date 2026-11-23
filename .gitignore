@@ -7,3 +7,6 @@ __pycache__
 # pisos: cachés de lectura del DXF
 planta_real/pisos/cache/
 planta_real/pisos/__pycache__/
+
+# sedes nuevas: carpeta de trabajo del pipeline (planta_real/pisos/regenerar.sh --sede); el plano va a OM3, no a git
+planta_real/salida_sedes/

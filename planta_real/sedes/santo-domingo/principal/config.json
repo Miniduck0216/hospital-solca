@@ -1,0 +1,38 @@
+{
+ "sede": 3,
+ "edificio": "PRINCIPAL",
+ "nombre": "Hospital SOLCA Santo Domingo",
+ "fuente": "Hospital SOLCA Santo Domingo 112026.dxf",
+ "dxf": "C:/Users/ASUS/Downloads/Hospital SOLCA Santo Domingo 112026.dxf",
+ "unidad": 1.0,
+ "traslado": [1975.0, -294.0],
+ "pisos": [
+  {"clave": "PB", "nombre": "Planta baja", "nivel": 0, "altura": 4.08, "caja": [-1975, 294, -1826, 372],
+   "extra": [{"nombre": "ASCENSORES PÚBLICOS", "caja": [93.4, 32.2, 95.8, 36.45]},
+             {"nombre": "ASCENSORES TÉCNICOS", "caja": [70.95, 40.8, 75.65, 43.95]}]},
+  {"clave": "P1", "nombre": "Planta alta", "nivel": 1, "altura": 4.08, "caja": [-1935, 455, -1872, 527], "calibrar": true,
+   "extra": [{"nombre": "ASCENSORES PÚBLICOS", "caja": [93.4, 32.2, 95.8, 36.45]},
+             {"nombre": "ASCENSORES TÉCNICOS", "caja": [70.95, 40.8, 75.65, 43.95]}]}
+ ],
+ "conectores": [
+  {"x": 94.6, "y": 34.3, "id": "ascensores-publicos", "nombre": "Ascensores públicos"},
+  {"x": 73.3, "y": 42.4, "id": "ascensores-tecnicos", "nombre": "Ascensores técnicos", "personal": true},
+  {"x": 58.1, "y": 42.8, "id": "escalera-central", "nombre": "Escalera"}
+ ],
+ "capas": {
+  "PA": ["^PAREDES$", "^PAREDES DE GYPSUM$"],
+  "VE": ["^VE$"],
+  "COL": ["^COL$"]
+ },
+ "rellenos": [],
+ "textos": ["^TEX$"],
+ "textos_ignorar": ["^P[ÚU]BLICO$", "puerta cortafuego", "contin[úu]an", "trinchera", "^total:", "^ducto hacia", "^hacia ", "cielo falso", "^escape incendio", "^ASCENSOR", "puestos", "^Viga", "Proyecci", "^N[ %+-]", "\\d+x\\d+ ?cm", "^h[:=]", "ALTURA", "ANTEPECHO", "Ver detalle", "^\\d+$", "^[a-zA-Z]$", "Doble altura", "MARQUESINA", "Ducto de instalaci", "bajo cielo", "puerta de hierro", "%%%"],
+ "textos_reemplazar": [["^\\s*(sube|baja|SUBE|BAJA)\\s+\\d+\\s*esc.*$", "ESCALERA"]],
+ "puertas": {"simple": ["^P\\d{1,2}-\\d{1,2}D?$", "^PU$", "^1x1\\.75"], "doble": []},
+ "conservar": ["^AS-0[1-6]"],
+ "renombrar_bloques": [["^AS-04", "INOD"], ["^AS-0[1236]", "AS-03"], ["^AS-05", "AS-28"]],
+ "geo": {
+  "lat0": -0.2462, "lon0": -79.1367, "ang": 152,
+  "nota": "Por calibrar. Centro aproximado del terreno nuevo de SOLCA Santo Domingo (vía E25 / Las Mercedes, junto al puente del río Toachi; El Diario 26-jul-2026, OSM ways 415553822 y 42446863), ±60 m. Giro según la flecha del norte del DXF (152° horario desde arriba del dibujo)."
+ }
+}
