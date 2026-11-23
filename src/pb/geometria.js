@@ -67,14 +67,31 @@ export function origenGeoDeUrl(busqueda = '', pagina = globalThis.location?.href
 export function geoDeSede(busqueda = '', configUrl = null, pagina = globalThis.location?.href) {
   const s = sedeDeBusqueda(busqueda)
   if (['0', 'public'].includes(new URLSearchParams(busqueda).get('geo'))) return null   // ?geo=0: no pedir a OM3
-  if (!s.sede || !s.edificio || tieneRespaldo(s.sede) || s.id == null || !configUrl) return null
+  if (!s.sede || !s.codigo || tieneRespaldo(s.sede) || s.id == null || !configUrl) return null
   const c = urlValida(configUrl, pagina)
   if (!c || !/\/publicado\/?$/.test(c.pathname)) return null
   c.pathname = c.pathname.replace(/\/publicado\/?$/, '/geo')
   c.search = ''
   c.searchParams.set('sede', String(s.id))
-  c.searchParams.set('edificio', s.edificio.toUpperCase())
+  c.searchParams.set('edificio', s.codigo)
   return { url: c.href, vista: null }
+}
+
+/**
+ * Dirección de la configuración publicada (…/mapa/publicado) de la sede y edificio pedidos. Con ?config= en la URL,
+ * esa tal cual; si no, la de CONFIG_OM3_URL con ?sede=&edificio=: sin ellos OM3 responde con la sede 1 y los nombres
+ * de Quito caerían por id sobre otra sede. Sin sede o edificio reconocibles: null (no se pide).
+ */
+export function configDeSede(busqueda = '', configUrl = null, pagina = globalThis.location?.href) {
+  const p = new URLSearchParams(busqueda)
+  if (p.get('config')) return urlValida(p.get('config'), pagina)?.href ?? null
+  const s = sedeDeBusqueda(busqueda)
+  if (!s.sede || !s.codigo || s.id == null || !configUrl) return null
+  const c = urlValida(configUrl, pagina)
+  if (!c) return null
+  c.searchParams.set('sede', String(s.id))
+  c.searchParams.set('edificio', s.codigo)
+  return c.href
 }
 
 /**

@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, lazy, Suspense } from 'react'
 import QRCode from 'qrcode'
-import { cargarDatos, cambiosDelPiso, usarGeo, CATS, ICONO_LUGAR, plano, dentro, CONFIG_OM3_URL } from './datos.js'
+import { cargarDatos, cambiosDelPiso, usarGeo, CATS, ICONO_LUGAR, plano, dentro } from './datos.js'
 import { cargarDatosEnHilo } from './cargaEnHilo.js'
-import { origenGeoDeUrl, geoDeSede, SinPlano } from './geometria.js'
-import { carpetaRespaldo, sedeDeBusqueda, claveCambios, leerCambiosLocales } from './sedes.js'
+import { SinPlano } from './geometria.js'
+import { claveCambios, leerCambiosLocales } from './sedes.js'
+import { PAGINA, consultaCompartir, enlaceQR, nombreHospital } from './paginaInicial.js'
 import { SinPlanoSede } from './SinPlano.jsx'
 import { buscarRuta, indicaciones, metrosHasta, proximoPaso } from './ruta.js'
 import { rutaEdificio } from './rutaEdificio.js'
@@ -24,7 +25,7 @@ const Vista3D = lazy(() => import('./Vista3D.jsx').then((m) => ({ default: m.Vis
 
 // cambios del administrador guardados en este navegador (se suman a los publicados): una clave por sede y edificio
 // (solca-admin-cambios:<sede>:<edificio>; la clave vieja, de Quito, pasa a quito/principal). Sin sede: ninguna
-const SEDE_PAGINA = sedeDeBusqueda(location.search)
+const SEDE_PAGINA = PAGINA.sede
 const CLAVE_LOCAL = claveCambios(SEDE_PAGINA.sede, SEDE_PAGINA.edificio)
 // formato 2 de cambios (por piso). El formato 1 ({ ambientes }) del primer administrador era de la planta baja.
 export function aFormato2(c) {
@@ -186,16 +187,17 @@ function Buscador({ lugares, pisos, origen, modo, cat, onElegir, onCerrar }) {
   )
 }
 
-function QR({ lugar, onCerrar }) {
+function QR({ lugar, hospital, onCerrar }) {
   const [svg, setSvg] = useState('')
-  const url = `${location.origin}${location.pathname}?origen=${encodeURIComponent(lugar.id)}`
+  // el enlace lleva la sede, el edificio y el origen del dibujo de esta página (si no, abriría Quito)
+  const url = enlaceQR(`${location.origin}${location.pathname}`, new URLSearchParams(PAGINA.busqueda), lugar.id)
   useEffect(() => { QRCode.toString(url, { type: 'svg', margin: 1, color: { dark: '#14181F', light: '#FFFFFF' } }).then(setSvg) }, [url])
   return (
     <div className="qr-fondo" onClick={onCerrar}>
       <div className="qr-tarjeta" role="dialog" aria-label={`Código QR de ${lugar.nombre}`} onClick={(e) => e.stopPropagation()}>
         <small>Usted está aquí</small>
         <h3>{lugar.nombre}</h3>
-        <p>{lugar.pisoNombre || 'Planta baja'} · Hospital SOLCA Quito</p>
+        <p>{lugar.pisoNombre || 'Planta baja'} · {hospital}</p>
         <div className="qr-img" dangerouslySetInnerHTML={{ __html: svg }} />
         <p className="qr-nota">Escanea para ver cómo llegar a cualquier servicio desde este punto.</p>
         <input readOnly value={url} onFocus={(e) => e.target.select()} aria-label="Enlace" />
@@ -224,12 +226,13 @@ const PADRE_TOTEM = INSERTADO === 'totem' ? URL_OK(PARAMS.get('padre') || '')?.o
 // información de los ambientes publicada en OM3 (?config=<url pública>); sin parámetro, la de CONFIG_OM3_URL (datos.js)
 // (puede ser relativa a la página: en el portal de OM3, /api/v1/administracion/mapa/publicado)
 const URL_REL = (u) => { try { return u ? URL_OK(new URL(u, location.href).href) : null } catch { return null } }
-const CONFIG_URL = URL_REL(PARAMS.get('config'))?.href || null
+// (sin ?config=, la de CONFIG_OM3_URL con la sede y el edificio pedidos: ver paginaInicial.js)
+const CONFIG_URL = URL_REL(PARAMS.get('config'))?.href || PAGINA.config
 // origen del dibujo: OM3 con ?geo= (o derivado de ?config=), borrador con ?modo=admin&vista=<token>; si no, public/
 // (una sede sin respaldo local —todas menos Quito— sin ?geo= ni ?config= lo pide al /geo del OM3 por defecto)
-const GEO = origenGeoDeUrl(location.search) || geoDeSede(location.search, CONFIG_OM3_URL)
+const GEO = PAGINA.geo
 // respaldo local (solo Quito: public/sedes/quito/<edificio>/); las demás sedes no tienen: null
-const RESPALDO = carpetaRespaldo(location.search)
+const RESPALDO = PAGINA.respaldo
 const SEDE = SEDE_PAGINA
 // preferencias de ruta: ?via=ascensor|escalera|cualquiera (entre pisos) y ?accesible=1 (sin escalones)
 const VIA_INICIAL = ['ascensor', 'escalera', 'cualquiera'].includes(PARAMS.get('via')) ? PARAMS.get('via') : 'ascensor'
@@ -709,13 +712,9 @@ export default function App() {
   // el enlace refleja el origen y el destino (para compartir)
   useEffect(() => {
     if (!origen) return
-    const p = new URLSearchParams()
-    // el modo y las opciones de inserción se conservan al cambiar origen o destino
-    for (const k of ['modo', 'padre', 'config']) if (PARAMS.get(k)) p.set(k, PARAMS.get(k))
-    if (via !== 'ascensor') p.set('via', via)
-    if (accesible) p.set('accesible', '1')
-    p.set('origen', origen.id)
-    if (destino) p.set('destino', destino.id)
+    // el modo, las opciones de inserción, la sede, el edificio y el origen del dibujo se conservan al cambiar origen o
+    // destino (si no, al recargar o guardar el enlace se abriría Quito)
+    const p = consultaCompartir(PARAMS, { origen: origen.id, destino: destino?.id, via, accesible })
     history.replaceState(null, '', `${location.pathname}?${p}`)
   }, [origen, destino, accesible, via])
 
@@ -933,7 +932,7 @@ export default function App() {
       {/* sin la información de OM3 el plano se dibuja y traza rutas, pero sin nombres */}
       {d.sinInformacion && <div className="pb-sin-info" role="status">No se pudo cargar la información del hospital</div>}
       {pedirClave && <Clave onOk={() => { setAdmin(true); setPedirClave(false) }} onCerrar={() => setPedirClave(false)} />}
-      {qr && origen && <QR lugar={{ ...origen, pisoNombre: pisos[origen.piso]?.piso?.nombre }} onCerrar={() => setQr(false)} />}
+      {qr && origen && <QR lugar={{ ...origen, pisoNombre: pisos[origen.piso]?.piso?.nombre }} hospital={nombreHospital(d?.edificio)} onCerrar={() => setQr(false)} />}
       {!INSERTADO && import.meta.env.MODE !== 'portal' && <a className="pb-proto" href={`${import.meta.env.BASE_URL}prototipo/`}>Prototipo anterior (5 pisos)</a>}
     </div>
   )

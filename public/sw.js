@@ -39,11 +39,16 @@ async function manifiestoGeo(req) {
     const m = await r.clone().json().catch(() => null)
     const v = m && String(m.version?.id ?? m.version)
     if (v) {
-      const raiz = new URL(req.url).pathname.replace(/\/geo\/?$/, '/geo/')
+      // solo se borran las versiones viejas del mismo edificio de la misma sede (los archivos llevan ?sede=&edificio=):
+      // el plano de otra sede o de otro edificio que ya está en caché se conserva
+      const pedido = new URL(req.url)
+      const sede = pedido.searchParams.get('sede'), edificio = pedido.searchParams.get('edificio')
+      const raiz = pedido.pathname.replace(/\/geo\/?$/, '/geo/')
       for (const k of await c.keys()) {
         const ku = new URL(k.url)
         const x = ku.pathname.match(ARCHIVO_GEO)
-        if (x && ku.pathname.startsWith(raiz) && x[1] !== v) await c.delete(k)
+        if (x && ku.pathname.startsWith(raiz) && x[1] !== v && sede && edificio &&
+            ku.searchParams.get('sede') === sede && ku.searchParams.get('edificio') === edificio) await c.delete(k)
       }
     }
     return r

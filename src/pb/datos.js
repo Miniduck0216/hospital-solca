@@ -27,6 +27,13 @@ const pedirConfig = (url) => {
   return p
 }
 
+// Edificio de Quito, edificio principal, si public/ no entrega edificio.json (solo para quito/principal)
+const EDIFICIO_RESPALDO = {
+  pisoInicial: 'PB',
+  pisos: [{ id: 'PB', nombre: 'Planta baja', corto: 'PB', nivel: 0, disponible: true, datos: 'pisos/pb/datos.json', config: 'pisos/pb/config.json', glb: 'pisos/pb/solca_pb.glb' }],
+  conectores: [],
+  tiempos: { velocidadMs: 1.2, ascensorEsperaS: 45, ascensorPorPisoS: 5, escaleraPorPisoS: 15 },
+}
 // origen del dibujo (ver geometria.js): un proveedor por origen y carpeta de respaldo; sin `geo`, public/
 // `respaldo`: carpeta del respaldo local (carpetaRespaldo de sedes.js, sedes/<sede>/<edificio>/)
 const proveedores = new Map()
@@ -39,10 +46,11 @@ export function proveedorGeo(geo = null, respaldo = CARPETA_DEFECTO) {
 export async function cargarEdificio(geo = null, respaldo = CARPETA_DEFECTO) {
   const prov = proveedorGeo(geo, respaldo)
   const e = await prov.edificio()
-  // sin edificio (ni de OM3 ni del respaldo de su propia carpeta) no se cae a ningún plano ni a un edificio supuesto:
-  // el mapa avisa que la sede no tiene plano publicado
-  if (!e) throw new SinPlano(geo ? 'OM3 no tiene un plano publicado o no responde' : 'sin ?geo= ni respaldo propio')
-  return e
+  if (e) return e
+  // Quito, edificio principal: si public/ no entrega edificio.json, el edificio de siempre (una planta baja)
+  if (respaldo === CARPETA_DEFECTO) return EDIFICIO_RESPALDO
+  // las demás sedes no caen a ningún plano ni a un edificio supuesto: el mapa avisa que no tienen plano publicado
+  throw new SinPlano(geo ? 'OM3 no tiene un plano publicado o no responde' : 'sin ?geo= ni respaldo propio')
 }
 
 // Reglas propias de cada piso. En pisos/<piso>/config.json quedan solo las geométricas: pasos (muros y pasos

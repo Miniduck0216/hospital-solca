@@ -28,6 +28,13 @@ for ((i = 0; i < ${#args[@]}; i++)); do
     --edificio) EDIFICIO="${args[$((i + 1))]}" ;;
   esac
 done
+# en minúsculas, como sede.py (SOLCA_SEDE) y las carpetas planta_real/sedes/<sede>/<edificio>
+SEDE="${SEDE,,}"
+EDIFICIO="${EDIFICIO,,}"
+if [[ "$SEDE" == "quito" && "$EDIFICIO" != "principal" ]]; then
+  echo "Quito solo tiene el edificio principal en este pipeline (pidió: $EDIFICIO)" >&2
+  exit 2
+fi
 
 if [[ -n "$SEDE" && "$SEDE" != "quito" ]]; then
   export SOLCA_SEDE="$SEDE/$EDIFICIO"

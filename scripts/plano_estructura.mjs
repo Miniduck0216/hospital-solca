@@ -14,6 +14,9 @@
 
 export const CLAVE = /^[A-Z0-9]{1,3}$/
 export const LIMITES = { zipMB: 60, archivoMB: 25 }
+// como el validador de OM3 (MS_ADMINISTRACION): código del edificio, número de pisos y niveles
+export const EDIFICIO = /^[A-Z0-9_-]{1,20}$/
+export const LIMITES_PISOS = { max: 50, nivelMin: -200, nivelMax: 200 }
 // categorías de ambiente que entiende el mapa y OM3 (OMNIUM_MS_ADMINISTRACION, CATEGORIAS de mapaConfig.service.ts)
 export const CATEGORIAS = ['consulta', 'espera', 'banos', 'farmacia', 'administracion', 'circulacion', 'apoyo', 'escaleras', 'ascensores', 'otro']
 const ID_AMBIENTE = /^a\d{1,5}$/
@@ -147,16 +150,19 @@ export function validarPaquete(archivos, { tamanoZip = null, limites = LIMITES }
     if (m.formato !== 1) errores.push('manifest.json: formato debe ser 1')
     if (!ent(m.sede) || m.sede <= 0) errores.push('manifest.json: sede debe ser un entero mayor que 0')
     if (typeof m.edificio !== 'string' || !m.edificio.trim()) errores.push('manifest.json: edificio debe ser texto')
+    else if (!EDIFICIO.test(m.edificio.trim().toUpperCase())) errores.push(`manifest.json: edificio debe cumplir ${EDIFICIO} (en mayúsculas)`)
     if (m.edificioNombre != null && (typeof m.edificioNombre !== 'string' || !m.edificioNombre.trim() || m.edificioNombre.length > 200)) {
       errores.push('manifest.json: edificioNombre debe ser texto de 1 a 200 caracteres si viene')
     }
     if (!Array.isArray(m.pisos) || !m.pisos.length) errores.push('manifest.json: pisos debe ser una lista con al menos un piso')
+    else if (m.pisos.length > LIMITES_PISOS.max) errores.push(`manifest.json: a lo sumo ${LIMITES_PISOS.max} pisos`)
     else m.pisos.forEach((p, i) => {
       if (!esObj(p) || typeof p.clave !== 'string' || !CLAVE.test(p.clave)) { errores.push(`manifest.json: pisos[${i}].clave debe cumplir ${CLAVE}`); return }
       if (claves.includes(p.clave)) errores.push(`manifest.json: piso ${p.clave} repetido`)
       claves.push(p.clave)
       if (typeof p.nombre !== 'string' || !p.nombre.trim()) errores.push(`manifest.json: el piso ${p.clave} no tiene nombre`)
       if (!ent(p.nivel)) errores.push(`manifest.json: el nivel del piso ${p.clave} debe ser entero`)
+      else if (p.nivel < LIMITES_PISOS.nivelMin || p.nivel > LIMITES_PISOS.nivelMax) errores.push(`manifest.json: el nivel del piso ${p.clave} debe estar entre ${LIMITES_PISOS.nivelMin} y ${LIMITES_PISOS.nivelMax}`)
       if (p.altura != null && !(ent(p.altura) && p.altura >= 0)) errores.push(`manifest.json: la altura del piso ${p.clave} debe ser un entero positivo o vacía`)
     })
     for (const k of ['generado', 'fuente', 'notas']) if (k in m && typeof m[k] !== 'string') errores.push(`manifest.json: ${k} debe ser texto`)
@@ -177,6 +183,9 @@ export function validarPaquete(archivos, { tamanoZip = null, limites = LIMITES }
   for (const [ruta, c] of json) {
     const r = clasificarRuta(ruta)
     if (r?.tipo === 'config' && !esObj(c)) errores.push(`${ruta} debe ser un objeto`)
+    if (r?.tipo === 'config' && esObj(c)) {
+      for (const k of ['pasos', 'puertasAuto']) if (k in c && !Array.isArray(c[k])) errores.push(`${ruta}: ${k} debe ser una lista`)
+    }
     if (r?.tipo === 'nombres') errores.push(...validarNombres(ruta, c, ids[r.piso] ?? null))
   }
   const ext = json.get('exterior.json')

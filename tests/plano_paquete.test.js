@@ -147,3 +147,15 @@ test('nombres.json: rótulos repetidos en el mismo cuarto se dicen una vez; cate
   const n = nombresDelPiso({ ambientes: [{ id: 'a1', nombre: 'Bodega Bodega', cat: 'apoyo' }, { id: 'a2', nombre: 'Gradas', cat: 'vertical' }, { id: 'a3', nombre: '', cat: 'otro' }] })
   assert.deepEqual(n, { a1: { nombre: 'Bodega', cat: 'apoyo' }, a2: { nombre: 'Gradas', cat: 'otro' } })
 })
+
+test('validación como OM3: código del edificio, de 1 a 50 pisos, nivel entre -200 y 200, pasos y puertasAuto listas', () => {
+  const ed = validarPaquete(conCambio('manifest.json', (m) => { m.edificio = 'torre b' })).errores
+  assert.ok(ed.some((e) => e.includes('edificio debe cumplir')))
+  assert.deepEqual(validarPaquete(conCambio('manifest.json', (m) => { m.edificio = 'torre_b-2' })).errores, [])
+  const niv = validarPaquete(conCambio('manifest.json', (m) => { m.pisos[0].nivel = 201 })).errores
+  assert.ok(niv.some((e) => e.includes('entre -200 y 200')))
+  const muchos = validarPaquete(conCambio('manifest.json', (m) => { m.pisos = Array.from({ length: 51 }, (_, i) => ({ clave: `X${i}`, nombre: 'x', nivel: i })) })).errores
+  assert.ok(muchos.some((e) => e.includes('a lo sumo 50 pisos')))
+  const cfg = validarPaquete(conCambio('pisos/PB/config.json', (c) => { c.pasos = {}; c.puertasAuto = 'a1' })).errores
+  assert.ok(cfg.some((e) => e.includes('pasos debe ser una lista')) && cfg.some((e) => e.includes('puertasAuto debe ser una lista')))
+})

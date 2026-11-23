@@ -7,6 +7,8 @@ import { cargarDatos } from '../src/pb/datos.js'
 import { origenGeoDeUrl, urlArchivo, unirPisos, crearProveedor, geoDeSede, SinPlano, MENSAJE_SIN_PLANO } from '../src/pb/geometria.js'
 import { carpetaRespaldo, carpetaSede, CARPETA_DEFECTO, SEDES_INFO, sedeDeBusqueda, tieneRespaldo, claveCambios, leerCambiosLocales } from '../src/pb/sedes.js'
 import { armarPaquete } from '../scripts/plano_paquete.mjs'
+import { leerPagina, consultaCompartir, enlaceQR, nombreHospital, PARAMS_CONSERVAR } from '../src/pb/paginaInicial.js'
+import { configDeSede } from '../src/pb/geometria.js'
 
 const OM3 = 'https://om3.test/api/v1/administracion/mapa'
 const { archivos, manifiesto } = armarPaquete({ sede: 1, edificio: 'PRINCIPAL', generado: '2026-11-16T00:00:00Z' })
@@ -123,10 +125,13 @@ test('cambios del administrador en el navegador: una clave por sede y edificio; 
   assert.equal(leerCambiosLocales(a, 'santo-domingo', 'principal'), null)
   assert.equal(leerCambiosLocales(a, 'quito', 'anexo'), null)
   assert.ok(a.m.has('solca-admin-cambios'))
-  // quito/principal la hereda: se copia a la nueva y se borra la vieja
+  // quito/principal la hereda: se copia a la nueva y la vieja se deja (una pestaña vieja abierta sigue guardando ahí)
   assert.equal(leerCambiosLocales(a, 'quito', 'principal'), '{"version":2,"pisos":{"PB":{}}}')
   assert.equal(a.m.get('solca-admin-cambios:quito:principal'), '{"version":2,"pisos":{"PB":{}}}')
-  assert.ok(!a.m.has('solca-admin-cambios'))
+  assert.ok(a.m.has('solca-admin-cambios'))
+  // ya copiada, manda la nueva aunque la vieja cambie
+  a.setItem('solca-admin-cambios', '{"viejo":1}')
+  assert.equal(leerCambiosLocales(a, 'quito', 'principal'), '{"version":2,"pisos":{"PB":{}}}')
   // cada sede lee solo la suya; sin sede, nada
   a.setItem('solca-admin-cambios:imbabura:principal', '{"x":1}')
   assert.equal(leerCambiosLocales(a, 'imbabura', 'principal'), '{"x":1}')
@@ -298,4 +303,61 @@ test('portal de OM3 (/mapa/): ?config= y ?geo= relativos a la página; sin pági
   assert.equal(origenGeoDeUrl('?config=/api/v1/administracion/mapa/publicado', pagina), null)
   assert.equal(origenGeoDeUrl('?geo=/api/v1/administracion/mapa/geo?sede=2', pagina), null)
   assert.equal(origenGeoDeUrl(`?config=${encodeURIComponent('/api/v1/administracion/mapa/publicado?sede=1&edificio=PRINCIPAL')}`, undefined), null)
+})
+
+test('URL reescrita (origen y destino): conserva modo, padre, config, sede, edificio, geo y vista', () => {
+  const geo = `${OM3}/geo?sede=3&edificio=PRINCIPAL`
+  const p = new URLSearchParams(`?sede=3&edificio=principal&geo=${encodeURIComponent(geo)}&vista=tok9&modo=admin&padre=https%3A%2F%2Fom3.test&config=${encodeURIComponent(`${OM3}/publicado?sede=3&edificio=PRINCIPAL`)}&otro=x`)
+  const q = new URLSearchParams(consultaCompartir(p, { origen: 'entrada-pb-acceso-pb-1', destino: 'a12', via: 'escalera', accesible: true }))
+  for (const k of PARAMS_CONSERVAR) assert.equal(q.get(k), p.get(k), k)
+  assert.equal(q.get('origen'), 'entrada-pb-acceso-pb-1')
+  assert.equal(q.get('destino'), 'a12')
+  assert.equal(q.get('via'), 'escalera')
+  assert.equal(q.get('accesible'), '1')
+  assert.equal(q.get('otro'), null)
+  // al recargar con la URL reescrita, la sede sigue siendo la misma (no Quito)
+  assert.equal(sedeDeBusqueda(`?${q}`).sede, 'santo-domingo')
+})
+
+test('QR «Usted está aquí»: lleva sede, edificio, config y geo de la página, y el nombre del hospital de esa sede', () => {
+  const p = new URLSearchParams(`?sede=2&edificio=PRINCIPAL&modo=totem&origen=x`)
+  const u = new URL(enlaceQR('https://mapa.test/', p, 'entrada-pb-acceso-pb-3'))
+  assert.equal(u.searchParams.get('sede'), '2')
+  assert.equal(u.searchParams.get('edificio'), 'PRINCIPAL')
+  assert.equal(u.searchParams.get('origen'), 'entrada-pb-acceso-pb-3')
+  assert.equal(u.searchParams.get('modo'), null)
+  assert.equal(nombreHospital({ nombre: 'Hospital SOLCA Imbabura' }), 'Hospital SOLCA Imbabura')
+  assert.equal(nombreHospital({ manifiesto: { edificioNombre: 'Torre B' }, nombre: 'x' }), 'Torre B')
+  assert.equal(nombreHospital(null, sedeDeBusqueda('?sede=3')), 'Hospital SOLCA Santo Domingo')
+  assert.equal(nombreHospital(null, sedeDeBusqueda('')), 'Hospital SOLCA Quito')
+})
+
+test('página inicial: se lee una vez (sede, origen del dibujo, respaldo y config) y no depende de la URL de después', () => {
+  const pub = `${OM3}/publicado`
+  const sd = leerPagina('?sede=3', 'https://mapa.test/')
+  assert.equal(sd.sede.sede, 'santo-domingo')
+  assert.equal(sd.respaldo, null)
+  // sin ?config= ni ?geo=, el OM3 por defecto (en las pruebas, el de datos.js) con la sede y el edificio
+  assert.match(sd.config, /\/publicado\?sede=3&edificio=PRINCIPAL$/)
+  assert.match(sd.geo.url, /\/geo\?sede=3&edificio=PRINCIPAL$/)
+  const q = leerPagina('', 'https://mapa.test/')
+  assert.equal(q.respaldo, 'sedes/quito/principal/')
+  assert.equal(q.geo, null)
+  assert.match(q.config, /\/publicado\?sede=1&edificio=PRINCIPAL$/)
+  // configDeSede: ?config= tal cual; sin sede reconocible, nada
+  assert.equal(configDeSede(`?config=${encodeURIComponent(`${pub}?sede=2&edificio=PRINCIPAL`)}`, pub), `${pub}?sede=2&edificio=PRINCIPAL`)
+  assert.equal(configDeSede('?sede=abc', pub), null)
+  assert.equal(configDeSede('?sede=8&edificio=torre_b', pub), `${pub}?sede=8&edificio=TORRE_B`)
+})
+
+test('?geo=/?config= mandan sobre ?sede=: si no coinciden no hay sede; el código del edificio va tal cual a OM3', () => {
+  const g = (s, e) => encodeURIComponent(`${OM3}/geo?sede=${s}&edificio=${e}`)
+  assert.equal(sedeDeBusqueda(`?sede=1&geo=${g(3, 'PRINCIPAL')}`).sede, null)
+  assert.equal(carpetaRespaldo(`?sede=1&geo=${g(3, 'PRINCIPAL')}`), null)
+  assert.equal(sedeDeBusqueda(`?sede=3&geo=${g(3, 'PRINCIPAL')}`).sede, 'santo-domingo')
+  assert.equal(sedeDeBusqueda(`?sede=santo-domingo&geo=${g(3, 'PRINCIPAL')}`).sede, 'santo-domingo')
+  assert.equal(sedeDeBusqueda(`?edificio=ANEXO&geo=${g(3, 'PRINCIPAL')}`).edificio, null)
+  assert.equal(sedeDeBusqueda(`?geo=${g(3, 'TORRE_B')}`).codigo, 'TORRE_B')
+  assert.equal(geoDeSede('?sede=3&edificio=torre_b', `${OM3}/publicado`).url, `${OM3}/geo?sede=3&edificio=TORRE_B`)
+  assert.equal(geoDeSede('?sede=3&edificio=no%20vale', `${OM3}/publicado`), null)
 })

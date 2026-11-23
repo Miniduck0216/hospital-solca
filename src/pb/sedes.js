@@ -73,20 +73,33 @@ const paramsDe = (u) => {
  * Con sede o edificio null el mapa no carga ningún plano: avisa que la sede no tiene plano publicado (SinPlano).
  * @returns {{ sede: string|null, edificio: string|null, id: number|null, info: object|null, base: boolean }}
  */
+export const CODIGO_EDIFICIO = /^[A-Z0-9_-]{1,20}$/
+const vacio = (v) => v == null || v === ''
+
 export function sedeDeBusqueda(busqueda = '') {
   const p = new URLSearchParams(busqueda)
+  const om3 = [p.get('geo'), p.get('config')].filter((v) => v && v !== '0' && v !== 'public').map(paramsDe).filter(Boolean)
   const conOm3 = [p.get('geo'), p.get('config')].some((v) => v && v !== '0' && v !== 'public')
-  const fuentes = [p, paramsDe(p.get('geo')), paramsDe(p.get('config'))].filter(Boolean)
-  const de = (k) => fuentes.map((f) => f.get(k)).find((v) => v != null && v !== '')
+  // con ?geo= o ?config=, la sede y el edificio salen solo de esas direcciones (lo que se va a pedir a OM3); un ?sede=
+  // o ?edificio= de la página que no coincide no se mezcla: no hay sede (no se juntan el respaldo de una con el
+  // plano de otra)
+  const de = (k) => (conOm3 ? om3 : [p]).map((f) => f.get(k)).find((v) => !vacio(v))
   const pedida = de('sede')
   if (pedida == null && !conOm3) {
-    return { sede: SEDE_DEFECTO, edificio: EDIFICIO_DEFECTO, id: 1, info: infoSede(SEDE_DEFECTO), base: true }
+    return { sede: SEDE_DEFECTO, edificio: EDIFICIO_DEFECTO, codigo: 'PRINCIPAL', id: 1, info: infoSede(SEDE_DEFECTO), base: true }
   }
-  const sede = carpetaSede(pedida)
-  const info = sede ? infoSede(sede) : null
+  let sede = carpetaSede(pedida)
   const ed = de('edificio')
-  const edificio = ed != null ? carpetaEdificio(ed) : conOm3 ? null : EDIFICIO_DEFECTO
-  return { sede, edificio, id: info?.id ?? null, info, base: false }
+  let edificio = ed != null ? carpetaEdificio(ed) : conOm3 ? null : EDIFICIO_DEFECTO
+  if (conOm3) {
+    const pSede = p.get('sede'), pEd = p.get('edificio')
+    if (!vacio(pSede) && carpetaSede(pSede) !== sede) sede = null
+    if (!vacio(pEd) && edificio && carpetaEdificio(pEd) !== edificio) edificio = null
+  }
+  // código del edificio para OM3, tal cual (en mayúsculas): PRINCIPAL, TORRE_B
+  const codigo = ed != null ? String(ed).trim().toUpperCase() : edificio ? 'PRINCIPAL' : null
+  const info = sede ? infoSede(sede) : null
+  return { sede, edificio, codigo: codigo && CODIGO_EDIFICIO.test(codigo) ? codigo : null, id: info?.id ?? null, info, base: false }
 }
 
 /**
@@ -105,8 +118,8 @@ export const claveCambios = (sede, edificio) => (sede && edificio ? `${CLAVE_CAM
 
 /**
  * Cambios del administrador guardados en este navegador para una sede y edificio (texto JSON o null). La clave vieja,
- * única por origen ('solca-admin-cambios'), era de Quito: solo quito/principal la hereda (se copia a la nueva y se
- * borra). Sin sede o sin edificio no hay cambios locales.
+ * única por origen ('solca-admin-cambios'), era de Quito: solo quito/principal la hereda (se copia a la nueva, sin
+ * borrarla). Sin sede o sin edificio no hay cambios locales.
  */
 export function leerCambiosLocales(almacen, sede, edificio) {
   const clave = claveCambios(sede, edificio)
@@ -115,7 +128,8 @@ export function leerCambiosLocales(almacen, sede, edificio) {
   if (v == null && sede === SEDE_DEFECTO && edificio === EDIFICIO_DEFECTO) {
     const viejo = almacen.getItem(CLAVE_CAMBIOS)
     if (viejo != null) {
-      try { almacen.setItem(clave, viejo); almacen.removeItem(CLAVE_CAMBIOS) } catch { /* sin espacio: se lee igual */ }
+      // se copia y la vieja se deja: una pestaña abierta con la versión anterior sigue guardando ahí y no pierde nada
+      try { almacen.setItem(clave, viejo) } catch { /* sin espacio: se lee igual */ }
       v = viejo
     }
   }
