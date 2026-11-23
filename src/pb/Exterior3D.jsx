@@ -116,6 +116,9 @@ export function Exterior({ d, mapa = null, losa: losaPiso = null }) {
       return pg.some((r) => r.some((q, i) => { const o = r[(i + 1) % r.length]; return distSeg(p, q, o) < m }))
     })
     const calles = callesPl.map((pg) => losa(forma(pg[0], pg.slice(1)), 0.12))
+    // tapa (exterior.json de una sede cuyo edificio no cabe en la manzana real): cubre en el suelo las calles del mapa
+    // base que ya no calzan; las calles abiertas van encima
+    const tapa = (d.tapa || []).map((pg) => pg.map(aPlano)).map((pg) => losa(forma(pg[0], pg.slice(1)), 0.11))
     const veredasC = veredasPl.map((pg) => losa(forma(pg[0], pg.slice(1)), 0.13))
     const fuera = (p) => !enCalle(p) && !dentroEdif(p, 8) && !enParqueo(p, 3.5) && !cercaEntrada(p, 10)
     // zonas de árboles de la foto satelital: se llenan a la separación de cada zona (bosques más tupidos que hileras)
@@ -171,16 +174,17 @@ export function Exterior({ d, mapa = null, losa: losaPiso = null }) {
       return { tipo: c.tipo, piso: losa(forma(q), 0.1), borde: losa(forma(ensanchar(q, 1.2), [q.slice().reverse()]), 0.08),
         lineas: losa(forma(ensanchar(q, -1.0), [ensanchar(q, -1.12).reverse()]), 0.11) }
     })
-    return { base, vereda, senales, arboles, gente, canchas, calles, veredasC }
+    return { base, vereda, senales, arboles, gente, canchas, calles, veredasC, tapa }
   }, [d, mapa, losaPiso])
   // R3F no libera las geometrías que se pasan como prop: se liberan al cambiar o desmontar
-  useEffect(() => () => [...datos.base, ...datos.vereda, ...datos.calles, ...datos.veredasC,
+  useEffect(() => () => [...datos.base, ...datos.vereda, ...datos.calles, ...datos.veredasC, ...datos.tapa,
     ...datos.canchas.flatMap((c) => [c.piso, c.borde, c.lineas])].forEach((g) => g.dispose()), [datos])
 
   return (
     <group>
       {datos.base.map((g, k) => <mesh key={'b' + k} geometry={g} position-y={-0.58} receiveShadow castShadow><meshLambertMaterial color="#DDDAD4" /></mesh>)}
       {datos.vereda.map((g, k) => <mesh key={'v' + k} geometry={g} position-y={-0.5} receiveShadow><meshLambertMaterial color="#E6E4DF" /></mesh>)}
+      {datos.tapa.map((g, k) => <mesh key={'t' + k} geometry={g} position-y={-0.225} receiveShadow><meshLambertMaterial color="#DCE3D6" /></mesh>)}
       {datos.calles.map((g, k) => <mesh key={'c' + k} geometry={g} position-y={-0.21} receiveShadow><meshLambertMaterial color="#A9AFB7" /></mesh>)}
       {datos.veredasC.map((g, k) => <mesh key={'w' + k} geometry={g} position-y={-0.21} receiveShadow><meshLambertMaterial color="#E6E4DF" /></mesh>)}
       {datos.canchas.map((c, k) => (

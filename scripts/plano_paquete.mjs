@@ -1,5 +1,5 @@
 // Arma el paquete (.zip) del dibujo de un edificio para subirlo a OM3 (contrato de planos, fase 1): edificio.json,
-// exterior.json y, por piso, datos.json, config.json, nombres.json y los .glb. Los toma de:
+// exterior.json, techos.json, perfil.json y, por piso, datos.json, config.json, nombres.json y los .glb. Los toma de:
 //   - Quito (sede 1): el respaldo local public/sedes/quito/principal/ (ver src/pb/sedes.js);
 //   - otra sede: la carpeta de trabajo del pipeline, planta_real/salida_sedes/<sede>/<edificio>/ (la escribe
 //     planta_real/pisos/regenerar.sh --sede <s> --edificio <e>; no va en public/: el mapa la lee de OM3);
@@ -80,7 +80,8 @@ export function armarPaquete({ sede, edificio, publico = carpetaPublica(sede, ed
   }
   archivos.push(['manifest.json', Buffer.from(JSON.stringify(manifiesto, null, 1) + '\n')])
   archivos.push(['edificio.json', Buffer.from(JSON.stringify(edificioPaquete, null, 1) + '\n')])
-  if (fs.existsSync(path.join(publico, 'exterior.json'))) archivos.push(['exterior.json', leer('exterior.json')])
+  // opcionales del edificio: alrededores, techos del 3D y perfil de la planta baja (tal cual)
+  for (const f of ['exterior.json', 'techos.json', 'perfil.json']) if (fs.existsSync(path.join(publico, f))) archivos.push([f, leer(f)])
   archivos.push(...delPiso)
   return { archivos, manifiesto }
 }

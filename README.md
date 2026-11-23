@@ -65,8 +65,13 @@ public/
    `planta_real/pisos/sede.py`.
 2. `bash planta_real/pisos/regenerar.sh --sede santo-domingo --edificio principal` (Python 3.12 con el venv, ver
    CLAUDE.md). Escribe en `planta_real/salida_sedes/santo-domingo/principal/` (ignorada por git): `edificio.json` y,
-   por piso, `datos.json` sin nombres, `config.json`, `nombres.json` (los nombres del DXF) y el `.glb`.
-3. `npm run plano:paquete -- --sede 3 --edificio PRINCIPAL --salida plano.zip` y subirlo en OM3. Al publicar, OM3 crea
+   por piso, `datos.json` sin nombres, `config.json`, `nombres.json` (los nombres del DXF) y el `.glb`; además
+   `techos.json` y `perfil.json` (techos del 3D y contorno de la planta baja bajo los pisos altos) y, si la sede lo
+   configura, `exterior.json` (`planta_real/pisos/exterior_sede.py`: calles de OSM abiertas lo justo para que el
+   edificio quepa con su vereda; el mapa tapa las calles del mapa base que ya no calzan y dibuja las propias).
+3. `npm run plano:paquete -- --sede 3 --edificio PRINCIPAL --salida plano.zip` y subirlo en OM3 (lleva también
+   `exterior.json`, `techos.json` y `perfil.json` si están; el mapa los lee del paquete y, si faltan, del respaldo de
+   Quito o de ninguno). Al publicar, OM3 crea
    con `nombres.json` los ambientes que todavía no existen.
 
 - De dónde se lee: `?config=<url>` (tótem, celular y editor de OM3) o, sin parámetro, `VITE_CONFIG_OM3_URL` al compilar

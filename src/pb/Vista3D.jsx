@@ -980,11 +980,10 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
   const [mapa, setMapa] = useState(null)
   useEffect(() => {
     let vivo = true
-    // techos.json sale siempre del respaldo local de la sede (también con el dibujo de OM3); el origen y el respaldo
-    // son los que la página pidió al abrir (PAGINA), no los de la URL ya reescrita
-    proveedorGeo(PAGINA.geo, PAGINA.respaldo).urlRespaldo('techos.json')
-      .then((u) => (u ? fetch(u) : null))
-      .then((r) => (r?.ok ? r.json() : {})).then((t) => vivo && setTechos(t)).catch(() => {})
+    // techos.json: del paquete de OM3 o, si no lo trae, del respaldo local de la sede (solo Quito); el origen y el
+    // respaldo son los que la página pidió al abrir (PAGINA), no los de la URL ya reescrita
+    proveedorGeo(PAGINA.geo, PAGINA.respaldo).opcional('techos.json')
+      .then((t) => vivo && setTechos(t && typeof t === 'object' && !Array.isArray(t) ? t : {})).catch(() => {})
     return () => { vivo = false }
   }, [])
   const controles = useRef()

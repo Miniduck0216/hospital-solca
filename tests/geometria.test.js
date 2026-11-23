@@ -181,13 +181,16 @@ test('sede sin respaldo: sin plano en OM3 (404, caída o sin ?geo=) avisa «sin 
   } finally { s.fin(); globalThis.fetch = publico }
 })
 
-test('sede sin respaldo con plano publicado en OM3: se dibuja el de OM3 (sin perfil ni techos de Quito)', async () => {
+test('sede sin respaldo con plano publicado en OM3: se dibuja el de OM3, con su perfil o sin perfil (nunca el de Quito)', async () => {
   try {
-    simularOm3()
+    simularOm3({ archivo: (r) => (r === 'perfil.json' ? 404 : 200) })
     const d = await cargarDatos(null, { pisoId: 'P1', geo: { url: `${OM3}/geo?sede=5&edificio=PRINCIPAL`, vista: null }, respaldo: null })
     assert.equal(d.edificio.origen.tipo, 'om3')
     assert.ok(d.ambientes.length > 0)
     assert.deepEqual(d.perfil, [])
+    simularOm3()
+    const e = await cargarDatos(null, { pisoId: 'P1', geo: { url: `${OM3}/geo?sede=6&edificio=PRINCIPAL`, vista: null }, respaldo: null })
+    assert.deepEqual(e.perfil, JSON.parse(paquete.get('perfil.json').toString('utf8')).huella)
   } finally { globalThis.fetch = publico }
 })
 
@@ -360,4 +363,31 @@ test('?geo=/?config= mandan sobre ?sede=: si no coinciden no hay sede; el códig
   assert.equal(sedeDeBusqueda(`?geo=${g(3, 'TORRE_B')}`).codigo, 'TORRE_B')
   assert.equal(geoDeSede('?sede=3&edificio=torre_b', `${OM3}/publicado`).url, `${OM3}/geo?sede=3&edificio=TORRE_B`)
   assert.equal(geoDeSede('?sede=3&edificio=no%20vale', `${OM3}/publicado`), null)
+})
+
+test('techos.json y perfil.json: del paquete de OM3; si OM3 no los tiene, del respaldo local (solo Quito) o null, sin caer', async () => {
+  const s = silenciar()
+  try {
+    // OM3 los trae (el paquete de Quito los lleva): salen de OM3
+    let pedidos = simularOm3()
+    const prov = crearProveedor({ geo: { url: `${OM3}/geo?sede=1&edificio=PRINCIPAL&t=1`, vista: null }, base: '/', carpeta: 'sedes/quito/principal/', version: 't' })
+    const t = await prov.opcional('techos.json')
+    assert.deepEqual(t, JSON.parse(paquete.get('techos.json').toString('utf8')))
+    assert.ok(pedidos.some((x) => x.url.searchParams.get('ruta') === 'techos.json' && x.url.searchParams.get('sede') === '1'))
+    assert.ok(Array.isArray((await prov.opcional('perfil.json')).huella))
+    // OM3 responde 404 (versión sin techos): sede sin respaldo -> null, y el proveedor sigue en OM3 (no cae)
+    pedidos = simularOm3({ archivo: (r) => (r === 'techos.json' || r === 'perfil.json' ? 404 : 200) })
+    const sd = crearProveedor({ geo: { url: `${OM3}/geo?sede=3&edificio=PRINCIPAL&t=2`, vista: null }, base: '/', carpeta: null, version: 't' })
+    assert.equal(await sd.opcional('techos.json'), null)
+    assert.equal(await sd.opcional('perfil.json'), null)
+    assert.equal(sd.origen.tipo, 'om3')
+    assert.ok(await sd.json('pisos/PB/datos.json'))
+    assert.equal(sd.origen.tipo, 'om3')
+    // Quito con 404 en OM3: el de su respaldo local
+    simularOm3({ archivo: (r) => (r === 'techos.json' ? 404 : 200) })
+    const q = crearProveedor({ geo: { url: `${OM3}/geo?sede=1&edificio=PRINCIPAL&t=3`, vista: null }, base: '/', carpeta: 'sedes/quito/principal/', version: 't' })
+    assert.ok(Object.keys(await q.opcional('techos.json')).length > 0)
+    assert.equal(q.origen.tipo, 'om3')
+    assert.doesNotMatch(s.avisos.join(' '), /no está disponible/)
+  } finally { s.fin(); globalThis.fetch = publico }
 })

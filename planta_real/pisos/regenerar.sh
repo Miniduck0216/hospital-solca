@@ -13,7 +13,8 @@
 # Otra sede (un hospital por ciudad): bash planta_real/pisos/regenerar.sh --sede santo-domingo --edificio principal
 #   Lee planta_real/sedes/<sede>/<edificio>/config.json (DXF, cajas de los pisos, capas, georreferencia; ver sede.py) y
 #   escribe en planta_real/salida_sedes/<sede>/<edificio>/ (fuera de public/, ignorada por git): edificio.json y, por
-#   piso, datos.json (sin nombres), config.json, nombres.json (los nombres que trae el DXF) y el .glb. De ahí sale el
+#   piso, datos.json (sin nombres), config.json, nombres.json (los nombres que trae el DXF) y el .glb, más techos.json
+#   y perfil.json (techos del 3D y contorno de la planta baja) y exterior.json si la sede lo configura. De ahí sale el
 #   paquete para OM3: npm run plano:paquete -- --sede <número de OM3> --edificio PRINCIPAL --salida plano.zip
 #   (unir_pb.py, ajustes.py y exterior.py son solo de Quito).
 set -e
@@ -47,6 +48,8 @@ if [[ -n "$SEDE" && "$SEDE" != "quito" ]]; then
   fi
   for p in $PISOS; do python3 -I $P/exportar_piso.py $p; done
   python3 -I $P/conectores.py
+  python3 -I $P/techos.py
+  python3 -I $P/exterior_sede.py   # alrededores (exterior.json), si config.json los define
   if [[ " $* " != *" --sin-3d "* ]]; then
     for p in $PISOS; do python3 -I $P/glb_piso.py $p; done
     python3 -I $P/conectores.py

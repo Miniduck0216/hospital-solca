@@ -47,6 +47,7 @@ const conPin = (a) => (a.cat === 'banos' ? !a.personal && !a.ventanilla
   : ['escaleras', 'ascensores', 'farmacia'].includes(a.cat) || ['caja', 'informacion', 'capilla'].includes(a.icono))
 const anillos = (pg) => pg.map((r) => r.map(([x, y]) => aLonLat(x, y)))
 const polis = (lista, props = () => ({})) => FC(lista.map((pg, i) => ({ type: 'Feature', properties: props(pg, i), geometry: { type: 'Polygon', coordinates: anillos(pg) } })))
+const polisLL = (lista) => FC(lista.map((pg) => ({ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: pg } })))
 const lineas = (lista) => FC(lista.map((l) => ({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: l.map(([x, y]) => aLonLat(x, y)) } })))
 
 function capas(d) {
@@ -84,6 +85,11 @@ function capas(d) {
     // puertas de las mamparas de vidrio (entradas principales): la línea del vidrio en el vano, en 2D y en Plano
     mamparas: lineas((d.puertas || []).filter((p) => p.vidrio).map((p) => [p.a, p.b])),
     ventanas: polis(d.ventanas || []),
+    // alrededores propios (solo si exterior.json trae «tapa»): ya vienen en lon/lat
+    extTapa: polisLL(d.tapa || []),
+    extVeredas: polisLL(d.tapa?.length ? d.veredasExt || [] : []),
+    extCalles: polisLL(d.tapa?.length ? d.calles || [] : []),
+    extNombres: FC((d.nombresCalles || []).map((n) => ({ type: 'Feature', properties: { nombre: n.nombre }, geometry: { type: 'LineString', coordinates: n.ll } }))),
   }
 }
 
@@ -252,6 +258,19 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
         }
       } catch { /* estilo de respaldo sin esas capas */ }
       map.setLight({ anchor: 'map', color: '#FFFFFF', intensity: 0.2, position: [1.4, 200, 35] })
+      // alrededores propios de la sede (exterior.json con «tapa»): las calles de OSM que no calzan con el edificio se
+      // tapan con el color del suelo y encima van las calles abiertas, sus veredas y sus nombres (el mapa base de
+      // OpenFreeMap no se puede cambiar). Debajo del edificio y de los parqueaderos
+      if (C.extTapa.features.length) {
+        map.addLayer({ id: 'ext-tapa', type: 'fill', source: 'extTapa', paint: { 'fill-color': '#E9EDE4' } })
+        map.addLayer({ id: 'ext-veredas', type: 'fill', source: 'extVeredas', paint: { 'fill-color': '#F3F2EE' } })
+        map.addLayer({ id: 'ext-calles', type: 'fill', source: 'extCalles', paint: { 'fill-color': '#FFFFFF', 'fill-outline-color': '#D3D7DD' } })
+        if (fuente && !LIGERO) {
+          map.addLayer({ id: 'ext-nombres', type: 'symbol', source: 'extNombres', minzoom: 15.5,
+            layout: { 'symbol-placement': 'line', 'text-field': ['get', 'nombre'], 'text-font': fuente, 'text-size': 11, 'text-max-angle': 30 },
+            paint: { 'text-color': '#6B7480', 'text-halo-color': '#FFFFFF', 'text-halo-width': 1.4 } })
+        }
+      }
       map.addLayer({ id: 'parqueos', type: 'circle', source: 'parqueos', minzoom: 16, paint: { 'circle-color': '#5B6880', 'circle-radius': ['interpolate', ['linear'], ['zoom'], 16, 7, 20, 13], 'circle-stroke-color': '#FFFFFF', 'circle-stroke-width': 2 } })
       if (fuente) map.addLayer({ id: 'parqueos-txt', type: 'symbol', source: 'parqueos', minzoom: 16, layout: { 'text-field': 'P', 'text-font': fuente, 'text-size': ['interpolate', ['linear'], ['zoom'], 16, 10, 20, 17], 'text-allow-overlap': true }, paint: { 'text-color': '#FFFFFF' } })
       // edificio: losa clara con sombra suave
