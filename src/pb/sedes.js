@@ -34,13 +34,13 @@ export const CON_RESPALDO = [SEDE_DEFECTO]
 const nombreCarpeta = (s) => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
   .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
 
-/** Nombre de la carpeta de una sede: por su número de OM3 o por su nombre; null si no se reconoce */
+/** Nombre de la carpeta de una sede de OM3: por su número o por su nombre; null si no es una de SEDES_INFO */
 export function carpetaSede(sede) {
   if (sede == null || sede === '') return null
   const s = String(sede).trim()
   if (/^\d+$/.test(s)) return SEDES[Number(s)] || null
   const n = nombreCarpeta(s)
-  return n || null
+  return Object.values(SEDES).includes(n) ? n : null
 }
 
 /** Nombre de la carpeta de un edificio (PRINCIPAL → principal) */
@@ -65,23 +65,59 @@ const paramsDe = (u) => {
 
 /**
  * Sede y edificio pedidos en la consulta de la página: ?sede=&edificio=, o los de ?geo= o ?config=
- * (…/geo?sede=1&edificio=PRINCIPAL, …/mapa/publicado?sede=1). Sin sede reconocible: quito/principal.
- * @returns {{ sede: string, edificio: string, id: number|null, info: object|null }}
+ * (…/geo?sede=1&edificio=PRINCIPAL, …/mapa/publicado?sede=1&edificio=PRINCIPAL). Cada sede va por separado:
+ *   - la página base, sin ?sede=, ?geo= ni ?config=: quito/principal (lo único que cae a Quito);
+ *   - ?sede= de una sede de SEDES_INFO: esa sede; el edificio, el de ?edificio= o principal;
+ *   - ?sede= que no es una sede de OM3 (9, abc): sede null;
+ *   - ?geo= o ?config= sin sede o sin edificio (OM3 siempre los manda): sede o edificio null.
+ * Con sede o edificio null el mapa no carga ningún plano: avisa que la sede no tiene plano publicado (SinPlano).
+ * @returns {{ sede: string|null, edificio: string|null, id: number|null, info: object|null, base: boolean }}
  */
 export function sedeDeBusqueda(busqueda = '') {
   const p = new URLSearchParams(busqueda)
+  const conOm3 = [p.get('geo'), p.get('config')].some((v) => v && v !== '0' && v !== 'public')
   const fuentes = [p, paramsDe(p.get('geo')), paramsDe(p.get('config'))].filter(Boolean)
   const de = (k) => fuentes.map((f) => f.get(k)).find((v) => v != null && v !== '')
-  const sede = carpetaSede(de('sede')) || SEDE_DEFECTO
-  const info = infoSede(sede)
-  return { sede, edificio: carpetaEdificio(de('edificio')), id: info?.id ?? null, info }
+  const pedida = de('sede')
+  if (pedida == null && !conOm3) {
+    return { sede: SEDE_DEFECTO, edificio: EDIFICIO_DEFECTO, id: 1, info: infoSede(SEDE_DEFECTO), base: true }
+  }
+  const sede = carpetaSede(pedida)
+  const info = sede ? infoSede(sede) : null
+  const ed = de('edificio')
+  const edificio = ed != null ? carpetaEdificio(ed) : conOm3 ? null : EDIFICIO_DEFECTO
+  return { sede, edificio, id: info?.id ?? null, info, base: false }
 }
 
 /**
  * Carpeta del respaldo local según la consulta de la página (ver sedeDeBusqueda).
  * @returns {string|null} 'sedes/quito/<edificio>/' (relativa a la raíz del sitio) o null si la sede no tiene respaldo
+ *   (otra sede, una sede desconocida o sin edificio)
  */
 export function carpetaRespaldo(busqueda = '') {
   const { sede, edificio } = sedeDeBusqueda(busqueda)
-  return tieneRespaldo(sede) ? `sedes/${sede}/${edificio}/` : null
+  return sede && edificio && tieneRespaldo(sede) ? `sedes/${sede}/${edificio}/` : null
+}
+
+/** Clave de los cambios del administrador guardados en el navegador: una por sede y edificio */
+export const CLAVE_CAMBIOS = 'solca-admin-cambios'
+export const claveCambios = (sede, edificio) => (sede && edificio ? `${CLAVE_CAMBIOS}:${sede}:${edificio}` : null)
+
+/**
+ * Cambios del administrador guardados en este navegador para una sede y edificio (texto JSON o null). La clave vieja,
+ * única por origen ('solca-admin-cambios'), era de Quito: solo quito/principal la hereda (se copia a la nueva y se
+ * borra). Sin sede o sin edificio no hay cambios locales.
+ */
+export function leerCambiosLocales(almacen, sede, edificio) {
+  const clave = claveCambios(sede, edificio)
+  if (!clave || !almacen) return null
+  let v = almacen.getItem(clave)
+  if (v == null && sede === SEDE_DEFECTO && edificio === EDIFICIO_DEFECTO) {
+    const viejo = almacen.getItem(CLAVE_CAMBIOS)
+    if (viejo != null) {
+      try { almacen.setItem(clave, viejo); almacen.removeItem(CLAVE_CAMBIOS) } catch { /* sin espacio: se lee igual */ }
+      v = viejo
+    }
+  }
+  return v
 }

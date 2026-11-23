@@ -3,7 +3,7 @@ import QRCode from 'qrcode'
 import { cargarDatos, cambiosDelPiso, usarGeo, CATS, ICONO_LUGAR, plano, dentro, CONFIG_OM3_URL } from './datos.js'
 import { cargarDatosEnHilo } from './cargaEnHilo.js'
 import { origenGeoDeUrl, geoDeSede, SinPlano } from './geometria.js'
-import { carpetaRespaldo, sedeDeBusqueda } from './sedes.js'
+import { carpetaRespaldo, sedeDeBusqueda, claveCambios, leerCambiosLocales } from './sedes.js'
 import { SinPlanoSede } from './SinPlano.jsx'
 import { buscarRuta, indicaciones, metrosHasta, proximoPaso } from './ruta.js'
 import { rutaEdificio } from './rutaEdificio.js'
@@ -22,8 +22,10 @@ import { ErrorBoundary } from './ErrorBoundary.jsx'
 
 const Vista3D = lazy(() => import('./Vista3D.jsx').then((m) => ({ default: m.Vista3D })))
 
-// cambios del administrador guardados en este navegador (se suman a los publicados en el repositorio)
-const CLAVE_LOCAL = 'solca-admin-cambios'
+// cambios del administrador guardados en este navegador (se suman a los publicados): una clave por sede y edificio
+// (solca-admin-cambios:<sede>:<edificio>; la clave vieja, de Quito, pasa a quito/principal). Sin sede: ninguna
+const SEDE_PAGINA = sedeDeBusqueda(location.search)
+const CLAVE_LOCAL = claveCambios(SEDE_PAGINA.sede, SEDE_PAGINA.edificio)
 // formato 2 de cambios (por piso). El formato 1 ({ ambientes }) del primer administrador era de la planta baja.
 export function aFormato2(c) {
   if (!c || typeof c !== 'object') return { version: 2, pisos: {} }
@@ -31,7 +33,7 @@ export function aFormato2(c) {
   return { version: 2, pisos: c.ambientes ? { PB: { ambientes: c.ambientes } } : {} }
 }
 function leerCambios() {
-  try { return aFormato2(JSON.parse(localStorage.getItem(CLAVE_LOCAL))) } catch { return aFormato2(null) }
+  try { return aFormato2(JSON.parse(leerCambiosLocales(localStorage, SEDE_PAGINA.sede, SEDE_PAGINA.edificio))) } catch { return aFormato2(null) }
 }
 
 // categorías de la barra (atajos de búsqueda)
@@ -228,7 +230,7 @@ const CONFIG_URL = URL_REL(PARAMS.get('config'))?.href || null
 const GEO = origenGeoDeUrl(location.search) || geoDeSede(location.search, CONFIG_OM3_URL)
 // respaldo local (solo Quito: public/sedes/quito/<edificio>/); las demás sedes no tienen: null
 const RESPALDO = carpetaRespaldo(location.search)
-const SEDE = sedeDeBusqueda(location.search)
+const SEDE = SEDE_PAGINA
 // preferencias de ruta: ?via=ascensor|escalera|cualquiera (entre pisos) y ?accesible=1 (sin escalones)
 const VIA_INICIAL = ['ascensor', 'escalera', 'cualquiera'].includes(PARAMS.get('via')) ? PARAMS.get('via') : 'ascensor'
 const ACCESIBLE_INICIAL = PARAMS.get('accesible') === '1'
@@ -422,7 +424,7 @@ export default function App() {
   const guardar = (nuevo) => {
     setCambios(nuevo)
     if (MODO_ADMIN) window.parent.postMessage({ tipo: 'mapa-cambios', cambios: nuevo }, PADRE)
-    else { try { localStorage.setItem(CLAVE_LOCAL, JSON.stringify(nuevo)) } catch { /* sin almacenamiento: solo en esta sesión */ } }
+    else if (CLAVE_LOCAL) { try { localStorage.setItem(CLAVE_LOCAL, JSON.stringify(nuevo)) } catch { /* sin almacenamiento: solo en esta sesión */ } }
     cargar(nuevo)
   }
   const cambiosPiso = cambiosDelPiso(cambios, pisoId) || {}
@@ -437,7 +439,7 @@ export default function App() {
   const onRestablecer = () => {
     // en OM3 se vuelve a lo guardado allá (OM3 responde con mapa-borrador); fuera, se borra todo lo local
     if (MODO_ADMIN) { setPick(null); window.parent.postMessage({ tipo: 'mapa-descartar' }, PADRE); return }
-    try { localStorage.removeItem(CLAVE_LOCAL) } catch { /* nada que borrar */ }
+    try { if (CLAVE_LOCAL) localStorage.removeItem(CLAVE_LOCAL) } catch { /* nada que borrar */ }
     guardar(aFormato2(null))
   }
   const redondo = (v) => Math.round(v * 100) / 100

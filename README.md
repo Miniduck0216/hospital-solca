@@ -44,6 +44,13 @@ public/
   todavía no tiene plano publicado en OM3» sobre el mapa base, en el centro de la ciudad (`SEDES_INFO` en
   `src/pb/sedes.js`). Nunca cae al plano de Quito. Sin `?geo=` ni `?config=`, el plano se pide al `/geo` del OM3 por
   defecto (`VITE_CONFIG_OM3_URL` con `/geo`, `?sede=<n>&edificio=<E>`).
+- Cada sede va por separado. Solo la página base, sin `?sede=`, `?geo=` ni `?config=`, es Quito. Una `?sede=` que no
+  es una sede de OM3 (`9`, `abc`), o un `?geo=`/`?config=` sin `sede` o sin `edificio`, no cargan ningún plano: el
+  mapa muestra el aviso. Un edificio sin carpeta propia tampoco cae a `quito/principal`.
+- Los archivos de OM3 se piden con `/geo/:id/archivo?ruta=…&sede=<n>&edificio=<CÓDIGO>` (OM3 comprueba que la
+  versión sea de ese edificio).
+- Los cambios del administrador guardados en el navegador van por sede y edificio
+  (`solca-admin-cambios:<sede>:<edificio>`); la clave vieja `solca-admin-cambios` solo pasa a `quito:principal`.
 - Las rutas de `edificio.json` son relativas a la carpeta del edificio (`pisos/pb/datos.json`).
 - `npm run build` (GitHub Pages) y `npm run build:portal` (portal de OM3, `dist-portal/`) usan la misma carpeta.
   El prototipo anterior (`/prototipo/`) solo va en Pages.

@@ -47,12 +47,12 @@ export function origenGeoDeUrl(busqueda = '', pagina = globalThis.location?.href
     const c = urlValida(p.get('config'), pagina)
     if (c && /\/publicado\/?$/.test(c.pathname)) {
       c.pathname = c.pathname.replace(/\/publicado\/?$/, '/geo')
-      if (!c.searchParams.has('sede')) c.searchParams.set('sede', '1')
-      if (!c.searchParams.has('edificio')) c.searchParams.set('edificio', 'PRINCIPAL')
       url = c
     }
   }
   if (!url) return null
+  // sin sede o sin edificio no se supone ninguno (OM3 siempre los manda): no hay origen y el mapa avisa (SinPlano)
+  if (!url.searchParams.get('sede') || !url.searchParams.get('edificio')) return null
   // la URL de ?geo= se usa tal cual: si OM3 ya puso ?vista=<token> en ella, ese es el token del borrador
   const enGeo = url.searchParams.get('vista')
   if (token && !enGeo) url.searchParams.set('vista', token)
@@ -67,7 +67,7 @@ export function origenGeoDeUrl(busqueda = '', pagina = globalThis.location?.href
 export function geoDeSede(busqueda = '', configUrl = null, pagina = globalThis.location?.href) {
   const s = sedeDeBusqueda(busqueda)
   if (['0', 'public'].includes(new URLSearchParams(busqueda).get('geo'))) return null   // ?geo=0: no pedir a OM3
-  if (tieneRespaldo(s.sede) || s.id == null || !configUrl) return null
+  if (!s.sede || !s.edificio || tieneRespaldo(s.sede) || s.id == null || !configUrl) return null
   const c = urlValida(configUrl, pagina)
   if (!c || !/\/publicado\/?$/.test(c.pathname)) return null
   c.pathname = c.pathname.replace(/\/publicado\/?$/, '/geo')
@@ -85,6 +85,9 @@ export function urlArchivo(origen, ruta, base = '/', version = 'dev') {
   if (!origen || origen.tipo !== 'om3') return `${origen?.base ?? base}${ruta}?v=${version}`
   const u = new URL(origen.archivos)
   u.searchParams.set('ruta', ruta)
+  // OM3 comprueba que la versión sea de ese edificio
+  if (origen.sede) u.searchParams.set('sede', origen.sede)
+  if (origen.edificio) u.searchParams.set('edificio', origen.edificio)
   if (origen.vista) u.searchParams.set('vista', origen.vista)
   return u.href
 }
@@ -134,15 +137,14 @@ export function crearProveedor({ geo = null, base = '/', carpeta = CARPETA_DEFEC
   let edificioP = null
   let respaldoP = null
 
-  // carpeta del respaldo local: la de la sede pedida si tiene edificio.json; si no, quito/principal (otro edificio de
-  // Quito). Una sede sin respaldo (carpeta null) no tiene: ni edificio ni origen
+  // carpeta del respaldo local: la de la sede y edificio pedidos, si tiene edificio.json. Sin carpeta propia no hay
+  // respaldo (ni edificio ni origen): nunca se cae a la de otro edificio ni a quito/principal
   async function deRespaldo() {
     if (!carpeta) return { origen: null, edificio: null }
     const e = await pedirJson(`${base}${carpeta}edificio.json?v=${version}`)
-    if ((e && Array.isArray(e.pisos)) || carpeta === CARPETA_DEFECTO) return { origen: { tipo: 'public', base: `${base}${carpeta}` }, edificio: e }
-    avisar(`[mapa] No hay respaldo local en ${carpeta}; se usa ${CARPETA_DEFECTO}.`)
-    const d = await pedirJson(`${base}${CARPETA_DEFECTO}edificio.json?v=${version}`)
-    return { origen: { tipo: 'public', base: `${base}${CARPETA_DEFECTO}` }, edificio: d }
+    if (e && Array.isArray(e.pisos)) return { origen: { tipo: 'public', base: `${base}${carpeta}` }, edificio: e }
+    avisar(`[mapa] No hay respaldo local en ${carpeta}.`)
+    return { origen: null, edificio: null }
   }
   const respaldo = () => (respaldoP ||= deRespaldo())
 
@@ -155,12 +157,13 @@ export function crearProveedor({ geo = null, base = '/', carpeta = CARPETA_DEFEC
     const archivos = m.base ? urlValida(m.base, geo.url) : null
     let fin = archivos
     if (!fin) { fin = new URL(geo.url); fin.pathname = fin.pathname.replace(/\/geo\/?$/, `/geo/${versionId}/archivo`); fin.search = '' }
-    fin.searchParams.delete('ruta')
-    fin.searchParams.delete('vista')
+    for (const k of ['ruta', 'vista', 'sede', 'edificio']) fin.searchParams.delete(k)
+    const pedida = new URL(geo.url)
     // el token solo acompaña a los archivos de un borrador; una versión publicada se pide sin él (y queda en caché)
     const estado = m?.version?.estado
     const vista = geo.vista && (!estado || estado === 'BORRADOR') ? geo.vista : null
-    const o = { tipo: 'om3', version: versionId, hash: m.hash || null, archivos: fin.href, vista }
+    const o = { tipo: 'om3', version: versionId, hash: m.hash || null, archivos: fin.href, vista,
+      sede: pedida.searchParams.get('sede') || null, edificio: pedida.searchParams.get('edificio') || null }
     const er = await conPlazo(urlArchivo(o, 'edificio.json'), { cache: o.vista ? 'no-store' : 'default' })
     if (!er.ok) throw new Error(`edificio.json respondió ${er.status}`)
     const e = await er.json()
