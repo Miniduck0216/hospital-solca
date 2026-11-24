@@ -9,9 +9,10 @@ mapa 2D sobre las calles y parqueaderos reales, buscador, rutas paso a paso y vi
 
 - Fuente: plano arquitectónico de la planta baja (`planos_entrada.dwg`), procesado en `planta_real/revit/` (modelo e IFC para Revit) y `planta_real/web/` (datos de la página).
 - Mapa 2D: calles, manzanas y parqueaderos de OpenStreetMap (OpenFreeMap) con el plano encima; ambientes coloreados por tipo, nombres, íconos y entradas.
-- Rutas: A* sobre una rejilla de 25 cm del espacio libre (muros, tabiques y muebles bloquean), suavizadas, con indicaciones paso a paso.
+- Rutas: A* sobre una rejilla de 25 cm del espacio libre (muros, tabiques y muebles bloquean), suavizadas, con indicaciones paso a paso. La ruta va por la red de pasillos y corta por los halls y las salas de espera cuando eso acorta el camino; nunca por cuartos cerrados ni áreas del personal. `node scripts/medir_rutas.mjs` mide una muestra de rutas de cada piso (largo y cruces con muros) para comparar antes y después de un cambio.
 - 3D: el mismo modelo que va a Revit (IFC → GLB), sobre el mapa, con altura de muros ajustable, letreros y recorrido animado de la ruta.
 - Enlaces: `?origen=entrada-puerta-1&destino=…` y código QR del punto de partida.
+- Varios destinos posibles: `?destinos=a142,L-pb-quimio-informacion,P1:a7` (o `{ tipo: 'mapa-ir', destinos: [...], origen }` desde OM3) va al de la ruta más corta desde el origen, contando el cambio de piso. Los ids tienen la misma forma que `destino`; si llegan los dos, manda `destino`. Al trazar la ruta de un `mapa-ir`, el mapa avisa a OM3 `{ tipo: 'mapa-destino', id, nombre, piso }` con el id tal como llegó y el piso como número (PB 0, P1 1).
 - Para regenerar todo: `sh planta_real/web/actualizar_web.sh`.
 
 ## Datos del mapa: geometría aquí, información en OM3

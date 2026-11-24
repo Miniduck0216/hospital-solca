@@ -1,7 +1,7 @@
 // Pruebas del modo elegir (OM3 fija la ubicación de un tótem tocando el mapa) y de la lectura del modo (node --test).
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { idGlobal, idValido, leerModo, mensajeElegido, numeroPiso, pinDe, pisoDeId } from '../src/pb/elegir.js'
+import { idGlobal, idValido, leerModo, mensajeDestino, mensajeElegido, numeroPiso, pinDe, pisoDeId } from '../src/pb/elegir.js'
 
 const OM3 = 'https://dev-omniumportal.solcaquito.org.ec'
 
@@ -112,4 +112,15 @@ test('pinDe: entradas y puntos en su sitio, ambientes en su rótulo', () => {
   assert.deepEqual(pinDe({ ...ambiente, lbl: [NaN, 1] }), { id: 'P1:a12', piso: 'P1', x: 5, y: 6, texto: 'Tótem' })
   assert.equal(pinDe(null), null)
   assert.equal(pinDe({ id: 'a1', piso: 'PB' }), null)
+})
+
+test('mapa-destino: el id que mandó OM3 tal cual, el nombre y el piso como número', () => {
+  const pb = { id: 'a142', local: 'a142', piso: 'PB', nombre: 'Espera · Secretaría · Información' }
+  const p1 = { id: 'P1:a7', local: 'a7', piso: 'P1', nombre: 'Información' }
+  assert.deepEqual(mensajeDestino('a142', pb), { tipo: 'mapa-destino', id: 'a142', nombre: 'Espera · Secretaría · Información', piso: 0 })
+  assert.deepEqual(mensajeDestino('P1:a7', p1), { tipo: 'mapa-destino', id: 'P1:a7', nombre: 'Información', piso: 1 })
+  // OM3 mandó «PB:a142»: vuelve igual, para que lo reconozca entre sus destinos
+  assert.equal(mensajeDestino('PB:a142', pb).id, 'PB:a142')
+  // sin id (destino por consulta): el id global del lugar
+  assert.equal(mensajeDestino(null, p1).id, 'P1:a7')
 })

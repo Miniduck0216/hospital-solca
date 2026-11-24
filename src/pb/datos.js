@@ -177,6 +177,8 @@ async function cargarDatosDe(cambiosLocales, opciones) {
   aplicarPasos(d)
   // escalones (gradas de escaleras y desniveles): la ruta accesible no pasa por ellos
   d.nav.escalon = marcarEscalones(d)
+  // vanos y vestíbulos chicos sin nombre que unen dos espacios abiertos: también son paso (ver marcarVanos)
+  marcarVanos(d)
   // franja de paso (ver bandaDeRed)
   d.nav.banda = bandaDeRed(d)
   // el interior de un cuarto cerrado no es paso: la ruta solo llega a su puerta (ver buscarRuta, meta)
@@ -435,6 +437,30 @@ function marcarEscalones(d) {
   d.ambientes.forEach((a, k) => { esc[k + 1] = a.cat === 'escaleras' ? 1 : 0 })
   for (let i = 0; i < m.length; i++) if (esc[cuarto[i]]) m[i] = 1
   return m
+}
+
+// Vanos de puerta y vestíbulos chicos sin nombre (menos de 30 m², los grandes ya son paso) que unen dos espacios abiertos
+// distintos (un pasillo con una sala de espera, dos halls): el plano los dibuja como un cuarto aparte y, sin esto, la
+// franja de paso se cortaba ahí y la ruta daba la vuelta por otra entrada (p. ej. de la Puerta 1 a Espera · Secretaría ·
+// Información: 120 m por el Pasillo Central en vez de entrar por su puerta del pasillo). Un vestíbulo que da a un solo
+// espacio abierto (la entrada de un consultorio o de un área del personal) no cambia.
+function marcarVanos(d) {
+  const { w, h, celdas, cuarto, paso } = d.nav
+  const abierto = (c) => c === 0 || (!!paso[c] && !d.ambientes[c - 1].personal)
+  const toca = new Map()   // cuarto candidato → espacios abiertos vecinos
+  for (let i = 0; i < w * h; i++) {
+    const q = cuarto[i]
+    if (!q || !celdas[i] || paso[q]) continue
+    const a = d.ambientes[q - 1]
+    if (a.nombre || a.eliminado || a.personal || a.area >= 30) continue
+    const x = i % w, y = (i / w) | 0
+    for (const j of [x > 0 ? i - 1 : -1, x < w - 1 ? i + 1 : -1, y > 0 ? i - w : -1, y < h - 1 ? i + w : -1]) {
+      if (j < 0 || !celdas[j] || cuarto[j] === q || !abierto(cuarto[j])) continue
+      if (!toca.has(q)) toca.set(q, new Set())
+      toca.get(q).add(cuarto[j])
+    }
+  }
+  for (const [q, vecinos] of toca) if (vecinos.size >= 2) paso[q] = 1
 }
 
 // franja de paso: la red verde y los pasillos y halls abiertos conectados a ella. Los pasillos internos de los bloques

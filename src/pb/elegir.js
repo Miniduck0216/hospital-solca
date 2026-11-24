@@ -73,3 +73,15 @@ export function mensajeElegido(lugar, nivel) {
   // las entradas llevan su piso en el nombre de la guía («Acceso 2 (PB)»): a OM3 va el nombre sin él (etiqueta)
   return { tipo: 'mapa-elegido', id: idGlobal(lugar.piso, lugar.local ?? lugar.id), nombre: lugar.etiqueta || lugar.nombre, piso: numeroPiso(lugar.piso, nivel) }
 }
+
+/**
+ * Mensaje que el mapa manda al tótem de OM3 cuando traza la ruta pedida con mapa-ir (con varios destinos, al más
+ * cercano): { tipo: 'mapa-destino', id, nombre, piso }. `id` es el que OM3 mandó, tal cual, para que lo encuentre
+ * entre sus destinos; sin él, el id global del lugar. `piso` es un número (ver numeroPiso).
+ * @param {string | null} id
+ * @param {{ id?: string, local: string, piso: string, nombre: string, etiqueta?: string }} lugar (de armarLugares)
+ * @param {number} [nivel]
+ */
+export function mensajeDestino(id, lugar, nivel) {
+  return { ...mensajeElegido(lugar, nivel), tipo: 'mapa-destino', ...(id ? { id } : {}) }
+}

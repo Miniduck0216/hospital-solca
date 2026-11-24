@@ -5,6 +5,13 @@
 // curvas en cada giro validadas contra la franja.
 import { ambienteEn } from './datos.js'
 
+// Costo por metro según dónde se camina. La red de líneas verdes cuesta 1; el resto de la franja (halls, salas de
+// espera, pasillos abiertos sin línea trazada) apenas un poco más, para que la ruta siga los pasillos cuando el largo es
+// parecido pero corte por el hall cuando eso ahorra camino. (Antes era 2,5: una ruta podía dar una vuelta de más del
+// doble por la red antes que cruzar un hall.) La vereda exterior es el último recurso.
+export const COSTO_FRANJA = 1.15
+export const COSTO_VEREDA = 6
+
 class Monticulo {
   constructor() { this.k = []; this.p = [] }
   push(k, p) {
@@ -42,8 +49,29 @@ class Monticulo {
 function celda(nav, x, y) {
   return [Math.round((x - nav.x0) / nav.res), Math.round((y - nav.y0) / nav.res)]
 }
+// celda de paso más cercana a un punto. Primero se camina por el piso libre desde el punto (sin cruzar muros, hasta
+// 10 m): así un punto de acceso dentro de un cuarto encuentra la salida de su propio cuarto y no la celda del pasillo
+// del otro lado del muro. Si el punto cae en un muro o no hay salida, la más cercana en línea recta.
 function libreMasCercana(nav, cx, cy, pasa) {
-  const { w, h } = nav
+  const { w, h, celdas } = nav
+  if (cx >= 0 && cy >= 0 && cx < w && cy < h && celdas[cy * w + cx]) {
+    const i0 = cy * w + cx
+    const visto = new Map([[i0, 0]])
+    const cola = [i0]
+    for (let k = 0; k < cola.length; k++) {
+      const i = cola[k]
+      if (pasa(i)) return [i % w, (i / w) | 0]
+      const x = i % w, y = (i / w) | 0, n = visto.get(i)
+      if (n >= 40) continue
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nx = x + dx, ny = y + dy
+        if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue
+        const j = ny * w + nx
+        if (!celdas[j] || visto.has(j)) continue
+        visto.set(j, n + 1); cola.push(j)
+      }
+    }
+  }
   for (let r = 0; r < 40; r++) {
     for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
       if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue
@@ -102,12 +130,15 @@ function redondear(P, enPaso) {
   return out
 }
 
-// quita esquinas que no cambian de dirección (menos de 12°) o quedan a menos de 0,6 m de la anterior
-function limpiar(P) {
+// quita esquinas que no cambian de dirección (menos de 12°) o quedan a menos de 0,6 m de la anterior, solo si la línea
+// directa sin esa esquina sigue libre (recto): en un tramo largo, 12° de diferencia corren la línea más de un metro y
+// podía atravesar un muro
+function limpiar(P, recto = () => true) {
   if (P.length < 3) return P
   const out = [P[0]]
   for (let i = 1; i < P.length - 1; i++) {
     const A = out[out.length - 1], V = P[i], B = P[i + 1]
+    if (!recto(A, B)) { out.push(V); continue }
     if (Math.hypot(V[0] - A[0], V[1] - A[1]) < 0.6) continue
     const a1 = Math.atan2(V[1] - A[1], V[0] - A[0]), a2 = Math.atan2(B[1] - V[1], B[0] - V[0])
     let da = Math.abs(((a2 - a1) * 180) / Math.PI) % 360
@@ -163,30 +194,39 @@ export function buscarRuta(d, desde, hasta, ids = [], opts = {}) {
     const ax = Math.abs(x - fin[0]), ay = Math.abs(y - fin[1])
     return Math.max(ax, ay) + 0.4142 * Math.min(ax, ay)
   }
-  const mo = new Monticulo()
-  // origen en un cuarto: se parte de todas sus puertas a la vez
-  const semillas = puertasDe(nav, qO, banda)
-  for (const k of semillas.length ? semillas : [s]) { g[k] = 0; mo.push(k, hx(k)) }
   const V = [[1, 0, 1], [-1, 0, 1], [0, 1, 1], [0, -1, 1], [1, 1, 1.4142], [1, -1, 1.4142], [-1, 1, 1.4142], [-1, -1, 1.4142]]
-  let final = -1
-  while (mo.size) {
-    const i = mo.pop()
-    if (cerrado[i]) continue
-    if (qD ? meta(i) : i === t) { final = i; break }
-    cerrado[i] = 1
-    const x = i % w, y = (i / w) | 0
-    for (const [ddx, ddy, c] of V) {
-      const nx = x + ddx, ny = y + ddy
-      if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue
-      const j = ny * w + nx
-      if (cerrado[j] || !(pasa(j) || meta(j))) continue
-      if (ddx && ddy && (!celdas[y * w + nx] || !celdas[ny * w + x])) continue
-      const cj = celdas[j]
-      // la red de las líneas verdes cuesta menos: la ruta la sigue; la franja, un poco más
-      // la vereda exterior es el último recurso: solo se usa para salir/entrar por fuera si por dentro no hay camino razonable
-      const ng = g[i] + c * (1 + (cj - 1) * 0.45) * (vereda && vereda[j] ? 6 : red[j] || meta(j) ? 1 : 2.5)
-      if (ng < g[j]) { g[j] = ng; de[j] = i; mo.push(j, ng + hx(j)) }
+  const aEstrella = (semillas) => {
+    g.fill(Infinity); de.fill(-1); cerrado.fill(0)
+    const mo = new Monticulo()
+    for (const k of semillas) { g[k] = 0; mo.push(k, hx(k)) }
+    while (mo.size) {
+      const i = mo.pop()
+      if (cerrado[i]) continue
+      if (qD ? meta(i) : i === t) return i
+      cerrado[i] = 1
+      const x = i % w, y = (i / w) | 0
+      for (const [ddx, ddy, c] of V) {
+        const nx = x + ddx, ny = y + ddy
+        if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue
+        const j = ny * w + nx
+        if (cerrado[j] || !(pasa(j) || meta(j))) continue
+        if (ddx && ddy && (!celdas[y * w + nx] || !celdas[ny * w + x])) continue
+        const cj = celdas[j]
+        // la red de las líneas verdes cuesta menos: la ruta la sigue; la franja, apenas más (ver COSTO_FRANJA)
+        // la vereda exterior es el último recurso: solo se usa para salir/entrar por fuera si por dentro no hay camino razonable
+        const ng = g[i] + c * (1 + (cj - 1) * 0.45) * (vereda && vereda[j] ? COSTO_VEREDA : red[j] || meta(j) ? 1 : COSTO_FRANJA)
+        if (ng < g[j]) { g[j] = ng; de[j] = i; mo.push(j, ng + hx(j)) }
+      }
     }
+    return -1
+  }
+  // origen en un cuarto cerrado: se sale caminando por dentro del cuarto hasta su puerta; si el punto de acceso quedó
+  // encerrado por el mobiliario, se parte de todas sus puertas a la vez
+  let porPuertas = false
+  let final = aEstrella([s])
+  if (final === -1 && qO && !nav.paso[qO]) {
+    const puertas = puertasDe(nav, qO, banda)
+    if (puertas.length) { porPuertas = true; final = aEstrella(puertas) }
   }
   if (final === -1) return null
   const camino = []
@@ -213,8 +253,13 @@ export function buscarRuta(d, desde, hasta, ids = [], opts = {}) {
     k = j
   }
   const aMetros = ([x, y]) => [nav.x0 + x * res, nav.y0 + y * res]
-  const esquinas = limpiar(esq.map(aMetros))
-  esquinas[0] = [desde[0], desde[1]]
+  const aCelda = (p) => [Math.round((p[0] - nav.x0) / res), Math.round((p[1] - nav.y0) / res)]
+  const esquinas = limpiar(esq.map(aMetros), (A, B) => visible(nav, (q) => pasa(q) || meta(q), aCelda(A), aCelda(B), 6))
+  // la línea empieza en el origen: si la rejilla arrancó lejos de él (en la puerta o en la celda libre más cercana), se
+  // agrega ese tramo corto en vez de mover la primera esquina, que llevaba la línea recta a través de los muros
+  const [ex, ey] = esquinas[0]
+  if (porPuertas || Math.hypot(ex - desde[0], ey - desde[1]) > 0.3) esquinas.unshift([desde[0], desde[1]])
+  else esquinas[0] = [desde[0], desde[1]]
   if (!qD) esquinas.push([hasta[0], hasta[1]])
 
   // 2) curvas en los giros (cada una se valida contra la franja)
@@ -319,7 +364,7 @@ export function metrosHasta(d, desde, idOrigen, objetivos, opts = {}) {
   const cerrado = new Uint8Array(N)
   const s = ini[1] * w + ini[0]
   const mo = new Monticulo()
-  const semillas = puertasDe(nav, qO, banda)
+  const semillas = qO && !nav.paso[qO] ? puertasDe(nav, qO, banda) : []
   for (const k of semillas.length ? semillas : [s]) { g[k] = 0; mo.push(k, 0) }
   const V = [[1, 0, 1], [-1, 0, 1], [0, 1, 1], [0, -1, 1], [1, 1, 1.4142], [1, -1, 1.4142], [-1, 1, 1.4142], [-1, -1, 1.4142]]
   let faltan = metaDe.size
@@ -338,7 +383,7 @@ export function metrosHasta(d, desde, idOrigen, objetivos, opts = {}) {
       if (cerrado[j] || !(pasa(j) || esMeta)) continue
       if (ddx && ddy && (!celdas[y * w + nx] || !celdas[ny * w + x])) continue
       const cj = celdas[j]
-      const ng = g[i] + c * (1 + (cj - 1) * 0.45) * (vereda && vereda[j] ? 6 : red[j] || esMeta ? 1 : 2.5)
+      const ng = g[i] + c * (1 + (cj - 1) * 0.45) * (vereda && vereda[j] ? COSTO_VEREDA : red[j] || esMeta ? 1 : COSTO_FRANJA)
       if (ng < g[j]) { g[j] = ng; m[j] = m[i] + c * res; mo.push(j, ng) }
     }
   }
