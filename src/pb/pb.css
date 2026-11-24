@@ -413,3 +413,12 @@ body { background: #E9EDF1; }
 .pb-sin-plano-aviso { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); max-width: min(92vw, 520px); padding: 18px 22px; display: flex; flex-direction: column; gap: 6px; text-align: center; font: 600 1rem "Nunito Sans", system-ui, sans-serif; color: #14181F; background: #fff; border-radius: 12px; box-shadow: 0 6px 24px rgba(20, 24, 31, .18); }
 .pb-sin-plano-aviso strong { font-size: 1.1rem; }
 .pb-sin-plano-aviso span { color: #5B6472; font-weight: 600; }
+
+/* modo elegir (OM3 fija la ubicación de un tótem): aviso arriba, al centro */
+.pb-elegir { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); z-index: 6; width: max-content; max-width: min(440px, calc(100% - 200px)); padding: 10px 16px; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; }
+.pb-elegir b { font-size: .95rem; }
+.pb-elegir small { font-size: .8rem; color: var(--m-gris); }
+.pb-elegir-3d { display: flex; align-items: center; gap: 6px; }
+@media (max-width: 700px) {
+  .pb-elegir { top: auto; bottom: 64px; max-width: calc(100% - 32px); }
+}

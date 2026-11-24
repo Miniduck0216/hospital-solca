@@ -20,6 +20,7 @@ import { LIGERO, REDUCIR, enReposo } from './rendimiento.js'
 import { CambioPiso } from './CambioPiso.jsx'
 import { Icono, Insignia } from '../ui/mapa2d/Iconos.jsx'
 import { ErrorBoundary } from './ErrorBoundary.jsx'
+import { idGlobal, leerModo, mensajeElegido, pisoDeId } from './elegir.js'
 
 const Vista3D = lazy(() => import('./Vista3D.jsx').then((m) => ({ default: m.Vista3D })))
 
@@ -65,8 +66,8 @@ function distPoli(p, anillo) {
 }
 
 // id de un lugar en todo el edificio: los de la planta baja quedan igual (a47, entrada-puerta-1: los usa OM3);
-// los de otros pisos llevan el piso adelante (P1:a12)
-export const idGlobal = (piso, id) => (piso === 'PB' ? id : `${piso}:${id}`)
+// los de otros pisos llevan el piso adelante (P1:a12). Vive en elegir.js (lo prueba node --test).
+export { idGlobal }
 
 // lugares: ambientes con nombre y destino alcanzable, más las entradas del edificio
 // cada piso arma sus lugares una sola vez (al llegar otro piso no se rehacen los ya cargados)
@@ -111,7 +112,8 @@ function armarLugaresPiso(d) {
     // baño dentro de un consultorio, una habitación o un área del personal: se ve en el mapa (atenuado) pero no es
     // destino (no sale en la guía ni en la búsqueda); al tocarlo, se ofrece ir al cuarto al que pertenece
     const enCuarto = a.cat === 'banos' && (!!a.enCuarto || !!a.ventanilla)
-    lugares.push({ id: a.id, nombre: a.nombre, cat: a.cat, area: a.area, x: a.dest[0], y: a.dest[1], lbl: a.lbl, cerca, enCuarto, dentroDe: a.dentroDe || null, icono: ICONO_LUGAR[a.icono] || ICONO_CAT[a.cat] })
+    // punto: lugar sin cuarto propio (solo se toca por su ícono; el modo elegir lo muestra)
+    lugares.push({ id: a.id, nombre: a.nombre, cat: a.cat, area: a.area, x: a.dest[0], y: a.dest[1], lbl: a.lbl, cerca, enCuarto, dentroDe: a.dentroDe || null, icono: ICONO_LUGAR[a.icono] || ICONO_CAT[a.cat], punto: !a.pg?.length })
   }
   // la zona más cercana de un punto (para decir junto a qué hall o pasillo queda cada entrada)
   const zonaCerca = (p) => {
@@ -214,15 +216,19 @@ function QR({ lugar, hospital, onCerrar }) {
 // modo de inserción: «totem» (pantalla del tótem de OM3) o «guia» (celular tras escanear el QR del tótem).
 // En ambos se ocultan la administración, el QR propio y los enlaces que sacan del mapa; ?vista=3d abre en 3D.
 const PARAMS = new URLSearchParams(location.search)
-const INSERTADO = ['totem', 'guia', 'admin'].includes(PARAMS.get('modo')) ? PARAMS.get('modo') : null
+const MODO = leerModo(PARAMS)
+const INSERTADO = MODO.insertado
 // editor dentro de OM3 (?modo=admin&padre=<origen de OM3>): sin clave (OM3 ya validó el permiso «Mapa del hospital»);
 // el borrador llega y se devuelve por postMessage, solo con esa ventana padre
 const URL_OK = (u) => { try { const x = new URL(u); return x.protocol === 'https:' || x.protocol === 'http:' ? x : null } catch { return null } }
-const PADRE = INSERTADO === 'admin' ? URL_OK(PARAMS.get('padre') || '')?.origin || null : null
-const MODO_ADMIN = !!PADRE
+const PADRE = MODO.padre
+const MODO_ADMIN = MODO.modoAdmin
+// elegir la ubicación de un tótem (?modo=admin&padre=…&elegir=1): un toque en una entrada, un lugar o un ambiente lo
+// resalta y lo manda a OM3 ({ tipo: 'mapa-elegido', id, nombre, piso }); sin rutas ni editor. Usa lo publicado.
+const ELEGIR = MODO.elegir
 // tótem de OM3 con el mapa siempre cargado (?modo=totem&padre=<origen de OM3>): el iframe no se desmonta entre
 // pacientes; OM3 le pide el destino por mensaje (sin recargar) y lo reinicia al volver al inicio
-const PADRE_TOTEM = INSERTADO === 'totem' ? URL_OK(PARAMS.get('padre') || '')?.origin || null : null
+const PADRE_TOTEM = MODO.padreTotem
 // información de los ambientes publicada en OM3 (?config=<url pública>); sin parámetro, la de CONFIG_OM3_URL (datos.js)
 // (puede ser relativa a la página: en el portal de OM3, /api/v1/administracion/mapa/publicado)
 const URL_REL = (u) => { try { return u ? URL_OK(new URL(u, location.href).href) : null } catch { return null } }
@@ -548,6 +554,45 @@ export default function App() {
     if (dest) { setDestino(dest); if (pedido.recorrer) autoRecorrer.current = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pedido, lugares, porId, pisos, terminados])
+  // ---------- modo elegir (OM3 fija la ubicación de un tótem)
+  // entra { tipo: 'mapa-marcar', id }: resalta el lugar ya elegido (si su piso todavía carga, espera)
+  // sale { tipo: 'mapa-listo' } al cargar el primer piso y { tipo: 'mapa-elegido', id, nombre, piso } al tocar un lugar
+  const [elegido, setElegido] = useState(null)
+  const [marcar, setMarcar] = useState(null)
+  useEffect(() => {
+    if (!ELEGIR) return
+    const alRecibir = (e) => {
+      if (e.origin !== PADRE || e.source !== window.parent || !e.data || typeof e.data !== 'object') return
+      if (e.data.tipo === 'mapa-marcar' && typeof e.data.id === 'string') setMarcar({ id: e.data.id, t: Date.now() })
+    }
+    window.addEventListener('message', alRecibir)
+    return () => window.removeEventListener('message', alRecibir)
+  }, [])
+  const elegirListo = useRef(false)
+  useEffect(() => {
+    if (!ELEGIR || !d || elegirListo.current) return
+    elegirListo.current = true
+    window.parent.postMessage({ tipo: 'mapa-listo' }, PADRE)
+  }, [d])
+  const resaltar = (l) => {
+    setElegido(l)
+    if (l.piso !== pisoId) verPiso(l.piso)
+    setFoco({ ...l, id: l.local, t: Date.now() })
+  }
+  useEffect(() => {
+    if (!marcar) return
+    const l = porId[marcar.id]
+    const pisosEd = (d?.edificio?.pisos || []).filter((p) => p.disponible)
+    if (!l) {
+      // el piso del lugar todavía no carga: se espera; si ya cargaron todos o ese piso no existe, se descarta
+      if (terminados >= pisosEd.length || !pisosEd.some((p) => p.id === pisoDeId(marcar.id))) setMarcar(null)
+      return
+    }
+    setMarcar(null)
+    resaltar(l)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [marcar, porId, terminados])
+
   // ruta completa (puede tener tramos en dos pisos): { tramos: [{ piso, pts, metros, pasos }], metros, vertical, alternativa }
   const ruta = useMemo(() => {
     if (!origen || !destino || origen.id === destino.id) return null
@@ -711,18 +756,24 @@ export default function App() {
 
   // el enlace refleja el origen y el destino (para compartir)
   useEffect(() => {
-    if (!origen) return
+    if (!origen || ELEGIR) return
     // el modo, las opciones de inserción, la sede, el edificio y el origen del dibujo se conservan al cambiar origen o
     // destino (si no, al recargar o guardar el enlace se abriría Quito)
     const p = consultaCompartir(PARAMS, { origen: origen.id, destino: destino?.id, via, accesible })
     history.replaceState(null, '', `${location.pathname}?${p}`)
   }, [origen, destino, accesible, via])
 
-  const lugaresIcono = useMemo(() => todos.filter((l) => l.piso === pisoId).filter((l) => l.entrada || ['banos', 'escaleras', 'ascensores', 'farmacia'].includes(l.cat) || ['caja', 'info', 'capilla'].includes(l.icono))
+  const lugaresIcono = useMemo(() => todos.filter((l) => l.piso === pisoId).filter((l) => l.entrada || (ELEGIR && l.punto) || ['banos', 'escaleras', 'ascensores', 'farmacia'].includes(l.cat) || ['caja', 'info', 'capilla'].includes(l.icono))
     .map((l) => ({ ...l, id: l.local, x: l.entrada ? l.x : l.lbl[0], y: l.entrada ? l.y : l.lbl[1], color: l.entrada ? TINTA : '#FFFFFF', privado: !!l.enCuarto })), [todos, pisoId])
 
   const elegirDesdeMapa = (id) => {
     const l = porId[idGlobal(pisoId, id)]
+    if (ELEGIR) {
+      if (!l) { setAviso('Ese espacio no es un lugar del mapa. Toque un ambiente con nombre, una entrada o un punto.'); return }
+      resaltar(l)
+      window.parent.postMessage(mensajeElegido(l, pisos[l.piso]?.piso?.nivel), PADRE)
+      return
+    }
     if (!l) { setFicha(null); return }
     setFicha(l)
   }
@@ -741,7 +792,7 @@ export default function App() {
   const marchaAqui = recorrer && !transicion && pisoId === pisoMarcha
   // lo que se dibuja en este piso: el tramo, y el origen y el destino con su id local (si están en este piso)
   const local = (l) => (l && l.piso === pisoId ? { ...l, id: l.local } : null)
-  const destinoVista = local(destino)
+  const destinoVista = ELEGIR ? local(elegido) : local(destino)
   const focoVista = foco && foco.piso === pisoId ? foco : null
   // índice (en la lista del paso a paso) del primer paso de cada tramo: así la lista marca el paso actual
   const inicioPasos = []
@@ -750,8 +801,8 @@ export default function App() {
   return (
     <div className={`pb-app modo-${modo === 'plano' ? '2d modo-plano' : modo}${INSERTADO ? ` insertado-${INSERTADO}` : ''}${LIGERO ? ' ligero' : ''}`}>
       {modo !== '3d'
-        ? <Mapa ref={mapa} plano={modo === 'plano'} d={d} ruta={tramo} origen={local(origen)} destino={destinoVista} foco={focoVista} hover={hover} onElegir={elegirDesdeMapa} onHover={setHover} lugaresIcono={lugaresIcono} pick={!!pick} onPick={onPick} trazo={pick?.tipo === 'trazo' ? { tipo: pick.paso, puntos: pick.puntos } : null} recorrer={marchaAqui} pausa={pausa} onFinRecorrer={finTramo} onAvance={onAvance} desde={desdeAvance} />
-        : <ErrorBoundary onError={() => { setModo('2d'); setAviso('El 3D no está disponible por ahora. Sigues en 2D.') }}><Suspense fallback={<Cargando texto="Preparando el 3D…" />}><Vista3D ref={vista3d} d={d} pisos={pisos} onPiso={verPiso} ruta={tramo} destino={destinoVista} foco={focoVista} recorrer={marchaAqui} pausa={pausa} onFinRecorrer={finTramo} onAvance={onAvance} desde={desdeAvance} /></Suspense></ErrorBoundary>}
+        ? <Mapa ref={mapa} plano={modo === 'plano'} d={d} ruta={ELEGIR ? null : tramo} origen={ELEGIR ? null : local(origen)} destino={destinoVista} foco={focoVista} hover={hover} onElegir={elegirDesdeMapa} onHover={setHover} lugaresIcono={lugaresIcono} pick={!!pick} onPick={onPick} trazo={pick?.tipo === 'trazo' ? { tipo: pick.paso, puntos: pick.puntos } : null} recorrer={marchaAqui} pausa={pausa} onFinRecorrer={finTramo} onAvance={onAvance} desde={desdeAvance} />
+        : <ErrorBoundary onError={() => { setModo('2d'); setAviso('El 3D no está disponible por ahora. Sigues en 2D.') }}><Suspense fallback={<Cargando texto="Preparando el 3D…" />}><Vista3D ref={vista3d} d={d} pisos={pisos} onPiso={verPiso} ruta={ELEGIR ? null : tramo} destino={destinoVista} foco={focoVista} recorrer={marchaAqui} pausa={pausa} onFinRecorrer={finTramo} onAvance={onAvance} desde={desdeAvance} /></Suspense></ErrorBoundary>}
 
       {/* columna izquierda: marca, búsqueda y ruta */}
       {admin && (
@@ -760,7 +811,15 @@ export default function App() {
           onSalir={MODO_ADMIN ? () => window.parent.postMessage({ tipo: 'mapa-salir' }, PADRE) : () => { setAdmin(false); setPick(null) }} />
       )}
 
-      {!buscando && !admin && (
+      {ELEGIR && (
+        <div className="tarjeta pb-elegir" role="status">
+          <b>Toque el lugar donde está el tótem</b>
+          {elegido && <small>Elegido: {elegido.nombre}</small>}
+          {modo === '3d' && <small className="pb-elegir-3d">Para elegir, use la vista <button className="btn-claro mini" onClick={() => setModo('2d')}>2D</button></small>}
+        </div>
+      )}
+
+      {!buscando && !admin && !ELEGIR && (
         <div className="pb-col">
           <div className={`barra${recorrer || llego || transicion ? ' oculta' : ''}`}>
             <div className="barra-fila">
