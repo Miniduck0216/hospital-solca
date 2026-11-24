@@ -149,7 +149,7 @@ async function imagenesPines(map, lista, vivo) {
   }
 }
 
-export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, hover, onElegir, onHover, lugaresIcono, pick = false, onPick, recorrer = false, pausa = false, onFinRecorrer, onAvance, desde, trazo = null, plano = false }, fwd) {
+export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, pin = null, foco, hover, onElegir, onHover, lugaresIcono, pick = false, onPick, recorrer = false, pausa = false, onFinRecorrer, onAvance, desde, trazo = null, plano = false }, fwd) {
   const ref = useRef(null)
   const mapa = useRef(null)
   const [listo, setListo] = useState(false)
@@ -160,6 +160,7 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
   cb.current = { onElegir, onHover, onPick, pick, onFinRecorrer, onAvance, desde, pausa, plano }
   const marcas = useRef([])
   const marcasRuta = useRef([])
+  const marcaPin = useRef(null)   // pin «Tótem» de los modos elegir y ver
   const anim = useRef(0)
   const andado = useRef(null)   // metros recorridos por el personaje (null: sin recorrido)
   const animCam = useRef(0)
@@ -345,7 +346,7 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
         map.addLayer(rot('rotulos', 0))
         map.addLayer(rot('rotulos-techo', 1))
         alzarSobreTechos(map, marcas.current)
-        map.on('move', () => alzarSobreTechos(map, marcas.current))
+        map.on('move', () => alzarSobreTechos(map, marcaPin.current ? [...marcas.current, marcaPin.current] : marcas.current))
       }
       // modo ligero: íconos de lugares dentro del mapa (ver imagenesPines); los de los bloques van sobre su techo
       if (LIGERO) {
@@ -489,6 +490,24 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, foco, h
     if (!map || !listo || !map.getSource('ambientes')) return
     for (const a of d.ambientes) map.setFeatureState({ source: 'ambientes', id: Number(a.id.slice(1)) }, { destino: !!destino && destino.id === a.id })
   }, [listo, destino, d])
+
+  // ---------- pin «Tótem» (modos elegir y ver): el lugar marcado, con su nombre encima; no se puede tocar
+  useEffect(() => {
+    const map = mapa.current
+    if (!map || !listo || !map.getSource('ambientes') || !pin) return
+    const el = document.createElement('div')
+    el.className = 'pb-marca-totem'
+    el.innerHTML = `<span class="pb-marca-totem-t"></span><svg width="34" height="46" viewBox="0 0 30 40" aria-hidden="true"><path d="M15 39C15 39 28 23.5 28 14A13 13 0 0 0 2 14C2 23.5 15 39 15 39Z" fill="${AZUL}" stroke="#fff" stroke-width="2"/><circle cx="15" cy="14" r="5.2" fill="#fff"/></svg>`
+    el.firstChild.textContent = pin.texto
+    const mk = new maplibregl.Marker({ element: el, anchor: 'bottom' }).setLngLat(aLonLat(pin.x, pin.y)).addTo(map)
+    // dentro de un cuarto el pin va sobre su techo, como los íconos (en una entrada queda en el piso)
+    const amb = (d.ambientes || []).find((a) => a.id === String(pin.id).split(':').pop())
+    mk._sobreTecho = !!amb?.pg?.length && !esPlano(amb)
+    marcaPin.current = mk
+    alzarSobreTechos(map, [mk], true)
+    return () => { mk.remove(); if (marcaPin.current === mk) marcaPin.current = null }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listo, pin?.id, pin?.x, pin?.y, pin?.texto])
 
   // ---------- ruta (línea quieta) y marcas de inicio / fin
   useEffect(() => {
