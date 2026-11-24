@@ -432,3 +432,9 @@ body { background: #E9EDF1; }
 /* modo ver (vista previa de solo lectura): solo el mapa, el pin y el zoom */
 .pb-app.solo-ver .pb-3d-ctrl, .pb-app.solo-ver .pb-3d-abrir { display: none !important; }
 .pb-app.solo-ver .pb-mapa canvas { cursor: default !important; }
+/* en ver, el zoom va arriba a la derecha (en el mapa chico de OM3, de unos 220 a 260 px de alto, no se corta) */
+.pb-app.solo-ver .pb-der { top: 12px; right: 12px; }
+@media (max-height: 300px) {
+  .pb-app.solo-ver .dock-btn { width: 34px; height: 34px; }
+  .pb-app.solo-ver .dock-tip { display: none; }
+}
