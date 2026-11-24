@@ -1,23 +1,23 @@
 // Pruebas del modo elegir (OM3 fija la ubicación de un tótem tocando el mapa) y de la lectura del modo (node --test).
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { idGlobal, leerModo, mensajeElegido, numeroPiso, pisoDeId } from '../src/pb/elegir.js'
+import { idGlobal, idValido, leerModo, mensajeElegido, numeroPiso, pinDe, pisoDeId } from '../src/pb/elegir.js'
 
 const OM3 = 'https://dev-omniumportal.solcaquito.org.ec'
 
 test('elegir=1 con modo=admin y padre activa el modo elegir, no el editor', () => {
   const m = leerModo(`?modo=admin&elegir=1&padre=${encodeURIComponent(OM3 + '/admin/mapa')}&sede=quito&edificio=principal`)
-  assert.deepEqual(m, { insertado: 'admin', padre: OM3, modoAdmin: false, elegir: true, padreTotem: null })
+  assert.deepEqual(m, { insertado: 'admin', padre: OM3, modoAdmin: false, elegir: true, ver: false, marcar: null, padreTotem: null })
 })
 
 test('sin elegir, modo=admin con padre sigue siendo el editor de siempre', () => {
-  assert.deepEqual(leerModo(`?modo=admin&padre=${OM3}`), { insertado: 'admin', padre: OM3, modoAdmin: true, elegir: false, padreTotem: null })
+  assert.deepEqual(leerModo(`?modo=admin&padre=${OM3}`), { insertado: 'admin', padre: OM3, modoAdmin: true, elegir: false, ver: false, marcar: null, padreTotem: null })
   assert.equal(leerModo(`?modo=admin&padre=${OM3}&elegir=0`).elegir, false)
   assert.equal(leerModo(`?modo=admin&padre=${OM3}&elegir=0`).modoAdmin, true)
 })
 
 test('elegir no se activa sin padre válido ni fuera de modo=admin', () => {
-  assert.deepEqual(leerModo('?modo=admin&elegir=1'), { insertado: 'admin', padre: null, modoAdmin: false, elegir: false, padreTotem: null })
+  assert.deepEqual(leerModo('?modo=admin&elegir=1'), { insertado: 'admin', padre: null, modoAdmin: false, elegir: false, ver: false, marcar: null, padreTotem: null })
   assert.equal(leerModo('?modo=admin&elegir=1&padre=javascript:alert(1)').elegir, false)
   assert.equal(leerModo(`?modo=totem&elegir=1&padre=${OM3}`).elegir, false)
   assert.equal(leerModo(`?modo=guia&elegir=1&padre=${OM3}`).elegir, false)
@@ -25,10 +25,10 @@ test('elegir no se activa sin padre válido ni fuera de modo=admin', () => {
 })
 
 test('los demás modos quedan igual que antes', () => {
-  assert.deepEqual(leerModo(''), { insertado: null, padre: null, modoAdmin: false, elegir: false, padreTotem: null })
-  assert.deepEqual(leerModo('?origen=entrada-puerta-1&destino=a12'), { insertado: null, padre: null, modoAdmin: false, elegir: false, padreTotem: null })
-  assert.deepEqual(leerModo(`?modo=totem&padre=${OM3}`), { insertado: 'totem', padre: null, modoAdmin: false, elegir: false, padreTotem: OM3 })
-  assert.deepEqual(leerModo('?modo=guia'), { insertado: 'guia', padre: null, modoAdmin: false, elegir: false, padreTotem: null })
+  assert.deepEqual(leerModo(''), { insertado: null, padre: null, modoAdmin: false, elegir: false, ver: false, marcar: null, padreTotem: null })
+  assert.deepEqual(leerModo('?origen=entrada-puerta-1&destino=a12'), { insertado: null, padre: null, modoAdmin: false, elegir: false, ver: false, marcar: null, padreTotem: null })
+  assert.deepEqual(leerModo(`?modo=totem&padre=${OM3}`), { insertado: 'totem', padre: null, modoAdmin: false, elegir: false, ver: false, marcar: null, padreTotem: OM3 })
+  assert.deepEqual(leerModo('?modo=guia'), { insertado: 'guia', padre: null, modoAdmin: false, elegir: false, ver: false, marcar: null, padreTotem: null })
   assert.equal(leerModo('?modo=otro').insertado, null)
   // acepta también URLSearchParams
   assert.equal(leerModo(new URLSearchParams(`modo=admin&padre=${OM3}&elegir=1`)).elegir, true)
@@ -66,6 +66,50 @@ test('mensaje mapa-elegido', () => {
   // la entrada va con su nombre sin el piso que le agrega la guía
   const acceso = { id: 'P1:entrada-acceso-2', local: 'entrada-acceso-2', piso: 'P1', nombre: 'Acceso 2 (P1)', etiqueta: 'Acceso 2', entrada: true }
   assert.deepEqual(mensajeElegido(acceso, 1), { tipo: 'mapa-elegido', id: 'P1:entrada-acceso-2', nombre: 'Acceso 2', piso: 1 })
-  const punto ={ id: 'SB:L-x1', local: 'L-x1', piso: 'SB', nombre: 'Ventanilla' }
+  const punto = { id: 'SB:L-x1', local: 'L-x1', piso: 'SB', nombre: 'Ventanilla' }
   assert.deepEqual(mensajeElegido(punto, -1), { tipo: 'mapa-elegido', id: 'SB:L-x1', nombre: 'Ventanilla', piso: -1 })
+})
+
+test('ver=1: vista previa de solo lectura, con o sin padre; gana a elegir', () => {
+  assert.deepEqual(leerModo(`?modo=admin&padre=${OM3}&ver=1&marcar=P1:a12&sede=quito&edificio=principal`),
+    { insertado: 'admin', padre: OM3, modoAdmin: false, elegir: false, ver: true, marcar: 'P1:a12', padreTotem: null })
+  assert.deepEqual(leerModo('?modo=admin&ver=1&marcar=entrada-puerta-1'),
+    { insertado: 'admin', padre: null, modoAdmin: false, elegir: false, ver: true, marcar: 'entrada-puerta-1', padreTotem: null })
+  const ambos = leerModo(`?modo=admin&padre=${OM3}&ver=1&elegir=1`)
+  assert.equal(ambos.ver, true)
+  assert.equal(ambos.elegir, false)
+  assert.equal(ambos.modoAdmin, false)
+  // fuera de modo=admin no hay vista previa
+  for (const q of ['?ver=1', `?modo=totem&padre=${OM3}&ver=1`, '?modo=guia&ver=1', `?modo=admin&padre=${OM3}&ver=0`]) assert.equal(leerModo(q).ver, false, q)
+})
+
+test('marcar: en elegir y en ver; ignorado en los demás modos', () => {
+  assert.equal(leerModo(`?modo=admin&padre=${OM3}&elegir=1&marcar=a47`).marcar, 'a47')
+  assert.equal(leerModo(`?modo=admin&padre=${OM3}&elegir=1&marcar=SB:L-x1`).marcar, 'SB:L-x1')
+  assert.equal(leerModo(`?modo=admin&padre=${OM3}&elegir=1`).marcar, null)
+  assert.equal(leerModo(`?modo=admin&padre=${OM3}&marcar=a47`).marcar, null)
+  assert.equal(leerModo(`?modo=totem&padre=${OM3}&marcar=a47`).marcar, null)
+  assert.equal(leerModo('?marcar=a47').marcar, null)
+  // id con forma extraña: se descarta
+  assert.equal(leerModo(`?modo=admin&ver=1&marcar=${encodeURIComponent('<b>x</b>')}`).marcar, null)
+  assert.equal(leerModo('?modo=admin&ver=1&marcar=').marcar, null)
+})
+
+test('idValido', () => {
+  for (const id of ['a12', 'P1:a12', 'entrada-puerta-1', 'P2:entrada-acceso-1', 'SB:L-x1', 'L-abc.1']) assert.equal(idValido(id), id)
+  for (const id of ['', ' a1', 'a 1', '<x>', ':a1', 'a'.repeat(81), null, undefined, 12, {}]) assert.equal(idValido(id), null)
+})
+
+test('pinDe: entradas y puntos en su sitio, ambientes en su rótulo', () => {
+  const entrada = { id: 'entrada-puerta-1', piso: 'PB', x: 10, y: 20, lbl: [1, 2], entrada: true }
+  assert.deepEqual(pinDe(entrada), { id: 'entrada-puerta-1', piso: 'PB', x: 10, y: 20, texto: 'Tótem' })
+  const ambiente = { id: 'P1:a12', piso: 'P1', x: 5, y: 6, lbl: [7.5, 8.5] }
+  assert.deepEqual(pinDe(ambiente), { id: 'P1:a12', piso: 'P1', x: 7.5, y: 8.5, texto: 'Tótem' })
+  const punto = { id: 'SB:L-x1', piso: 'SB', x: 3, y: 4 }
+  assert.deepEqual(pinDe(punto), { id: 'SB:L-x1', piso: 'SB', x: 3, y: 4, texto: 'Tótem' })
+  assert.equal(pinDe(ambiente, 'Aquí').texto, 'Aquí')
+  // rótulo incompleto: el punto del lugar
+  assert.deepEqual(pinDe({ ...ambiente, lbl: [NaN, 1] }), { id: 'P1:a12', piso: 'P1', x: 5, y: 6, texto: 'Tótem' })
+  assert.equal(pinDe(null), null)
+  assert.equal(pinDe({ id: 'a1', piso: 'PB' }), null)
 })

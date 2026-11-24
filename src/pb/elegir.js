@@ -1,4 +1,5 @@
-// Modo de inserción y modo «elegir» (OM3 fija la ubicación de un tótem tocando el mapa).
+// Modo de inserción, modo «elegir» (OM3 fija la ubicación de un tótem tocando el mapa) y modo «ver» (vista previa
+// de solo lectura con el pin del tótem).
 // Sin JSX ni React: lo usan App.jsx y las pruebas (node --test).
 
 const URL_OK = (u) => { try { const x = new URL(u); return x.protocol === 'https:' || x.protocol === 'http:' ? x : null } catch { return null } }
@@ -8,6 +9,9 @@ const URL_OK = (u) => { try { const x = new URL(u); return x.protocol === 'https
  * - modo=totem | guia | admin: insertado en OM3 (sin administración propia ni enlaces que saquen del mapa)
  * - modo=admin&padre=<origen de OM3>: editor del mapa dentro de OM3 (modoAdmin)
  * - modo=admin&padre=…&elegir=1: elegir un lugar para el tótem (elegir); no abre el editor
+ * - modo=admin&ver=1: vista previa de solo lectura (ver): el mapa centrado en el pin, sin paneles; con padre acepta
+ *   mapa-marcar. Si vienen ver=1 y elegir=1, gana ver
+ * - marcar=<id> (solo con elegir o ver): lugar marcado con el pin al abrir (mismo formato que ?origen=)
  * - modo=totem&padre=…: tótem con el mapa siempre cargado (padreTotem)
  * @param {string|URLSearchParams} busqueda
  */
@@ -17,8 +21,26 @@ export function leerModo(busqueda = '') {
   const insertado = ['totem', 'guia', 'admin'].includes(modo) ? modo : null
   const padreDe = (m) => (insertado === m ? URL_OK(p.get('padre') || '')?.origin || null : null)
   const padre = padreDe('admin')
-  const elegir = !!padre && p.get('elegir') === '1'
-  return { insertado, padre, modoAdmin: !!padre && !elegir, elegir, padreTotem: padreDe('totem') }
+  const ver = insertado === 'admin' && p.get('ver') === '1'
+  const elegir = !ver && !!padre && p.get('elegir') === '1'
+  const marcar = ver || elegir ? idValido(p.get('marcar')) : null
+  return { insertado, padre, modoAdmin: !!padre && !elegir && !ver, elegir, ver, marcar, padreTotem: padreDe('totem') }
+}
+
+/** id de lugar aceptable en ?marcar= o en mapa-marcar (a12, P1:a12, entrada-puerta-1, SB:L-x1); si no, null. */
+export const idValido = (id) => (typeof id === 'string' && /^[A-Za-z0-9][A-Za-z0-9:_.-]{0,79}$/.test(id) ? id : null)
+
+/**
+ * Pin del lugar marcado: { id, piso, x, y, texto }. Las entradas y los puntos van en su sitio; un ambiente, en el
+ * centro de su rótulo (lbl), que cae dentro del cuarto (su punto de destino suele estar en la puerta).
+ * @param {{ id: string, piso: string, x: number, y: number, lbl?: number[], entrada?: boolean }|null} lugar
+ * @param {string} [texto]
+ */
+export function pinDe(lugar, texto = 'Tótem') {
+  if (!lugar || !Number.isFinite(lugar.x) || !Number.isFinite(lugar.y)) return null
+  const enRotulo = !lugar.entrada && Array.isArray(lugar.lbl) && Number.isFinite(lugar.lbl[0]) && Number.isFinite(lugar.lbl[1])
+  const [x, y] = enRotulo ? lugar.lbl : [lugar.x, lugar.y]
+  return { id: lugar.id, piso: lugar.piso, x, y, texto }
 }
 
 // id de un lugar en todo el edificio: los de la planta baja quedan igual (a47, entrada-puerta-1: los usa OM3);

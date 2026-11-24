@@ -412,6 +412,20 @@ function Meta({ pos }) {
   )
 }
 
+// pin «Tótem» de los modos elegir y ver: una gota oscura alta (se ve por encima de los muros y sobre el cuarto, que va
+// en azul) con su nombre encima
+const TINTA_PIN = '#14181F'
+function PinTotem({ pin }) {
+  return (
+    <group position={[pin.x, 0, -pin.y]}>
+      <mesh position-y={2.1} rotation-x={Math.PI}><coneGeometry args={[0.5, 3.4, 20]} /><meshBasicMaterial color={TINTA_PIN} toneMapped={false} /></mesh>
+      <mesh position-y={4}><sphereGeometry args={[0.8, 24, 16]} /><meshBasicMaterial color={TINTA_PIN} toneMapped={false} /></mesh>
+      <mesh position-y={4} scale={0.4}><sphereGeometry args={[0.8, 16, 12]} /><meshBasicMaterial color="#FFFFFF" toneMapped={false} /></mesh>
+      <Html position={[0, 5.3, 0]} center zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}><span className="pb-marca-totem-t">{pin.texto}</span></Html>
+    </group>
+  )
+}
+
 // personaje: una persona estilizada de formas redondeadas (cabeza esférica, torso, brazos y piernas en cápsula),
 // de un solo azul con la cabeza un tono más clara y sin cara. Al caminar balancea piernas y brazos y el cuerpo
 // sube y baja un poco; el ritmo sale de la distancia recorrida (paso.current.s), no del reloj, para que los pies
@@ -953,7 +967,7 @@ function Depurar() {
 }
 
 const ORDEN = (a, b) => a.nivel - b.nivel
-export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destino, foco, recorrer = false, pausa = false, onFinRecorrer, onAvance, desde, onPiso }, fwd) {
+export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destino, pin = null, foco, recorrer = false, pausa = false, onFinRecorrer, onAvance, desde, onPiso }, fwd) {
   const [corte, setCorte] = useState(1.2)   // muros bajos por defecto: se ven los pisos, como en una planta de arquitectura
   const [letreros, setLetreros] = useState(true)
   const [opciones, setOpciones] = useState(false)   // altura de muros y letreros: plegados para no recargar la pantalla
@@ -1076,6 +1090,7 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
             <Puertas puertas={d.puertas} plano={plano} persona={persona} ruta={ruta} recorrer={recorrer} corte={corte} />
             <Letreros d={d} visibles={letreros} />
             {ruta && <Ruta ruta={ruta} andado={andado} persona={persona} />}
+            {pin && <PinTotem pin={pin} />}
             {ruta && <Caminante ruta={ruta} recorrer={recorrer} pausa={pausa} controles={controles} libre={libre} andado={andado} alTerminar={onFinRecorrer} onAvance={onAvance} desde={desde} persona={persona} base={base} />}
           </group>
         )}
