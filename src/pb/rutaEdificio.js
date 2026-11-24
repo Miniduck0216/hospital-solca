@@ -120,3 +120,38 @@ const ambientePunto = (d, id) => {
   const a = d?.ambientes?.find((x) => x.id === id)
   return a ? a.dest || a.lbl : null
 }
+
+/**
+ * Ids de varios destinos candidatos: «a12,P1:a7, entrada-puerta-4» (parámetro ?destinos=) o un arreglo (mensaje
+ * mapa-ir con destinos). Quita vacíos y repetidos y conserva el orden; los ids tienen la misma forma que ?destino=.
+ */
+export function listaDestinos(v) {
+  const lista = Array.isArray(v) ? v : typeof v === 'string' ? v.split(',') : []
+  const out = []
+  for (const x of lista) {
+    const id = typeof x === 'string' ? x.trim() : ''
+    if (id && id.length <= 80 && !out.includes(id)) out.push(id)
+  }
+  return out
+}
+
+/**
+ * El destino más cercano entre varios candidatos («Información» o «Baños» existen varias veces): el de la ruta más
+ * corta desde el origen, en tiempo, contando el cambio de piso (espera y viaje del ascensor o la escalera), con las
+ * mismas preferencias (via, accesible) que la ruta que después se dibuja. Los candidatos sin ruta no cuentan.
+ * @param candidatos [{ piso, punto, id }] como el destino de rutaEdificio
+ * @returns { indice, ruta, segundos } del elegido, o null si ninguno tiene ruta
+ */
+export function destinoMasCercano({ edificio, pisos, origen, candidatos, via = VIA_POR_DEFECTO, accesible = false, admin = false, buscar, medir }) {
+  const vel = { ...TIEMPOS_DEF, ...(edificio?.tiempos || {}) }.velocidadMs
+  let mejor = null
+  candidatos.forEach((c, indice) => {
+    if (!c || !pisos[c.piso] || !pisos[origen.piso]) return
+    if (c.piso === origen.piso && c.id === origen.id) return
+    const r = rutaEdificio({ edificio, pisos, origen, destino: c, via, accesible, admin, buscar, medir })
+    if (!r || r.sinRuta || !r.tramos.length) return
+    const segundos = r.segundos ?? r.metros / vel
+    if (!mejor || segundos < mejor.segundos) mejor = { indice, ruta: r, segundos }
+  })
+  return mejor
+}

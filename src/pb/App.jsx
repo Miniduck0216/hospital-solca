@@ -7,7 +7,7 @@ import { claveCambios, leerCambiosLocales } from './sedes.js'
 import { PAGINA, consultaCompartir, enlaceQR, nombreHospital } from './paginaInicial.js'
 import { SinPlanoSede } from './SinPlano.jsx'
 import { buscarRuta, indicaciones, metrosHasta, proximoPaso } from './ruta.js'
-import { rutaEdificio } from './rutaEdificio.js'
+import { destinoMasCercano, listaDestinos, rutaEdificio } from './rutaEdificio.js'
 import { listaPasos } from './pasoAPaso.js'
 import { Mapa } from './Mapa.jsx'
 import { Hoja } from './Hoja.jsx'
@@ -20,7 +20,7 @@ import { LIGERO, REDUCIR, enReposo } from './rendimiento.js'
 import { CambioPiso } from './CambioPiso.jsx'
 import { Icono, Insignia } from '../ui/mapa2d/Iconos.jsx'
 import { ErrorBoundary } from './ErrorBoundary.jsx'
-import { idGlobal, idValido, leerModo, mensajeElegido, pinDe, pisoDeId } from './elegir.js'
+import { idGlobal, idValido, leerModo, mensajeDestino, mensajeElegido, pinDe, pisoDeId } from './elegir.js'
 
 const Vista3D = lazy(() => import('./Vista3D.jsx').then((m) => ({ default: m.Vista3D })))
 
@@ -492,24 +492,64 @@ export default function App() {
   }
   const porId = useMemo(() => Object.fromEntries(todos.map((l) => [l.id, l])), [todos])
 
+  // el más cercano de varios destinos posibles desde un origen (ver destinoMasCercano). Si ninguno tiene ruta, el
+  // primero: así igual queda un destino elegido y la hoja explica por qué no hay camino. Devuelve { id, l }.
+  const masCercano = (ori, cands) => {
+    if (!ori || !cands.length) return null
+    if (cands.length === 1) return cands[0]
+    const opts = { admin, accesible }
+    const punto = (l) => ({ piso: l.piso, punto: [l.x, l.y], id: l.local })
+    const r = destinoMasCercano({
+      edificio: pisos[ori.piso]?.edificio, pisos, via, accesible, admin, origen: punto(ori), candidatos: cands.map((c) => punto(c.l)),
+      buscar: (dd, a, b, ids, o) => buscarRuta(dd, a, b, ids, { ...opts, ...o }),
+      medir: (dd, a, id, obj, o) => metrosHasta(dd, a, id, obj, { ...opts, ...o }),
+    })
+    return r ? cands[r.indice] : cands.find((c) => c.l.id !== ori.id) || cands[0]
+  }
+  // candidatos de ?destinos= o de mapa-ir como { id: el id tal como llegó, l: el lugar }; «PB:a12» vale como «a12».
+  // null mientras falte alguno cuyo piso todavía carga.
+  const candidatosDe = (ids, todosListos) => {
+    const cands = ids.map((id) => ({ id, l: porId[id] || porId[id.replace(/^PB:/, '')] })).filter((c) => c.l)
+    return cands.length === ids.length || todosListos ? cands : null
+  }
+  // aviso a OM3 del destino al que se trazó la ruta: { tipo: 'mapa-destino', id, nombre, piso }. `id` es el mismo que
+  // llegó en destinos (o destino), así OM3 lo reconoce entre los suyos; `piso` es el número de OM3 (ver numeroPiso).
+  const avisarDestino = (id, l) => {
+    if (!PADRE_TOTEM || !l) return
+    window.parent.postMessage(mensajeDestino(id, l, pisos[l.piso]?.piso?.nivel), PADRE_TOTEM)
+  }
+
   // origen por defecto (Puerta 1) o el del enlace / QR (?origen=…&destino=…)
+  // ?destinos=a12,P1:a7,…: varios destinos posibles (OM3: «Información», «Baños»); se va al más cercano al origen.
+  // Con ?destino= también, manda destino.
   // (los pisos se cargan de a uno: el lugar del enlace se aplica una sola vez, cuando aparece su piso)
-  const delEnlace = useRef({ origen: PARAMS.get('origen'), destino: PARAMS.get('destino'), consulta: CONSULTA })
+  const delEnlace = useRef({ origen: PARAMS.get('origen'), destino: PARAMS.get('destino'), destinos: PARAMS.get('destino') ? [] : listaDestinos(PARAMS.get('destinos')), consulta: CONSULTA })
   useEffect(() => {
     if (!lugares.length) return
     const e = delEnlace.current
     const disponibles = (d?.edificio?.pisos || []).filter((p) => p.disponible).length
     const todos = terminados >= disponibles
-    if (e.origen && porId[e.origen]) { setOrigen(porId[e.origen]); e.origen = null }
+    let ori = origen
+    if (e.origen && porId[e.origen]) { ori = porId[e.origen]; setOrigen(ori); e.origen = null }
     else if (!e.origen || todos) {
       // sin origen en el enlace (o uno que no existe): la Puerta 1, cuando ya cargó la planta baja
       const p1 = lugares.find((l) => l.id === 'entrada-puerta-1') || (todos ? lugares.find((l) => l.entrada) : null)
+      ori = ori || p1 || null
       setOrigen((o) => o || p1 || null)
       if (todos) e.origen = null
     }
     if (e.destino && porId[e.destino]) { setDestino(porId[e.destino]); e.destino = null }
+    // varios destinos: se elige cuando ya hay origen y cargaron los pisos de todos los candidatos
+    if (e.destinos.length && !e.origen && ori) {
+      const cands = candidatosDe(e.destinos, todos)
+      if (cands) {
+        e.destinos = []
+        const c = masCercano(ori, cands)
+        if (c) { setDestino(c.l); avisarDestino(c.id, c.l) }
+      }
+    }
     // ?consulta=Cardiología: el destino es el lugar con ese nombre (se espera a tener todos los pisos)
-    if (e.consulta && !e.destino && todos) {
+    if (e.consulta && !e.destino && !e.destinos.length && todos) {
       const l = buscarLugar(lugares, e.consulta)
       if (l) setDestino(l)
       e.consulta = null
@@ -519,9 +559,11 @@ export default function App() {
   useEffect(() => { setRecorrer(false); setTransicion(null); setLlego(false); avance.set(null) }, [origen, destino])
 
   // ---------- mensajes del tótem de OM3 (solo desde la ventana padre y el origen indicado en ?padre=)
-  // { tipo: 'mapa-ir', destino?: id, consulta?: texto, origen?: id, recorrer?: true, vista?: '2d'|'plano'|'3d' }
+  // { tipo: 'mapa-ir', destino?: id, destinos?: [id, …], consulta?: texto, origen?: id, recorrer?: true, vista?: '2d'|'plano'|'3d' }
+  // destinos: varios destinos posibles; el mapa va al de la ruta más corta desde el origen (destino, si viene, manda)
   // { tipo: 'mapa-reiniciar' }: vuelve al estado inicial para el siguiente paciente
-  // El mapa responde { tipo: 'mapa-listo' } al cargar el primer piso y { tipo: 'mapa-pisos-listos' } con todos.
+  // El mapa responde { tipo: 'mapa-listo' } al cargar el primer piso y { tipo: 'mapa-pisos-listos' } con todos, y
+  // { tipo: 'mapa-destino', id, nombre, piso } al trazar la ruta de un mapa-ir (id: el de destino o el elegido de destinos)
   const [pedido, setPedido] = useState(null)
   const reiniciarRef = useRef(() => {})
   useEffect(() => {
@@ -549,15 +591,28 @@ export default function App() {
     if (!pedido || !lugares.length) return
     const disponibles = (d?.edificio?.pisos || []).filter((p) => p.disponible).length
     const todosListos = terminados >= disponibles
-    const dest = pedido.destino ? porId[pedido.destino] : pedido.consulta && todosListos ? buscarLugar(lugares, pedido.consulta) : null
-    if (!dest && !todosListos) return
     const ori = pedido.origen ? porId[pedido.origen] : null
     if (pedido.origen && !ori && !todosListos) return
+    const ids = typeof pedido.destino === 'string' && pedido.destino ? [pedido.destino] : listaDestinos(pedido.destinos)
+    let dest = null, idDest = null
+    if (ids.length) {
+      const cands = candidatosDe(ids, todosListos)
+      if (!cands) return
+      // sin origen todavía (la planta baja carga), se espera; con todo cargado y sin origen, el primero
+      const desde = ori || origen
+      if (!desde && cands.length > 1 && !todosListos) return
+      const c = desde ? masCercano(desde, cands) : cands[0]
+      if (c) { dest = c.l; idDest = c.id }
+    } else if (pedido.consulta && todosListos) dest = buscarLugar(lugares, pedido.consulta)
+    if (!dest && !todosListos) return
     setPedido(null)
     setBuscando(null); setFicha(null)
     if (VISTAS.includes(pedido.vista)) setModo(pedido.vista)
     if (ori) setOrigen(ori)
-    if (dest) { setDestino(dest); if (pedido.recorrer) autoRecorrer.current = true }
+    if (dest) {
+      setDestino(dest); if (pedido.recorrer) autoRecorrer.current = true
+      avisarDestino(idDest || dest.id, dest)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pedido, lugares, porId, pisos, terminados])
   // ---------- modos elegir y ver (OM3 fija o muestra la ubicación de un tótem)
