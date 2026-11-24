@@ -371,6 +371,13 @@ export default function App() {
   const [cambios, setCambios] = useState(() => (MODO_ADMIN ? aFormato2(null) : leerCambios()))
   // selección en el plano del administrador: { tipo: 'dest', id } | { tipo: 'lugar', datos } | { tipo: 'trazo', paso, puntos }
   const [pick, setPick] = useState(null)
+  // «Salir» solo cierra el panel de administración y deja el mapa como estaba. Dentro de OM3 también avisa con
+  // «mapa-salir»: OM3 decide si además cierra el editor (Panel de Control) o se queda donde está (Tótems → Mapas).
+  const salirAdmin = () => {
+    setAdmin(false)
+    setPick(null)
+    if (MODO_ADMIN) window.parent.postMessage({ tipo: 'mapa-salir' }, PADRE)
+  }
   const [pisoId, setPisoId] = useState(null)
   const [pisos, setPisos] = useState({})   // datos de cada piso ya cargado: { PB: d, P1: d, … }
   const [pisosAbierto, setPisosAbierto] = useState(false)
@@ -876,7 +883,7 @@ export default function App() {
       {admin && (
         <PanelAdmin d={d} cambios={cambiosPiso} onCambiar={onCambiar} onEliminar={onEliminar} onRestaurar={onRestaurar} onLugar={onLugar} onQuitarLugar={onQuitarLugar} onPaso={onPaso} onQuitarPaso={onQuitarPaso}
           onRestablecer={onRestablecer} pick={pick} onPick={setPick} enOm3={MODO_ADMIN}
-          onSalir={MODO_ADMIN ? () => window.parent.postMessage({ tipo: 'mapa-salir' }, PADRE) : () => { setAdmin(false); setPick(null) }} />
+          onSalir={salirAdmin} />
       )}
 
       {ELEGIR && (
@@ -1043,7 +1050,8 @@ export default function App() {
           { id: 'centrar', icono: 'centrar', titulo: tramo ? 'Centrar en la persona' : 'Centrar el edificio', onClick: () => vista()?.centrar() },
           ...(modo !== '3d' ? [{ id: 'norte', icono: 'brujula', titulo: 'Enderezar el plano', onClick: () => vista()?.norte?.() }] : []),
           { id: 'piso', texto: d.piso?.corto || 'PB', titulo: 'Cambiar de piso', on: pisosAbierto, onClick: () => setPisosAbierto((v) => !v) },
-          ...(INSERTADO ? [] : [{ id: 'admin', icono: 'ajustes', titulo: admin ? 'Salir de administración' : 'Administración', on: admin, onClick: () => (admin ? setAdmin(false) : setPedirClave(true)) }]),
+          // en el editor de OM3 el botón vuelve a abrir el panel sin clave (OM3 ya validó el permiso)
+          ...(INSERTADO && !MODO_ADMIN ? [] : [{ id: 'admin', icono: 'ajustes', titulo: admin ? 'Salir de administración' : 'Administración', on: admin, onClick: () => (admin ? salirAdmin() : MODO_ADMIN ? setAdmin(true) : setPedirClave(true)) }]),
         ]} />
         {pisosAbierto && (
           <ul className="pb-leyenda pb-pisos" aria-label="Pisos">
