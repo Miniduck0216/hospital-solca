@@ -155,3 +155,18 @@ export function destinoMasCercano({ edificio, pisos, origen, candidatos, via = V
   })
   return mejor
 }
+
+/**
+ * Si la ruta sigue en otro piso después del tramo de `pisoId`: { piso, tipo, texto } («Sube a P1», «Baja a SB»), para
+ * marcar el fin de ese tramo con el ascensor o la escalera en vez del destino. null si el tramo es el último o no está.
+ * @param ruta  { tramos: [{ piso }], vertical: { tipo } }
+ * @param pisos { [pisoId]: { piso: { nivel, corto } } }
+ */
+export function siguientePiso(ruta, pisoId, pisos = {}) {
+  const k = ruta?.tramos ? ruta.tramos.findIndex((t) => t.piso === pisoId) : -1
+  const sig = k >= 0 ? ruta.tramos[k + 1]?.piso : null
+  if (!sig) return null
+  const nivel = (id) => pisos[id]?.piso?.nivel ?? pisos[id]?.nivel ?? 0
+  const sube = nivel(sig) > nivel(pisoId)
+  return { piso: sig, tipo: ruta.vertical?.tipo || 'ascensor', texto: `${sube ? 'Sube' : 'Baja'} a ${pisos[sig]?.piso?.corto || sig}` }
+}

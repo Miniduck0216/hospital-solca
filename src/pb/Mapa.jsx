@@ -1,6 +1,6 @@
 // Mapa 2D: calles, parqueaderos y manzanas reales de OpenStreetMap (OpenFreeMap) con la planta baja real del
 // hospital encima, con aspecto sobrio de plano: cuartos como bloques bajos de tonos casi neutros con muros blancos,
-// pasillos planos y claros, íconos redondos por categoría, nombres y la ruta como una línea azul continua.
+// pasillos planos y claros, íconos redondos por categoría, nombres y la ruta como pasos: puntos azules cada metro.
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
@@ -8,6 +8,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { aLonLat, dePlano, rumbo, CATS, ICONO_LUGAR } from './datos.js'
 import { Icono } from '../ui/mapa2d/Iconos.jsx'
 import { LIGERO, REDUCIR } from './rendimiento.js'
+import { puntosRuta, CADA } from './puntosRuta.js'
 
 const ESTILO = 'https://tiles.openfreemap.org/styles/positron'
 const FONDO = { version: 8, sources: {}, layers: [{ id: 'fondo', type: 'background', paint: { 'background-color': '#ECEFF3' } }] }
@@ -149,7 +150,7 @@ async function imagenesPines(map, lista, vivo) {
   }
 }
 
-export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, pin = null, foco, hover, onElegir, onHover, lugaresIcono, pick = false, onPick, recorrer = false, pausa = false, onFinRecorrer, onAvance, desde, trazo = null, plano = false }, fwd) {
+export const Mapa = forwardRef(function Mapa({ d, ruta, sigue = null, onSeguir, origen, destino, pin = null, foco, hover, onElegir, onHover, lugaresIcono, pick = false, onPick, recorrer = false, pausa = false, onFinRecorrer, onAvance, desde, trazo = null, plano = false }, fwd) {
   const ref = useRef(null)
   const mapa = useRef(null)
   const [listo, setListo] = useState(false)
@@ -157,7 +158,7 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, pin = n
   const listoRef = useRef(false)
   useEffect(() => { listoRef.current = listo }, [listo])
   const cb = useRef({})
-  cb.current = { onElegir, onHover, onPick, pick, onFinRecorrer, onAvance, desde, pausa, plano }
+  cb.current = { onElegir, onHover, onPick, pick, onFinRecorrer, onAvance, desde, pausa, plano, onSeguir }
   const marcas = useRef([])
   const marcasRuta = useRef([])
   const marcaPin = useRef(null)   // pin «Tótem» de los modos elegir y ver
@@ -192,6 +193,7 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, pin = n
   const posFlecha = useRef(null)   // dónde va la flecha del recorrido (coordenadas del plano)
   const soltarCamara = useRef(null)   // vuelve a seguir la flecha aunque la persona haya movido el mapa
   const refrescarRuta = useRef(null)   // repinta lo caminado (en gris) sobre la línea de la ruta
+  const quitarZoomRuta = useRef(null)   // deja de repintar los pasos al cambiar el zoom (ruta anterior)
   const zoomBoton = (dz) => {
     const m = mapa.current
     if (!m) return
@@ -318,22 +320,27 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, pin = n
       map.addLayer({ id: 'mamparas', type: 'line', source: 'mamparas', minzoom: 17.5, paint: { 'line-color': '#6E9CC4', 'line-width': ['interpolate', ['linear'], ['zoom'], 17.5, 1, 21, 3] } })
       map.addLayer({ id: 'barandas', type: 'fill-extrusion', source: 'barandas', paint: { 'fill-extrusion-color': '#B8C2D0', 'fill-extrusion-height': 1.0, 'fill-extrusion-base': 0, 'fill-extrusion-opacity': 1 } })
       map.addLayer({ id: 'viseras-3d', type: 'fill-extrusion', source: 'viseras', paint: { 'fill-extrusion-color': '#E9ECF1', 'fill-extrusion-height': 4.2, 'fill-extrusion-base': 3.7, 'fill-extrusion-opacity': 0.6 } })
-      // ruta: una línea azul continua con filete blanco, quieta; lo ya caminado en el recorrido queda gris encima
-      const anchoRuta = (k) => ['interpolate', ['linear'], ['zoom'], 17, 4 * k, 20, 7 * k]
-      const trazoRuta = { 'line-cap': 'round', 'line-join': 'round' }
-      map.addLayer({ id: 'ruta-halo', type: 'line', source: 'ruta', layout: trazoRuta, paint: { 'line-color': '#FFFFFF', 'line-opacity': 0.9, 'line-width': anchoRuta(1.6) } })
-      map.addLayer({ id: 'ruta-linea', type: 'line', source: 'ruta', layout: trazoRuta, paint: { 'line-color': AZUL, 'line-width': anchoRuta(1) } })
-      map.addLayer({ id: 'ruta-hecha', type: 'line', source: 'ruta-hecha', layout: trazoRuta, paint: { 'line-color': '#B9C3D3', 'line-width': anchoRuta(1) } })
+      // ruta: pasos (puntos azules chicos con filete blanco, cada 0,4 m) a distancia constante en metros, quietos; lo ya caminado en el
+      // recorrido queda en gris encima. De lejos se ve uno de cada 2, 4, 8… pasos (ver CADA y el efecto de la ruta)
+      // para que no se peguen. En el tótem son un poco más grandes (pantalla grande, se ve de más lejos)
+      const escala = LIGERO ? 1.1 : 1
+      const pasos = (id, fuente, color) => map.addLayer({ id, type: 'circle', source: fuente, paint: {
+        'circle-color': color, 'circle-radius': ['interpolate', ['linear'], ['zoom'], 17, 2.2 * escala, 21, 2.6 * escala, 22, 3.6 * escala],
+        'circle-stroke-color': '#FFFFFF', 'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 17, 0.9 * escala, 22, 1.5 * escala],
+        'circle-pitch-alignment': 'map',
+      } })
+      pasos('ruta-pasos', 'ruta', AZUL)
+      pasos('ruta-hecha', 'ruta-hecha', '#B9C3D3')
       // la ruta va en el piso, debajo de los bloques: las paredes de delante la tapan (perspectiva correcta)
-      for (const id of ['ruta-halo', 'ruta-linea', 'ruta-hecha']) map.moveLayer(id, 'ambientes-3d')
+      for (const id of ['ruta-pasos', 'ruta-hecha']) map.moveLayer(id, 'ambientes-3d')
       // vista Plano: el dibujo del DWG sobre los pisos de color y bajo la ruta (que se ve encima de todo el plano)
       const fino = (a, b) => ['interpolate', ['linear'], ['zoom'], 17, a, 21, b]
-      map.addLayer({ id: 'plano-muebles', type: 'fill', source: 'muebles', minzoom: 17.5, paint: { 'fill-color': '#FFFFFF', 'fill-opacity': 0.75 } }, 'ruta-halo')
-      map.addLayer({ id: 'plano-muebles-borde', type: 'line', source: 'muebles', minzoom: 17.5, paint: { 'line-color': '#97A3B4', 'line-width': fino(0.3, 1) } }, 'ruta-halo')
-      map.addLayer({ id: 'plano-trazos', type: 'line', source: 'trazos', minzoom: 18, paint: { 'line-color': '#A3AEBD', 'line-width': fino(0.3, 0.9) } }, 'ruta-halo')
-      map.addLayer({ id: 'plano-arcos', type: 'line', source: 'arcos', minzoom: 17.5, paint: { 'line-color': '#4B5563', 'line-width': fino(0.4, 1.2) } }, 'ruta-halo')
-      map.addLayer({ id: 'plano-ventanas', type: 'fill', source: 'ventanas', paint: { 'fill-color': '#A9C4DA' } }, 'ruta-halo')
-      map.addLayer({ id: 'plano-muros', type: 'fill', source: 'muros', paint: { 'fill-color': '#1F2630' } }, 'ruta-halo')
+      map.addLayer({ id: 'plano-muebles', type: 'fill', source: 'muebles', minzoom: 17.5, paint: { 'fill-color': '#FFFFFF', 'fill-opacity': 0.75 } }, 'ruta-pasos')
+      map.addLayer({ id: 'plano-muebles-borde', type: 'line', source: 'muebles', minzoom: 17.5, paint: { 'line-color': '#97A3B4', 'line-width': fino(0.3, 1) } }, 'ruta-pasos')
+      map.addLayer({ id: 'plano-trazos', type: 'line', source: 'trazos', minzoom: 18, paint: { 'line-color': '#A3AEBD', 'line-width': fino(0.3, 0.9) } }, 'ruta-pasos')
+      map.addLayer({ id: 'plano-arcos', type: 'line', source: 'arcos', minzoom: 17.5, paint: { 'line-color': '#4B5563', 'line-width': fino(0.4, 1.2) } }, 'ruta-pasos')
+      map.addLayer({ id: 'plano-ventanas', type: 'fill', source: 'ventanas', paint: { 'fill-color': '#A9C4DA' } }, 'ruta-pasos')
+      map.addLayer({ id: 'plano-muros', type: 'fill', source: 'muros', paint: { 'fill-color': '#1F2630' } }, 'ruta-pasos')
       aplicarModo(map, cb.current.plano)
       // la flecha del caminante va encima de todo: siempre se ve hacia dónde avanza
       for (const id of ['caminante-halo', 'caminante-dir']) map.moveLayer(id)
@@ -534,36 +541,59 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, pin = n
     marcasRuta.current.forEach((m) => m.remove())
     marcasRuta.current = []
     refrescarRuta.current = null
+    quitarZoomRuta.current?.()
+    quitarZoomRuta.current = null
     if (!ruta) { map.getSource('ruta').setData(vacio); map.getSource('ruta-hecha').setData(vacio); return }
     const coords = ruta.pts.map(([x, y]) => aLonLat(x, y))
-    map.getSource('ruta').setData({ type: 'Feature', geometry: { type: 'LineString', coordinates: coords } })
-    // lo ya caminado por el personaje: la misma línea, en gris, desde el origen hasta donde va (ver el recorrido)
-    const P = ruta.pts
-    const acum = [0]
-    for (let i = 1; i < P.length; i++) acum.push(acum[i - 1] + Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]))
+    // los pasos de la ruta (ver puntosRuta): según el zoom se dibuja uno de cada n (CADA), siempre a la misma distancia
+    // en metros a lo largo de toda la ruta; el primero y el último (el destino) se ven con cualquier zoom
+    const pasos = puntosRuta(ruta.pts)
+    const rasgos = pasos.map((p) => ({ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: aLonLat(p.x, p.y) } }))
+    const cadaN = () => CADA.find(([z]) => map.getZoom() >= z)[1]
+    const elegir = (hasta, n) => rasgos.filter((_, i) => i < hasta && (i % n === 0 || i === pasos.length - 1))
     const src = map.getSource('ruta-hecha')
+    let n = 0
+    // lo ya caminado por el personaje: los mismos pasos, en gris, desde el origen hasta donde va (ver el recorrido)
     refrescarRuta.current = () => {
       if (mapa.current !== map) return
       const a = andado.current
       if (a === null || a < 0.5) { src.setData(vacio); return }
-      let k = 1
-      while (k < acum.length - 1 && acum[k] < a) k++
-      const t = Math.min(1, (a - acum[k - 1]) / ((acum[k] - acum[k - 1]) || 1))
-      const hecho = P.slice(0, k).concat([[P[k - 1][0] + (P[k][0] - P[k - 1][0]) * t, P[k - 1][1] + (P[k][1] - P[k - 1][1]) * t]])
-      src.setData({ type: 'Feature', geometry: { type: 'LineString', coordinates: hecho.map(([x, y]) => aLonLat(x, y)) } })
+      let h = 0
+      while (h < pasos.length && pasos[h].s <= a) h++
+      src.setData({ type: 'FeatureCollection', features: elegir(h, n) })
     }
+    const pintar = () => {
+      const m = cadaN()
+      if (m === n) return
+      n = m
+      map.getSource('ruta').setData({ type: 'FeatureCollection', features: elegir(pasos.length, n) })
+      refrescarRuta.current?.()
+    }
+    pintar()
+    map.on('zoom', pintar)
+    quitarZoomRuta.current = () => map.off('zoom', pintar)
     refrescarRuta.current()
     const ini = document.createElement('div')
     ini.className = 'marca-origen'
     ini.innerHTML = '<i></i><b></b>'
-    const fin = document.createElement('div')
-    fin.className = 'marca-destino'
-    fin.innerHTML = `<svg width="30" height="40" viewBox="0 0 30 40"><path d="M15 39C15 39 28 23.5 28 14A13 13 0 0 0 2 14C2 23.5 15 39 15 39Z" fill="${AZUL}" stroke="#fff" stroke-width="2"/><circle cx="15" cy="14" r="5.2" fill="#fff"/></svg>`
+    // fin del tramo: el destino o, si la ruta sigue en otro piso, el ascensor o la escalera con el piso al que se va
+    // (un toque muestra ese piso)
+    const fin = document.createElement(sigue ? 'button' : 'div')
+    if (sigue) {
+      fin.className = 'marca-sigue'
+      fin.type = 'button'
+      fin.setAttribute('aria-label', `${sigue.texto}: ver el piso ${sigue.piso}`)
+      fin.innerHTML = `${renderToStaticMarkup(<Icono nombre={sigue.tipo === 'escalera' ? 'escalera' : 'ascensor'} size={18} color="#fff" grosor={2.2} />)}<span>${sigue.texto}</span>`
+      fin.addEventListener('click', (e) => { e.stopPropagation(); cb.current.onSeguir?.() })
+    } else {
+      fin.className = 'marca-destino'
+      fin.innerHTML = `<svg width="30" height="40" viewBox="0 0 30 40"><path d="M15 39C15 39 28 23.5 28 14A13 13 0 0 0 2 14C2 23.5 15 39 15 39Z" fill="${AZUL}" stroke="#fff" stroke-width="2"/><circle cx="15" cy="14" r="5.2" fill="#fff"/></svg>`
+    }
     marcasRuta.current.push(new maplibregl.Marker({ element: ini }).setLngLat(coords[0]).addTo(map))
-    marcasRuta.current.push(new maplibregl.Marker({ element: fin, anchor: 'bottom' }).setLngLat(coords[coords.length - 1]).addTo(map))
+    marcasRuta.current.push(new maplibregl.Marker({ element: fin, anchor: sigue ? 'left' : 'bottom', offset: sigue ? [-14, 0] : [0, 0] }).setLngLat(coords[coords.length - 1]).addTo(map))
     encuadrar(ruta.pts)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [listo, ruta])
+  }, [listo, ruta, sigue?.texto])
 
   // ---------- recorrido: un personaje camina la ruta a 1,3 m/s y la cámara lo sigue; lo caminado queda en gris
   useEffect(() => {
@@ -627,6 +657,10 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, pin = n
     let ultCuadro = 0
     let ultT = null
     let sAvz = s0
+    // ¿ya se llegó al zoom y la inclinación del recorrido? Si el equipo dibuja pocos cuadros (tótem, pestaña en segundo
+    // plano) el acercamiento de 0,6 s podía terminar a medias o saltarse, y el recorrido seguía con el mapa de lejos
+    // (pasaba sobre todo al seguir en otro piso después del ascensor)
+    let acercado = espera === 0
     // cámara libre durante el recorrido: mientras la persona toca el mapa (arrastra, gira, inclina o pellizca), usa
     // la rueda o los botones + y −, la cámara no se recentra; al soltar, si movió el mapa, se espera un momento y
     // vuelve al caminante con suavidad. Se detecta desde el primer toque (pointerdown): si se esperara al aviso de
@@ -680,12 +714,15 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, pin = n
         const lejos = Math.hypot((lo - c.lng) * 111320, (la - c.lat) * 110574) > 1.5
         // (al volver al 2D en pleno recorrido, la flecha regresa al centro de la pantalla)
         const giro = cb.current.plano ? { bearing: girarHacia(map.getBearing(), rumboHacia(q.dx, q.dy), 1 - Math.exp(-dt * 3)), padding: adelante() } : { padding: adelante() }
-        map.jumpTo({ center: lejos ? [c.lng + (lo - c.lng) * 0.12, c.lat + (la - c.lat) * 0.12] : [lo, la], ...giro })
+        const zoom = acercado ? {} : { zoom: zoomMeta, pitch: inclMeta }
+        acercado = true
+        map.jumpTo({ center: lejos && !zoom.zoom ? [c.lng + (lo - c.lng) * 0.12, c.lat + (la - c.lat) * 0.12] : [lo, la], ...zoom, ...giro })
       } else {
         const k = 1 - Math.pow(1 - Math.min(1, (now - (t0 - espera)) / espera), 3)
         const [lo, la] = aLonLat(q.x, q.y)
         const giro = cb.current.plano ? { bearing: girarHacia(b0, rumboHacia(q.dx, q.dy), k), padding: adelante() } : { padding: adelante() }
         map.jumpTo({ center: [c0.lng + (lo - c0.lng) * k, c0.lat + (la - c0.lat) * k], zoom: z0 + (zoomMeta - z0) * k, pitch: i0 + (inclMeta - i0) * k, ...giro })
+        if (k >= 0.999) acercado = true
       }
       if (sAct >= L) { cb.current.onFinRecorrer?.(); return }
       animCam.current = requestAnimationFrame(paso)

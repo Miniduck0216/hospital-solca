@@ -1,8 +1,9 @@
 // Rutas para pacientes sobre la rejilla de navegación del plano real (celdas de 25 cm).
 // Los pacientes caminan solo por la red de pasillos trazada en el plano (líneas verdes) y su franja cercana.
 // La ruta termina en la puerta del destino: no entra a consultorios, farmacia, baños ni oficinas.
-// Sale de su propio cuarto (origen) por la puerta. Línea: A* sobre la rejilla, estirado por línea de vista y
-// curvas en cada giro validadas contra la franja.
+// Sale de su propio cuarto (origen) por la puerta. Línea: A* sobre la rejilla con un costo que crece cerca de las
+// paredes (la ruta busca el centro de los pasillos), estirado por línea de vista sin acercarse a los muros más que el
+// camino de la rejilla y curvas en cada giro validadas igual.
 import { ambienteEn } from './datos.js'
 
 // Costo por metro según dónde se camina. La red de líneas verdes cuesta 1; el resto de la franja (halls, salas de
@@ -11,6 +12,25 @@ import { ambienteEn } from './datos.js'
 // doble por la red antes que cruzar un hall.) La vereda exterior es el último recurso.
 export const COSTO_FRANJA = 1.15
 export const COSTO_VEREDA = 6
+// Centro de los pasillos: cada paso cuesta más cuanto más cerca de un muro o del borde de la franja (holgura menor que
+// ANCHO_CENTRO). En un pasillo de hasta 2·ANCHO_CENTRO de ancho el camino más barato va por su eje.
+export const ANCHO_CENTRO = 1.2
+export const PESO_PARED = 2.5
+// La línea estirada no se acerca a las paredes a menos de HOLGURA (o de la fracción FRACCION_HOLGURA de la holgura
+// del camino de la rejilla en ese tramo, si el pasillo es más angosto). Sin esto, la línea de vista cortaba las
+// esquinas rozando el muro y, con la tolerancia de 6, cruzaba en diagonal pegada a las paredes.
+export const HOLGURA = 0.75
+export const FRACCION_HOLGURA = 0.85
+
+// celda sobre un muro del dibujo que la rejilla no tiene (ver murosDibujados): se pasa solo si no hay otro camino
+export const COSTO_MURO_DIBUJADO = 4
+
+// multiplicador de costo por la cercanía a las paredes (dMuro en cm)
+const porPared = (dMuro, j, dib) => {
+  if (!dMuro) return 1
+  const f = (ANCHO_CENTRO - dMuro[j] / 100) / ANCHO_CENTRO
+  return (f > 0 ? 1 + PESO_PARED * f * f : 1) * (dib && dib[j] ? COSTO_MURO_DIBUJADO : 1)
+}
 
 class Monticulo {
   constructor() { this.k = []; this.p = [] }
@@ -82,33 +102,14 @@ function libreMasCercana(nav, cx, cy, pasa) {
   return null
 }
 
-// línea de vista entre dos celdas: no puede cruzar muros ni salir de la franja
-// (y si se da maxRed, sin alejarse más de esas celdas de la red de pasillos)
-function visible(nav, pasa, a, b, lim = 3, maxRed = 255) {
-  const { w, celdas } = nav
-  const dRed = nav.dRed
-  let [x0, y0] = a
-  const [x1, y1] = b
-  const dx = Math.abs(x1 - x0), dy = Math.abs(y1 - y0)
-  const sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1
-  let err = dx - dy
-  for (;;) {
-    const j = y0 * w + x0
-    if (!pasa(j) || celdas[j] > lim || (dRed && dRed[j] > maxRed)) return false
-    if (x0 === x1 && y0 === y1) return true
-    const e2 = 2 * err
-    if (e2 > -dy) { err -= dy; x0 += sx }
-    if (e2 < dx) { err += dx; y0 += sy }
-  }
-}
-
 // curva en cada giro: el vértice se reemplaza por una curva cuadrática que empieza y termina en el pasillo.
 // Si la curva se saldría de la franja, se prueba un radio más chico y, si no cabe, se deja el giro.
-function redondear(P, enPaso) {
+function redondear(P, enPaso, reqs = []) {
   if (P.length < 3) return P
   const out = [P[0]]
   for (let i = 1; i < P.length - 1; i++) {
     const V = P[i], A = P[i - 1], B = P[i + 1]
+    const req = Math.min(reqs[i - 1] ?? 0, reqs[i] ?? 0)
     const la = Math.hypot(A[0] - V[0], A[1] - V[1]), lb = Math.hypot(B[0] - V[0], B[1] - V[1])
     let hecho = false
     for (const r of [2.2, 1.6, 1.1, 0.7, 0.4]) {
@@ -122,7 +123,7 @@ function redondear(P, enPaso) {
         curva.push([(1 - t) ** 2 * a[0] + 2 * (1 - t) * t * V[0] + t * t * b[0], (1 - t) ** 2 * a[1] + 2 * (1 - t) * t * V[1] + t * t * b[1]])
       }
       curva.push(b)
-      if (curva.every(enPaso)) { out.push(...curva); hecho = true; break }
+      if (curva.every((p) => enPaso(p, req))) { out.push(...curva); hecho = true; break }
     }
     if (!hecho) out.push(V)
   }
@@ -131,23 +132,44 @@ function redondear(P, enPaso) {
 }
 
 // quita esquinas que no cambian de dirección (menos de 12°) o quedan a menos de 0,6 m de la anterior, solo si la línea
-// directa sin esa esquina sigue libre (recto): en un tramo largo, 12° de diferencia corren la línea más de un metro y
-// podía atravesar un muro
-function limpiar(P, recto = () => true) {
-  if (P.length < 3) return P
-  const out = [P[0]]
+// directa sin esa esquina sigue libre y con la holgura de los tramos que reemplaza (recto): en un tramo largo, 12° de
+// diferencia corren la línea más de un metro y podía atravesar un muro. R: holgura exigida a cada tramo de P.
+function limpiar(P, R = [], recto = () => true) {
+  if (P.length < 3) return { P, R }
+  const out = [P[0]], outR = []
+  let rA = R[0] ?? 0   // holgura del tramo que llega a la esquina pendiente
   for (let i = 1; i < P.length - 1; i++) {
     const A = out[out.length - 1], V = P[i], B = P[i + 1]
-    if (!recto(A, B)) { out.push(V); continue }
-    if (Math.hypot(V[0] - A[0], V[1] - A[1]) < 0.6) continue
-    const a1 = Math.atan2(V[1] - A[1], V[0] - A[0]), a2 = Math.atan2(B[1] - V[1], B[0] - V[0])
-    let da = Math.abs(((a2 - a1) * 180) / Math.PI) % 360
-    if (da > 180) da = 360 - da
-    if (da < 12) continue
-    out.push(V)
+    const r = Math.min(rA, R[i] ?? 0)
+    let quitar = false
+    if (recto(A, B, r)) {
+      if (Math.hypot(V[0] - A[0], V[1] - A[1]) < 0.6) quitar = true
+      else {
+        const a1 = Math.atan2(V[1] - A[1], V[0] - A[0]), a2 = Math.atan2(B[1] - V[1], B[0] - V[0])
+        let da = Math.abs(((a2 - a1) * 180) / Math.PI) % 360
+        if (da > 180) da = 360 - da
+        if (da < 12) quitar = true
+      }
+    }
+    if (quitar) { rA = r; continue }
+    out.push(V); outR.push(rA); rA = R[i] ?? 0
   }
-  out.push(P[P.length - 1])
-  return out
+  out.push(P[P.length - 1]); outR.push(rA)
+  return { P: out, R: outR }
+}
+
+// ¿el tramo recto a→b (en metros) no pisa muros? Los últimos 30 cm no cuentan: el punto puede estar en el borde del
+// mostrador o del muro
+function sinMuro(nav, a, b) {
+  const { w, h, celdas, res, x0, y0 } = nav
+  const L = Math.hypot(b[0] - a[0], b[1] - a[1])
+  const n = Math.max(1, Math.ceil(L / (res / 2)))
+  for (let k = 0; k <= n; k++) {
+    if (L * (1 - k / n) < 0.3) break
+    const x = Math.round((a[0] + ((b[0] - a[0]) * k) / n - x0) / res), y = Math.round((a[1] + ((b[1] - a[1]) * k) / n - y0) / res)
+    if (x < 0 || y < 0 || x >= w || y >= h || !celdas[y * w + x]) return false
+  }
+  return true
 }
 
 // puerta de un cuarto de origen: sus celdas libres que tocan la franja de paso. Se sale desde ahí y no desde el
@@ -169,7 +191,7 @@ function puertasDe(nav, q, banda) {
 // ids = [origen, destino]. Si el destino es un ambiente, la ruta termina en su puerta.
 export function buscarRuta(d, desde, hasta, ids = [], opts = {}) {
   const nav = d.nav
-  const { w, h, celdas, res, cuarto, red, vereda } = nav
+  const { w, h, celdas, res, cuarto, red, vereda, dMuro } = nav
   const banda = opts.admin && nav.bandaAdmin ? nav.bandaAdmin : nav.banda
   // un ambiente con ventanilla (Farmacia) no se cruza ni se entra: la ruta empieza o termina en el punto frente a ella
   const vent = (q) => (nav.ventanilla && nav.ventanilla.has(q) ? 0 : q)
@@ -214,7 +236,7 @@ export function buscarRuta(d, desde, hasta, ids = [], opts = {}) {
         const cj = celdas[j]
         // la red de las líneas verdes cuesta menos: la ruta la sigue; la franja, apenas más (ver COSTO_FRANJA)
         // la vereda exterior es el último recurso: solo se usa para salir/entrar por fuera si por dentro no hay camino razonable
-        const ng = g[i] + c * (1 + (cj - 1) * 0.45) * (vereda && vereda[j] ? COSTO_VEREDA : red[j] || meta(j) ? 1 : COSTO_FRANJA)
+        const ng = g[i] + c * (dMuro ? porPared(dMuro, j, nav.muroDibujado) : 1 + (cj - 1) * 0.45) * (vereda && vereda[j] ? COSTO_VEREDA : red[j] || meta(j) ? 1 : COSTO_FRANJA)
         if (ng < g[j]) { g[j] = ng; de[j] = i; mo.push(j, ng + hx(j)) }
       }
     }
@@ -233,11 +255,50 @@ export function buscarRuta(d, desde, hasta, ids = [], opts = {}) {
   for (let i = final; i !== -1; i = de[i]) camino.push([i % w, (i / w) | 0])
   camino.reverse()
 
-  // 1) estirado: solo quedan los vértices donde la línea deja de ser recta
+  // holgura (m) de una celda; sin dMuro (datos viejos) no se exige
+  const holgura = (j) => (dMuro ? dMuro[j] / 100 : Infinity)
+  const libreEn = (j) => pasa(j) || meta(j)
+  // ¿el tramo recto a→b (en celdas, con decimales) es caminable con al menos `req` metros de holgura? Se revisa cada
+  // medio lado de celda y las celdas vecinas del punto (piso y techo): así la línea no pasa entre dos esquinas de
+  // muro en diagonal. maxRed: sin alejarse de la red de pasillos más que esas celdas.
+  const tramoLibre = (a, b, req, maxRed = 255) => {
+    const dRed = nav.dRed
+    const L = Math.hypot(b[0] - a[0], b[1] - a[1])
+    const n = Math.max(1, Math.ceil(L * 2))
+    for (let k = 0; k <= n; k++) {
+      const u = a[0] + ((b[0] - a[0]) * k) / n, v = a[1] + ((b[1] - a[1]) * k) / n
+      const xs = [Math.floor(u), Math.ceil(u)], ys = [Math.floor(v), Math.ceil(v)]
+      for (const x of xs) for (const y of ys) {
+        if (x < 0 || y < 0 || x >= w || y >= h) return false
+        if (!celdas[y * w + x]) return false
+      }
+      const x = Math.round(u), y = Math.round(v), j = y * w + x
+      const r = typeof req === 'function' ? req(k / n) : req
+      if (!libreEn(j) || holgura(j) < r - 1e-6 || (dRed && dRed[j] > maxRed)) return false
+    }
+    return true
+  }
+
+  // 1) estirado: solo quedan los vértices donde la línea deja de ser recta. Un atajo vale si en cada punto no se
+  // acerca a las paredes más que el tramo del camino de la rejilla que reemplaza en ese lugar (o que HOLGURA): en un
+  // pasillo la línea queda en el eje y solo se arrima a la puerta al llegar a ella; en un hall no roza las esquinas.
+  const hc = camino.map(([x, y]) => holgura(y * w + x))
+  const VENT = 3   // celdas del camino a cada lado que cuentan para la holgura local
+  const local = (q) => {
+    let m = Infinity
+    for (let i = Math.max(0, q - VENT); i <= Math.min(camino.length - 1, q + VENT); i++) m = Math.min(m, hc[i])
+    return Math.min(HOLGURA, FRACCION_HOLGURA * m)
+  }
   const esq = [camino[0]]
+  const reqs = []   // holgura exigida a cada tramo de esq (la menor del tramo: sirve para las curvas)
   let k = 0
   while (k < camino.length - 1) {
-    let j = camino.length - 1
+    // holgura mínima del camino de la rejilla desde k
+    const minDesde = new Float64Array(camino.length)
+    let m = Infinity
+    for (let q = k; q < camino.length; q++) { m = Math.min(m, hc[q]); minDesde[q] = m }
+    const req = (q) => Math.min(HOLGURA, FRACCION_HOLGURA * minDesde[q])
+    const reqLocal = (q) => (t) => local(Math.round(k + t * (q - k)))
     // la línea no se aleja de la red de pasillos más que sus extremos (y al menos 1 m de tolerancia): sigue los
     // pasillos en vez de cortar los halls en diagonal
     const tope = (q) => {
@@ -246,30 +307,38 @@ export function buscarRuta(d, desde, hasta, ids = [], opts = {}) {
       const da = dr[camino[k][1] * w + camino[k][0]], db = dr[camino[q][1] * w + camino[q][0]]
       return Math.max(4, da, db) + 1
     }
-    // primero una línea que se aleje de las paredes; si no existe, una más cercana a ellas
-    while (j > k + 1 && !visible(nav, (q) => pasa(q) || meta(q), camino[k], camino[j], 3, tope(j))) j--
-    if (j === k + 1) { j = camino.length - 1; while (j > k + 1 && !visible(nav, (q) => pasa(q) || meta(q), camino[k], camino[j], 6, tope(j))) j-- }
+    let j = camino.length - 1
+    while (j > k + 1 && !tramoLibre(camino[k], camino[j], reqLocal(j), tope(j))) j--
     esq.push(camino[j])
+    reqs.push(j === k + 1 ? 0 : req(j))
     k = j
   }
   const aMetros = ([x, y]) => [nav.x0 + x * res, nav.y0 + y * res]
-  const aCelda = (p) => [Math.round((p[0] - nav.x0) / res), Math.round((p[1] - nav.y0) / res)]
-  const esquinas = limpiar(esq.map(aMetros), (A, B) => visible(nav, (q) => pasa(q) || meta(q), aCelda(A), aCelda(B), 6))
+  const aCelda = (p) => [(p[0] - nav.x0) / res, (p[1] - nav.y0) / res]
+  const { P: esquinas, R: reqEsq } = limpiar(esq.map(aMetros), reqs, (A, B, r) => tramoLibre(aCelda(A), aCelda(B), r))
   // la línea empieza en el origen: si la rejilla arrancó lejos de él (en la puerta o en la celda libre más cercana), se
-  // agrega ese tramo corto en vez de mover la primera esquina, que llevaba la línea recta a través de los muros
+  // agrega ese tramo corto en vez de mover la primera esquina, que llevaba la línea recta a través de los muros. Si
+  // ese tramo atravesaría un muro (punto de acceso en un rincón del cuarto o sobre el mostrador), la línea empieza en
+  // la puerta o en el piso libre junto al punto
   const [ex, ey] = esquinas[0]
-  if (porPuertas || Math.hypot(ex - desde[0], ey - desde[1]) > 0.3) esquinas.unshift([desde[0], desde[1]])
-  else esquinas[0] = [desde[0], desde[1]]
-  if (!qD) esquinas.push([hasta[0], hasta[1]])
+  if (porPuertas || Math.hypot(ex - desde[0], ey - desde[1]) > 0.3) {
+    if (sinMuro(nav, esquinas[0], desde)) { esquinas.unshift([desde[0], desde[1]]); reqEsq.unshift(0) }
+  } else esquinas[0] = [desde[0], desde[1]]
+  // el destino suelto (un lugar, una ventanilla) se une con un tramo recto solo si no atraviesa un muro: un punto
+  // marcado sobre el mostrador o la pared queda del otro lado, y la ruta termina en el piso frente a él
+  if (!qD) {
+    const u = esquinas[esquinas.length - 1]
+    if (Math.hypot(hasta[0] - u[0], hasta[1] - u[1]) <= 0.3 || sinMuro(nav, u, hasta)) { esquinas.push([hasta[0], hasta[1]]); reqEsq.push(0) }
+  }
 
-  // 2) curvas en los giros (cada una se valida contra la franja)
-  const enPaso = (p) => {
+  // 2) curvas en los giros: cada punto de la curva, en la franja y con la holgura de los dos tramos que une
+  const enPaso = (p, req = 0) => {
     const cx = Math.round((p[0] - nav.x0) / res), cy = Math.round((p[1] - nav.y0) / res)
     if (cx < 0 || cy < 0 || cx >= w || cy >= h) return false
     const j = cy * w + cx
-    return pasa(j) || meta(j)
+    return libreEn(j) && holgura(j) >= req - 1e-6
   }
-  const pts = redondear(esquinas, enPaso)
+  const pts = redondear(esquinas, enPaso, reqEsq)
 
   let metros = 0
   for (let i = 1; i < pts.length; i++) metros += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1])
@@ -347,7 +416,7 @@ export function proximoPaso(pasos, s, L) {
  */
 export function metrosHasta(d, desde, idOrigen, objetivos, opts = {}) {
   const nav = d.nav
-  const { w, h, celdas, res, cuarto, red, vereda } = nav
+  const { w, h, celdas, res, cuarto, red, vereda, dMuro } = nav
   const banda = opts.admin && nav.bandaAdmin ? nav.bandaAdmin : nav.banda
   const vent = (q) => (nav.ventanilla && nav.ventanilla.has(q) ? 0 : q)
   const qO = vent(nav.indice[idOrigen] || 0)
@@ -383,7 +452,7 @@ export function metrosHasta(d, desde, idOrigen, objetivos, opts = {}) {
       if (cerrado[j] || !(pasa(j) || esMeta)) continue
       if (ddx && ddy && (!celdas[y * w + nx] || !celdas[ny * w + x])) continue
       const cj = celdas[j]
-      const ng = g[i] + c * (1 + (cj - 1) * 0.45) * (vereda && vereda[j] ? COSTO_VEREDA : red[j] || esMeta ? 1 : COSTO_FRANJA)
+      const ng = g[i] + c * (dMuro ? porPared(dMuro, j, nav.muroDibujado) : 1 + (cj - 1) * 0.45) * (vereda && vereda[j] ? COSTO_VEREDA : red[j] || esMeta ? 1 : COSTO_FRANJA)
       if (ng < g[j]) { g[j] = ng; m[j] = m[i] + c * res; mo.push(j, ng) }
     }
   }

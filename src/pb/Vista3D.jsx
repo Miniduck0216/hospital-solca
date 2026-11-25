@@ -4,12 +4,13 @@ import { Suspense, forwardRef, useEffect, useImperativeHandle, useMemo, useRef, 
 import * as THREE from 'three'
 import maplibregl from 'maplibre-gl'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { OrbitControls, useGLTF, Line, Html } from '@react-three/drei'
+import { OrbitControls, useGLTF, Html } from '@react-three/drei'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { BASE, aLonLat, rumbo, dePlano, CATS, proveedorGeo } from './datos.js'
 import { urlArchivo } from './geometria.js'
 import { PAGINA } from './paginaInicial.js'
 import { Cargando } from './Cargando.jsx'
+import { puntosRuta, PASO_RUTA } from './puntosRuta.js'
 import { Exterior } from './Exterior3D.jsx'
 import { Letreros } from './Letreros3D.jsx'
 import { LIGERO, REDUCIR } from './rendimiento.js'
@@ -286,8 +287,8 @@ function medir(pts) {
 
 // ruta 3D: el camino que recorre el personaje, simplificado (Douglas-Peucker, 0,25 m) con las esquinas apenas
 // redondeadas (0,5 m). Va pegado al piso y respeta la profundidad: muros y personaje la tapan como debe.
-// Lo caminado (gris) y lo que falta (azul) son dos líneas que no se solapan, partidas en la posición del personaje;
-// el filete blanco va debajo de ambas y asoma poco.
+// Se dibuja como pasos: discos azules con filete blanco cada PASO_RUTA metros (ver puntosRuta); los ya caminados
+// quedan en gris según la posición del personaje.
 // No se usan las «esquinas» del tramo: el personaje camina la curva de redondeo, y una línea recta por esas
 // esquinas se separaría de él hasta casi un metro.
 function simplificar(P, tol) {
@@ -359,16 +360,13 @@ function cercano(D, p, pista) {
   return { seg, pt }
 }
 
-function Ruta({ ruta, andado, persona }) {
+function Ruta({ ruta, andado, persona, sigue = null, onSeguir }) {
   const D = useMemo(() => redondearEsquinas(simplificar(ruta.pts, 0.25), 0.5, LIGERO ? 2 : 4), [ruta])
   const cum = useMemo(() => {
     const c = [0]
     for (let i = 1; i < D.length; i++) c.push(c[i - 1] + Math.hypot(D[i][0] - D[i - 1][0], D[i][1] - D[i - 1][1]))
     return c
   }, [D])
-  const total = cum[cum.length - 1] || 0
-  const linea = useMemo(() => D.map((p) => E(p, 0.09)), [D])
-  const filete = useMemo(() => D.map((p) => E(p, 0.086)), [D])
   // dónde va el personaje sobre la línea; se actualiza cada 0,1 m (no en cada cuadro)
   const [corte, setCorte] = useState(null)   // { seg, pt, arc } o null
   const ult = useRef(-1)
@@ -380,23 +378,47 @@ function Ruta({ ruta, andado, persona }) {
     }
     const { seg, pt } = cercano(D, p, corte ? corte.seg : 1)
     const arc = cum[seg - 1] + Math.hypot(pt[0] - D[seg - 1][0], pt[1] - D[seg - 1][1])
-    // cada cambio rehace las dos líneas (gris y azul): en el tótem se hace cada 0,25 m, no cada 0,1 m
+    // cada cambio repinta los pasos (gris y azul): en el tótem se hace cada 0,25 m, no cada 0,1 m
     if (ult.current !== -1 && Math.abs(arc - ult.current) < (LIGERO ? 0.25 : 0.1)) return
     ult.current = arc
     setCorte({ seg, pt, arc })
   })
-  const [gris, azul] = useMemo(() => {
-    if (!corte) return [null, linea]
-    const g = corte.arc >= 0.05 ? [...D.slice(0, corte.seg), corte.pt].map((q) => E(q, 0.09)) : null
-    const a = total - corte.arc >= 0.05 ? [corte.pt, ...D.slice(corte.seg)].map((q) => E(q, 0.09)) : null
-    return [g, a]
-  }, [corte, D, linea, total])
+  // pasos: un disco azul con filete blanco cada PASO_RUTA metros sobre la línea; los ya caminados, en gris
+  const pasos = useMemo(() => puntosRuta(D, PASO_RUTA), [D])
+  const filetes = useRef(null), discos = useRef(null)
+  useEffect(() => {
+    const m = new THREE.Matrix4(), q = new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 2, 0, 0))
+    const uno = new THREE.Vector3(1, 1, 1)
+    pasos.forEach((p, i) => {
+      for (const [ref, h] of [[filetes, 0.088], [discos, 0.092]]) {
+        if (!ref.current) continue
+        m.compose(E([p.x, p.y], h), q, uno)
+        ref.current.setMatrixAt(i, m)
+      }
+    })
+    for (const ref of [filetes, discos]) if (ref.current) { ref.current.count = pasos.length; ref.current.instanceMatrix.needsUpdate = true }
+  }, [pasos])
+  useEffect(() => {
+    const mesh = discos.current
+    if (!mesh) return
+    const azul = new THREE.Color(AZUL), gris = new THREE.Color('#B9C3D3')
+    pasos.forEach((p, i) => mesh.setColorAt(i, corte && p.s <= corte.arc ? gris : azul))
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
+  }, [pasos, corte])
+  const capa = { polygonOffset: true, toneMapped: false }
   return (
     <group>
-      <Line points={filete} color="#FFFFFF" lineWidth={LIGERO ? 7 : 8.5} polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} />
-      {azul && <Line points={azul} color={AZUL} lineWidth={LIGERO ? 5 : 6} polygonOffset polygonOffsetFactor={-4} polygonOffsetUnits={-4} />}
-      {gris && <Line points={gris} color="#B9C3D3" lineWidth={LIGERO ? 5 : 6} polygonOffset polygonOffsetFactor={-4} polygonOffsetUnits={-4} />}
-      <Meta pos={ruta.pts[ruta.pts.length - 1]} />
+      <instancedMesh key={`f${pasos.length}`} ref={filetes} args={[null, null, Math.max(1, pasos.length)]} frustumCulled={false}>
+        <circleGeometry args={[LIGERO ? 0.13 : 0.115, 16]} />
+        <meshBasicMaterial color="#FFFFFF" polygonOffsetFactor={-2} polygonOffsetUnits={-2} {...capa} />
+      </instancedMesh>
+      <instancedMesh key={`d${pasos.length}`} ref={discos} args={[null, null, Math.max(1, pasos.length)]} frustumCulled={false}>
+        <circleGeometry args={[LIGERO ? 0.1 : 0.085, 16]} />
+        <meshBasicMaterial color="#FFFFFF" polygonOffsetFactor={-4} polygonOffsetUnits={-4} {...capa} />
+      </instancedMesh>
+      {sigue
+        ? <Html position={E(ruta.pts[ruta.pts.length - 1], 1.6)} center zIndexRange={[20, 0]}><button type="button" className="marca-sigue" onClick={() => onSeguir?.()}>{sigue.texto}</button></Html>
+        : <Meta pos={ruta.pts[ruta.pts.length - 1]} />}
     </group>
   )
 }
@@ -967,7 +989,7 @@ function Depurar() {
 }
 
 const ORDEN = (a, b) => a.nivel - b.nivel
-export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destino, pin = null, foco, recorrer = false, pausa = false, onFinRecorrer, onAvance, desde, onPiso }, fwd) {
+export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, sigue = null, onSeguir, destino, pin = null, foco, recorrer = false, pausa = false, onFinRecorrer, onAvance, desde, onPiso }, fwd) {
   const [corte, setCorte] = useState(1.2)   // muros bajos por defecto: se ven los pisos, como en una planta de arquitectura
   const [letreros, setLetreros] = useState(true)
   const [opciones, setOpciones] = useState(false)   // altura de muros y letreros: plegados para no recargar la pantalla
@@ -1089,7 +1111,7 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
             <MurosExtra muros={d.murosExtra || []} plano={plano} />
             <Puertas puertas={d.puertas} plano={plano} persona={persona} ruta={ruta} recorrer={recorrer} corte={corte} />
             <Letreros d={d} visibles={letreros} />
-            {ruta && <Ruta ruta={ruta} andado={andado} persona={persona} />}
+            {ruta && <Ruta ruta={ruta} andado={andado} persona={persona} sigue={sigue} onSeguir={onSeguir} />}
             {pin && <PinTotem pin={pin} />}
             {ruta && <Caminante ruta={ruta} recorrer={recorrer} pausa={pausa} controles={controles} libre={libre} andado={andado} alTerminar={onFinRecorrer} onAvance={onAvance} desde={desde} persona={persona} base={base} />}
           </group>
