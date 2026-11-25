@@ -1,9 +1,10 @@
 // Trazo de la ruta como pasos: puntos redondos a distancia constante en metros sobre la línea, con sus giros.
 // El mapa 2D, el Plano y el 3D dibujan estos mismos puntos (ver Mapa.jsx y Vista3D.jsx).
 
-// metros entre dos pasos cuando se ven todos (de cerca). De lejos el mapa muestra uno de cada 2, 4, 8… (ver CADA):
-// la distancia entre pasos sigue siendo la misma a lo largo de toda la ruta.
-export const PASO_RUTA = 1
+// metros entre dos pasos cuando se ven todos (de cerca): puntos seguidos, para que el trazo se lea como una línea de
+// huellas. De lejos el mapa muestra uno de cada 2, 4, 8… (ver CADA): la distancia entre pasos sigue siendo la misma a
+// lo largo de toda la ruta.
+export const PASO_RUTA = 0.4
 
 /**
  * Puntos de la ruta cada `paso` metros, desde el origen hasta el destino (el último va siempre en el destino).
@@ -35,6 +36,6 @@ export function puntosRuta(pts, paso = PASO_RUTA) {
   return out
 }
 
-// cada cuántos pasos se dibuja uno según el zoom del mapa: de 10 a 19 píxeles entre pasos (los de 1 m se verían
-// pegados de lejos). En el zoom z un metro mide unos 6,7·2^(z−20) píxeles.
-export const CADA = [[20.5, 1], [19.5, 2], [18.5, 4], [17.5, 8], [0, 16]]
+// cada cuántos pasos se dibuja uno según el zoom del mapa: solo se ralean cuando de verdad se pegarían (menos de 7,5
+// píxeles entre centros con puntos de unos 5 px). En el zoom z un metro mide unos 6,7·2^(z−20) píxeles.
+export const CADA = [[21.5, 1], [20.5, 2], [19.5, 4], [18.5, 8], [17.5, 16], [16.5, 32], [15.5, 64], [0, 128]]

@@ -7,7 +7,7 @@ import { claveCambios, leerCambiosLocales } from './sedes.js'
 import { PAGINA, consultaCompartir, enlaceQR, nombreHospital } from './paginaInicial.js'
 import { SinPlanoSede } from './SinPlano.jsx'
 import { buscarRuta, indicaciones, metrosHasta, proximoPaso } from './ruta.js'
-import { destinoMasCercano, listaDestinos, rutaEdificio } from './rutaEdificio.js'
+import { destinoMasCercano, listaDestinos, rutaEdificio, siguientePiso } from './rutaEdificio.js'
 import { listaPasos } from './pasoAPaso.js'
 import { Mapa } from './Mapa.jsx'
 import { Hoja } from './Hoja.jsx'
@@ -218,6 +218,9 @@ function QR({ lugar, hospital, onCerrar }) {
 const PARAMS = new URLSearchParams(location.search)
 const MODO = leerModo(PARAMS)
 const INSERTADO = MODO.insertado
+// dentro de otra página (el iframe del tótem o de la guía de OM3, aunque falte ?modo=): sin el botón QR propio, OM3
+// ofrece su QR aparte
+const EN_MARCO = (() => { try { return window.self !== window.top } catch { return true } })()
 // editor dentro de OM3 (?modo=admin&padre=<origen de OM3>): sin clave (OM3 ya validó el permiso «Mapa del hospital»);
 // el borrador llega y se devuelve por postMessage, solo con esa ventana padre
 const URL_OK = (u) => { try { const x = new URL(u); return x.protocol === 'https:' || x.protocol === 'http:' ? x : null } catch { return null } }
@@ -422,7 +425,11 @@ export default function App() {
       .then((datos) => {
         // los demás pisos se cargan después, sin apuro: hacen falta para buscar en todo el edificio y trazar entre pisos
         if (!datos || MODO_ADMIN) return
+        // primero los pisos del destino del enlace (?destino=P1:a12, ?destinos=…): la ruta del tótem a otro piso no
+        // espera a que carguen los demás
+        const pedidos = [PARAMS.get('destino'), ...listaDestinos(PARAMS.get('destinos'))].filter(Boolean).map(pisoDeId)
         const otros = (datos.edificio?.pisos || []).filter((p) => p.disponible && p.id !== datos.piso.id)
+          .sort((a, b) => (pedidos.includes(b.id) ? 1 : 0) - (pedidos.includes(a.id) ? 1 : 0))
         return otros.reduce((pr, p) => pr.then(() => new Promise((ok) => enReposo(ok))).then(() => cargarPiso(cambios, p.id, false).catch(() => setFallidos((f) => [...f, p.id]))), Promise.resolve())
       })
       .catch((e) => setError(e))
@@ -699,6 +706,12 @@ export default function App() {
   const mismoTramo = (a, b) => a && b && a.piso === b.piso && a.pts.length === b.pts.length && a.pts.every((p, i) => p[0] === b.pts[i][0] && p[1] === b.pts[i][1])
   const tramo = mismoTramo(tramoAntes.current, tramoNuevo) ? tramoAntes.current : tramoNuevo
   tramoAntes.current = tramo
+  // si la ruta sigue en otro piso, el fin del tramo a la vista es el ascensor o la escalera: «Sube a P1». Un toque en
+  // esa marca muestra el piso siguiente (en la vista quieta; al caminar, el cambio de piso es automático)
+  const sigue = useMemo(() => (rutaOk && tramo ? siguientePiso(rutaOk, tramo.piso, pisos) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [rutaOk?.tramos?.map((t) => t.piso).join(), tramo?.piso, rutaOk?.vertical?.tipo, Object.keys(pisos).length])
+  const seguir = () => { if (sigue) verPiso(sigue.piso) }
   // al trazar una ruta nueva, la vista va al piso donde empieza
   const claveRuta = rutaOk ? `${origen?.id}>${destino?.id}>${rutaOk.vertical?.conector?.id || ''}` : ''
   useEffect(() => {
@@ -876,8 +889,8 @@ export default function App() {
   return (
     <div className={`pb-app modo-${modo === 'plano' ? '2d modo-plano' : modo}${INSERTADO ? ` insertado-${INSERTADO}` : ''}${VER ? ' solo-ver' : ''}${LIGERO ? ' ligero' : ''}`}>
       {modo !== '3d'
-        ? <Mapa ref={mapa} plano={modo === 'plano'} d={d} ruta={MARCA ? null : tramo} origen={MARCA ? null : local(origen)} destino={destinoVista} pin={pinVista} foco={focoVista} hover={hover} onElegir={elegirDesdeMapa} onHover={setHover} lugaresIcono={lugaresIcono} pick={!!pick} onPick={onPick} trazo={pick?.tipo === 'trazo' ? { tipo: pick.paso, puntos: pick.puntos } : null} recorrer={marchaAqui} pausa={pausa} onFinRecorrer={finTramo} onAvance={onAvance} desde={desdeAvance} />
-        : <ErrorBoundary onError={() => { setModo('2d'); setAviso('El 3D no está disponible por ahora. Sigues en 2D.') }}><Suspense fallback={<Cargando texto="Preparando el 3D…" />}><Vista3D ref={vista3d} d={d} pisos={pisos} onPiso={verPiso} ruta={MARCA ? null : tramo} destino={destinoVista} pin={pinVista} foco={focoVista} recorrer={marchaAqui} pausa={pausa} onFinRecorrer={finTramo} onAvance={onAvance} desde={desdeAvance} /></Suspense></ErrorBoundary>}
+        ? <Mapa ref={mapa} plano={modo === 'plano'} d={d} ruta={MARCA ? null : tramo} sigue={MARCA ? null : sigue} onSeguir={seguir} origen={MARCA ? null : local(origen)} destino={destinoVista} pin={pinVista} foco={focoVista} hover={hover} onElegir={elegirDesdeMapa} onHover={setHover} lugaresIcono={lugaresIcono} pick={!!pick} onPick={onPick} trazo={pick?.tipo === 'trazo' ? { tipo: pick.paso, puntos: pick.puntos } : null} recorrer={marchaAqui} pausa={pausa} onFinRecorrer={finTramo} onAvance={onAvance} desde={desdeAvance} />
+        : <ErrorBoundary onError={() => { setModo('2d'); setAviso('El 3D no está disponible por ahora. Sigues en 2D.') }}><Suspense fallback={<Cargando texto="Preparando el 3D…" />}><Vista3D ref={vista3d} d={d} pisos={pisos} onPiso={verPiso} ruta={MARCA ? null : tramo} sigue={MARCA ? null : sigue} onSeguir={seguir} destino={destinoVista} pin={pinVista} foco={focoVista} recorrer={marchaAqui} pausa={pausa} onFinRecorrer={finTramo} onAvance={onAvance} desde={desdeAvance} /></Suspense></ErrorBoundary>}
 
       {/* columna izquierda: marca, búsqueda y ruta */}
       {admin && (
@@ -982,7 +995,7 @@ export default function App() {
                     <button className="btn-negro btn-recorrer" onClick={empezar}>
                       <Icono nombre="caminar" size={16} color="#fff" />Caminar
                     </button>
-                    {!INSERTADO && <button className="btn-claro" onClick={() => setQr(true)}>QR</button>}
+                    {!INSERTADO && !EN_MARCO && <button className="btn-claro" onClick={() => setQr(true)}>QR</button>}
                     <button className="btn-claro" onClick={() => setDestino(null)} aria-label="Cerrar ruta">Cerrar</button>
                   </div>
                 </>

@@ -14,7 +14,11 @@ body { background: #E9EDF1; }
 /* mapa */
 .pb-mapa { position: absolute; inset: 0; background: var(--m-fondo); }
 .pb-mapa .maplibregl-ctrl-attrib { font-size: 10px; border-radius: 8px; }
-.pb-mapa .maplibregl-marker:has(.marca-origen), .pb-mapa .maplibregl-marker:has(.marca-destino) { z-index: 4; }
+.pb-mapa .maplibregl-marker:has(.marca-origen), .pb-mapa .maplibregl-marker:has(.marca-destino), .pb-mapa .maplibregl-marker:has(.marca-sigue) { z-index: 4; }
+/* fin de un tramo que sigue en otro piso: el ascensor o la escalera y a qué piso se va (un toque muestra ese piso) */
+.marca-sigue { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px 5px 6px; border: 2px solid #fff; border-radius: 999px; background: #2F5BEA; color: #fff; font: 800 .82rem/1.1 var(--m-fuente, system-ui); box-shadow: 0 2px 8px rgba(20, 30, 45, .28); cursor: pointer; white-space: nowrap; }
+.marca-sigue svg { flex: none; }
+.ligero .marca-sigue { box-shadow: none; font-size: .95rem; padding: 7px 13px 7px 8px; }
 
 /* íconos de lugares: insignia; el nombre de las entradas siempre visible */
 .pb-pin { display: inline-flex; align-items: center; gap: 4px; border: 0; background: none; padding: 0; cursor: pointer; }

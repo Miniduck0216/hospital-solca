@@ -360,7 +360,7 @@ function cercano(D, p, pista) {
   return { seg, pt }
 }
 
-function Ruta({ ruta, andado, persona }) {
+function Ruta({ ruta, andado, persona, sigue = null, onSeguir }) {
   const D = useMemo(() => redondearEsquinas(simplificar(ruta.pts, 0.25), 0.5, LIGERO ? 2 : 4), [ruta])
   const cum = useMemo(() => {
     const c = [0]
@@ -409,14 +409,16 @@ function Ruta({ ruta, andado, persona }) {
   return (
     <group>
       <instancedMesh key={`f${pasos.length}`} ref={filetes} args={[null, null, Math.max(1, pasos.length)]} frustumCulled={false}>
-        <circleGeometry args={[LIGERO ? 0.24 : 0.21, 20]} />
+        <circleGeometry args={[LIGERO ? 0.13 : 0.115, 16]} />
         <meshBasicMaterial color="#FFFFFF" polygonOffsetFactor={-2} polygonOffsetUnits={-2} {...capa} />
       </instancedMesh>
       <instancedMesh key={`d${pasos.length}`} ref={discos} args={[null, null, Math.max(1, pasos.length)]} frustumCulled={false}>
-        <circleGeometry args={[LIGERO ? 0.18 : 0.155, 20]} />
+        <circleGeometry args={[LIGERO ? 0.1 : 0.085, 16]} />
         <meshBasicMaterial color="#FFFFFF" polygonOffsetFactor={-4} polygonOffsetUnits={-4} {...capa} />
       </instancedMesh>
-      <Meta pos={ruta.pts[ruta.pts.length - 1]} />
+      {sigue
+        ? <Html position={E(ruta.pts[ruta.pts.length - 1], 1.6)} center zIndexRange={[20, 0]}><button type="button" className="marca-sigue" onClick={() => onSeguir?.()}>{sigue.texto}</button></Html>
+        : <Meta pos={ruta.pts[ruta.pts.length - 1]} />}
     </group>
   )
 }
@@ -987,7 +989,7 @@ function Depurar() {
 }
 
 const ORDEN = (a, b) => a.nivel - b.nivel
-export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destino, pin = null, foco, recorrer = false, pausa = false, onFinRecorrer, onAvance, desde, onPiso }, fwd) {
+export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, sigue = null, onSeguir, destino, pin = null, foco, recorrer = false, pausa = false, onFinRecorrer, onAvance, desde, onPiso }, fwd) {
   const [corte, setCorte] = useState(1.2)   // muros bajos por defecto: se ven los pisos, como en una planta de arquitectura
   const [letreros, setLetreros] = useState(true)
   const [opciones, setOpciones] = useState(false)   // altura de muros y letreros: plegados para no recargar la pantalla
@@ -1109,7 +1111,7 @@ export const Vista3D = forwardRef(function Vista3D({ d, pisos = {}, ruta, destin
             <MurosExtra muros={d.murosExtra || []} plano={plano} />
             <Puertas puertas={d.puertas} plano={plano} persona={persona} ruta={ruta} recorrer={recorrer} corte={corte} />
             <Letreros d={d} visibles={letreros} />
-            {ruta && <Ruta ruta={ruta} andado={andado} persona={persona} />}
+            {ruta && <Ruta ruta={ruta} andado={andado} persona={persona} sigue={sigue} onSeguir={onSeguir} />}
             {pin && <PinTotem pin={pin} />}
             {ruta && <Caminante ruta={ruta} recorrer={recorrer} pausa={pausa} controles={controles} libre={libre} andado={andado} alTerminar={onFinRecorrer} onAvance={onAvance} desde={desde} persona={persona} base={base} />}
           </group>

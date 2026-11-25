@@ -7,7 +7,7 @@ import { cargarDatos, usarGeo } from '../src/pb/datos.js'
 import { buscarRuta, metrosHasta } from '../src/pb/ruta.js'
 import { destinoMasCercano, listaDestinos } from '../src/pb/rutaEdificio.js'
 import { revisar, holguraMuros } from '../scripts/medir_rutas.mjs'
-import { puntosRuta, PASO_RUTA } from '../src/pb/puntosRuta.js'
+import { puntosRuta, PASO_RUTA, CADA } from '../src/pb/puntosRuta.js'
 
 const d = await cargarDatos()
 usarGeo(d.geo)
@@ -186,10 +186,11 @@ test('la ruta no se acerca a las paredes más que su camino: en la rejilla, cada
   }
 })
 
-test('puntosRuta: pasos cada metro, siguiendo los giros, con el último en el destino', () => {
+test('puntosRuta: pasos a distancia constante, siguiendo los giros, con el último en el destino', () => {
+  // puntos seguidos: entre 0,35 y 0,4 m (de lejos el mapa ralea, ver CADA)
+  assert.ok(PASO_RUTA >= 0.35 && PASO_RUTA <= 0.4)
   const P = [[0, 0], [3.5, 0], [3.5, 2.2]]
-  const p = puntosRuta(P)
-  assert.equal(PASO_RUTA, 1)
+  const p = puntosRuta(P, 1)
   assert.deepEqual(p.slice(0, 4).map((q) => [q.x, q.y]), [[0, 0], [1, 0], [2, 0], [3, 0]])
   // el quinto paso ya dobló la esquina: 0,5 m después del giro
   assert.ok(Math.abs(p[4].x - 3.5) < 1e-9 && Math.abs(p[4].y - 0.5) < 1e-9)
@@ -199,8 +200,21 @@ test('puntosRuta: pasos cada metro, siguiendo los giros, con el último en el de
   assert.deepEqual([u.x, u.y, +u.s.toFixed(6)], [3.5, 2.2, 5.7])
   assert.deepEqual([p[4].dx, p[4].dy], [0, 1])
   assert.deepEqual(puntosRuta([]), [])
-  // una ruta real: un paso por metro (más el del destino)
+  // con el paso por defecto: separación PASO_RUTA
+  const q0 = puntosRuta(P)
+  for (let i = 1; i < q0.length - 1; i++) assert.ok(Math.abs(q0[i].s - q0[i - 1].s - PASO_RUTA) < 1e-9)
+  // una ruta real: un paso cada PASO_RUTA metros (más el del destino)
   const r = ruta('a345')
   const q = puntosRuta(r.pts)
-  assert.ok(Math.abs(q.length - Math.ceil(r.metros)) <= 1, `${q.length} pasos para ${r.metros.toFixed(1)} m`)
+  assert.ok(Math.abs(q.length - Math.ceil(r.metros / PASO_RUTA)) <= 1, `${q.length} pasos para ${r.metros.toFixed(1)} m`)
+})
+
+test('CADA: los pasos solo se ralean cuando se pegarían (al menos 7,5 px entre centros)', () => {
+  const px = (z) => 6.7 * 2 ** (z - 20)   // píxeles por metro (latitud de Quito)
+  for (let z = 16; z <= 22.5; z += 0.1) {
+    const n = CADA.find(([zz]) => z >= zz)[1]
+    assert.ok(n * PASO_RUTA * px(z) >= 7.5 - 1e-6, `zoom ${z.toFixed(1)}: ${(n * PASO_RUTA * px(z)).toFixed(1)} px`)
+    // y no se ralea de más: con la mitad se pegarían
+    if (n > 1) assert.ok((n / 2) * PASO_RUTA * px(z) < 7.5 + 1e-6)
+  }
 })
