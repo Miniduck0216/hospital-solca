@@ -402,11 +402,15 @@ export default function App() {
     return () => clearTimeout(t)
   }, [aviso])
 
+  // configuración publicada que OM3 mandó en vivo al tótem (mapa-config): desde entonces se usa esa, completa, en vez
+  // de volver a pedir la de ?config=
+  const publicada = useRef(null)
   // carga (o recarga, tras un cambio del administrador) un piso; `ver` lo deja como el piso a la vista
   // los pisos que no se ven se preparan en otro hilo: así el mapa no se traba mientras tanto (el tótem es lento)
   const cargarPiso = (c, piso, ver = true) => {
     const n = ver ? ++turno.current : 0
-    return (ver ? cargarDatos : cargarDatosEnHilo)(c, { pisoId: piso || undefined, cambiosUrl: CONFIG_URL, sinPublicados: MODO_ADMIN, geo: GEO, respaldo: RESPALDO })
+    const pub = publicada.current
+    return (ver ? cargarDatos : cargarDatosEnHilo)(pub || c, { pisoId: piso || undefined, cambiosUrl: CONFIG_URL, sinPublicados: MODO_ADMIN || !!pub, geo: GEO, respaldo: RESPALDO })
       .then((datos) => {
         usarGeo(datos.geo)
         setPisos((ps) => ({ ...ps, [datos.piso.id]: datos }))
@@ -434,6 +438,8 @@ export default function App() {
     const alRecibir = (e) => {
       if (e.origin !== PADRE || e.source !== window.parent || !e.data || e.data.tipo !== 'mapa-borrador') return
       const c = aFormato2(e.data.cambios)
+      // lo que manda OM3 (lo guardado, lo descartado) reemplaza a lo que se iba a recalcular de lo escrito
+      clearTimeout(recalculo.current)
       setCambios(c)
       cargar(c).catch(() => setAviso('No se pudo actualizar el plano. Se ve la versión anterior.'))
     }
@@ -443,11 +449,17 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   // guarda (navegador u OM3) y recalcula el plano con los cambios del piso actual
+  // al escribir un nombre llega un cambio por tecla: el campo se actualiza al instante y el plano se recalcula cuando la
+  // persona hace una pausa corta (el mapa no se recrea ni mueve la cámara, ver Mapa.jsx)
+  const recalculo = useRef(0)
   const guardar = (nuevo) => {
     setCambios(nuevo)
     if (MODO_ADMIN) window.parent.postMessage({ tipo: 'mapa-cambios', cambios: nuevo }, PADRE)
     else if (CLAVE_LOCAL) { try { localStorage.setItem(CLAVE_LOCAL, JSON.stringify(nuevo)) } catch { /* sin almacenamiento: solo en esta sesión */ } }
-    cargar(nuevo)
+    clearTimeout(recalculo.current)
+    recalculo.current = setTimeout(() => {
+      cargar(nuevo, pisoRef.current).catch(() => setAviso('No se pudo actualizar el plano. Se ve la versión anterior.'))
+    }, 250)
   }
   const cambiosPiso = cambiosDelPiso(cambios, pisoId) || {}
   const conPiso = (fn) => guardar({ version: 2, pisos: { ...cambios.pisos, [pisoId]: fn({ ambientes: {}, lugares: [], pasos: [], ...cambiosPiso }) } })
@@ -569,6 +581,7 @@ export default function App() {
   // { tipo: 'mapa-ir', destino?: id, destinos?: [id, …], consulta?: texto, origen?: id, recorrer?: true, vista?: '2d'|'plano'|'3d' }
   // destinos: varios destinos posibles; el mapa va al de la ruta más corta desde el origen (destino, si viene, manda)
   // { tipo: 'mapa-reiniciar' }: vuelve al estado inicial para el siguiente paciente
+  // { tipo: 'mapa-config', cambios }: configuración publicada nueva (nombres, lugares, pasos); ver configNueva
   // El mapa responde { tipo: 'mapa-listo' } al cargar el primer piso y { tipo: 'mapa-pisos-listos' } con todos, y
   // { tipo: 'mapa-destino', id, nombre, piso } al trazar la ruta de un mapa-ir (id: el de destino o el elegido de destinos)
   const [pedido, setPedido] = useState(null)
@@ -579,10 +592,27 @@ export default function App() {
       if (e.origin !== PADRE_TOTEM || e.source !== window.parent || !e.data || typeof e.data !== 'object') return
       if (e.data.tipo === 'mapa-ir') setPedido({ ...e.data, t: Date.now() })
       else if (e.data.tipo === 'mapa-reiniciar') reiniciarRef.current()
+      else if (e.data.tipo === 'mapa-config' && e.data.cambios && typeof e.data.cambios === 'object' && e.data.cambios.pisos && typeof e.data.cambios.pisos === 'object') {
+        setConfigNueva({ c: aFormato2(e.data.cambios), t: Date.now() })
+      }
     }
     window.addEventListener('message', alRecibir)
     return () => window.removeEventListener('message', alRecibir)
   }, [])
+  // { tipo: 'mapa-config', cambios }: OM3 publicó otra configuración (se guardó el editor del mapa). Se aplica sin
+  // recargar la página ni mover la cámara, pero no en medio de una ruta: espera a que el paciente termine (sin
+  // destino ni recorrido, como queda tras mapa-reiniciar). Primero el piso a la vista; los demás, en reposo.
+  const [configNueva, setConfigNueva] = useState(null)
+  useEffect(() => {
+    if (!configNueva || !d || destino || recorrer || transicion) return
+    publicada.current = configNueva.c
+    setConfigNueva(null)
+    const otros = Object.keys(pisos).filter((p) => p !== pisoId)
+    cargar(cambios, pisoId)
+      .then(() => otros.reduce((pr, p) => pr.then(() => new Promise((ok) => enReposo(ok))).then(() => cargarPiso(cambios, p, false).catch(() => {})), Promise.resolve()))
+      .catch(() => { /* el piso queda como estaba; la configuración nueva se usa en la próxima carga */ })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [configNueva, d, destino, recorrer, transicion])
   const avisado = useRef({ listo: false, pisos: false })
   useEffect(() => {
     if (!PADRE_TOTEM || !d) return
