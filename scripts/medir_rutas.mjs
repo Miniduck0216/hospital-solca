@@ -76,7 +76,9 @@ async function medir(raiz) {
 // tramos de la línea (muestreada cada 10 cm) que cruzan un muro, un cuarto cerrado con nombre que no es el origen ni
 // el destino, o un área del personal sin recorrido de pacientes trazado. No cuentan el primer y el último medio metro
 // (la salida del cuarto de origen y la entrada por la puerta del destino) ni los roces de menos de 30 cm con una
-// esquina (la línea va de centro a centro de celdas de 25 cm y las curvas se validan contra la rejilla).
+// esquina (la línea va de centro a centro de celdas de 25 cm y las curvas se validan contra la rejilla). Tampoco cuenta
+// un cuarto que la línea cruza hasta el final sin salir de él: es la antesala del destino (el baño de minusválidos
+// tiene su puerta dentro de los SS.HH. generales); lo mismo al salir del origen.
 export function revisar(d, pts, idO, idD) {
   const { w, h, x0, y0, res, celdas, cuarto, red, indice } = d.nav
   const qO = indice[idO] || 0, qD = indice[idD] || 0
@@ -91,6 +93,24 @@ export function revisar(d, pts, idO, idD) {
   }
   const corridas = new Map()   // falla → { actual, max } en metros
   let previas = new Set()
+  // cuartos de antesala: los que la línea pisa (fuera de la red) sin interrupción hasta el final o desde el inicio
+  const cuartoEn = (m) => {
+    const x = Math.round((m.x - x0) / res), y = Math.round((m.y - y0) / res)
+    if (x < 0 || y < 0 || x >= w || y >= h) return 0
+    const j = y * w + x
+    return celdas[j] && !red[j] ? cuarto[j] : 0
+  }
+  const antesala = new Set()
+  for (const orden of [muestras.slice().reverse(), muestras]) {
+    let q = 0
+    for (const m of orden) {
+      const c = cuartoEn(m)
+      if (m.s < 0.5 || m.s > L - 0.5 || (c && (c === qO || c === qD))) continue
+      if (!c || d.nav.paso[c] || (q && c !== q)) break
+      q = c
+    }
+    if (q) antesala.add(q)
+  }
   for (const m of muestras) {
     const fallas = new Set()
     if (m.s >= 0.5 && m.s <= L - 0.5) {
@@ -99,7 +119,7 @@ export function revisar(d, pts, idO, idD) {
       else {
         const j = y * w + x, q = cuarto[j]
         if (!celdas[j]) fallas.add('muro')
-        else if (q && q !== qO && q !== qD) {
+        else if (q && q !== qO && q !== qD && !antesala.has(q)) {
           const a = d.ambientes[q - 1]
           if (a.personal && !red[j]) fallas.add(`personal: ${a.nombre}`)
           else if (a.nombre && !d.nav.paso[q] && !red[j]) fallas.add(`cuarto: ${a.nombre}`)
@@ -115,6 +135,68 @@ export function revisar(d, pts, idO, idD) {
     previas = fallas
   }
   return [...corridas].filter(([, c]) => c.max >= 0.3).map(([f, c]) => `${f} (${c.max.toFixed(1)} m)`)
+}
+
+// Holgura de la línea frente a los muros del dibujo (d.muros, los que se ven en el mapa), no solo frente a la rejilla:
+// muestras cada 5 cm, sin contar los primeros y los últimos `bordes` metros (la salida del origen y la puerta del
+// destino). Devuelve el tramo más largo dentro de un muro (m), la menor distancia a un muro fuera de ellos (m) y dónde.
+export function holguraMuros(d, pts, bordes = 1) {
+  const C = 2
+  if (!d._indiceMuros) {
+    const celda = new Map(), segs = []
+    for (const mu of d.muros || []) for (const ring of mu) for (let i = 1; i < ring.length; i++) {
+      const a = ring[i - 1], b = ring[i], k = segs.length
+      segs.push([a, b, mu])
+      for (let x = Math.floor(Math.min(a[0], b[0]) / C); x <= Math.floor(Math.max(a[0], b[0]) / C); x++)
+        for (let y = Math.floor(Math.min(a[1], b[1]) / C); y <= Math.floor(Math.max(a[1], b[1]) / C); y++) {
+          const key = `${x},${y}`
+          if (!celda.has(key)) celda.set(key, [])
+          celda.get(key).push(k)
+        }
+    }
+    d._indiceMuros = { celda, segs }
+  }
+  const { celda, segs } = d._indiceMuros
+  const enMuro = (p, mu) => {
+    let c = false
+    for (const ring of mu) for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const [xi, yi] = ring[i], [xj, yj] = ring[j]
+      if ((yi > p[1]) !== (yj > p[1]) && p[0] < ((xj - xi) * (p[1] - yi)) / (yj - yi) + xi) c = !c
+    }
+    return c
+  }
+  const consultar = (p) => {
+    let dist = Infinity
+    const cerca = new Set()
+    const cx = Math.floor(p[0] / C), cy = Math.floor(p[1] / C)
+    for (let x = cx - 1; x <= cx + 1; x++) for (let y = cy - 1; y <= cy + 1; y++) for (const k of celda.get(`${x},${y}`) || []) {
+      const [a, b, mu] = segs[k]
+      const dx = b[0] - a[0], dy = b[1] - a[1], l2 = dx * dx + dy * dy || 1
+      const t = Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / l2))
+      const dd = Math.hypot(a[0] + dx * t - p[0], a[1] + dy * t - p[1])
+      dist = Math.min(dist, dd)
+      if (dd < C) cerca.add(mu)
+    }
+    for (const mu of cerca) if (enMuro(p, mu)) return { dist: 0, dentro: true }
+    return { dist, dentro: false }
+  }
+  let total = 0
+  for (let i = 1; i < pts.length; i++) total += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1])
+  let L = 0, corrida = 0, dentro = 0, minima = Infinity, donde = null
+  for (let i = 1; i < pts.length; i++) {
+    const [ax, ay] = pts[i - 1], [bx, by] = pts[i]
+    const l = Math.hypot(bx - ax, by - ay), n = Math.max(1, Math.ceil(l / 0.05))
+    for (let k = 1; k <= n; k++) {
+      const s = L + (l * k) / n
+      if (s < bordes || s > total - bordes) { corrida = 0; continue }
+      const p = [ax + ((bx - ax) * k) / n, ay + ((by - ay) * k) / n]
+      const r = consultar(p)
+      if (r.dentro) { corrida += l / n; dentro = Math.max(dentro, corrida) } else corrida = 0
+      if (!r.dentro && r.dist < minima) { minima = r.dist; donde = p }
+    }
+    L += l
+  }
+  return { dentro, minima, donde }
 }
 
 function comparar(antes, despues) {

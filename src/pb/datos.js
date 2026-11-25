@@ -189,6 +189,10 @@ async function cargarDatosDe(cambiosLocales, opciones) {
   // distancia (en celdas) a la red de pasillos: al estirar la ruta, la línea no se aleja de la red (no corta los
   // halls en diagonal ni pasa por el medio de las salas)
   d.nav.dRed = distanciaARed(d.nav)
+  // holgura de cada celda: distancia (en cm) al muro o al borde de la franja de paso más cercano. La ruta busca el
+  // centro de los pasillos con ella y no se acerca a las paredes (ver buscarRuta)
+  d.nav.muroDibujado = murosDibujados(d)
+  d.nav.dMuro = distanciaAMuro(d.nav)
   d.nav.indice = Object.fromEntries(d.ambientes.map((a, k) => [a.id, k + 1]))
   d.nav.ventanilla = new Set(d.ambientes.flatMap((a, k) => (a.ventanilla ? [k + 1] : [])))
   d.nav.alcanzable = alcanzables(d)
@@ -220,6 +224,71 @@ function distanciaARed(nav) {
       if (celdas[j] && dist[j] > nd) { dist[j] = nd; cola[fin++] = j }
     }
   }
+  return dist
+}
+
+// celdas que pisa un muro del dibujo (d.muros): sus bordes y las celdas con el centro dentro. La rejilla viene del
+// plano a 25 cm y a veces pierde un muro delgado (10 cm) o lo corre una celda; la ruta los evita igual (ver dMuro y
+// el costo en ruta.js). No cambia por dónde se puede pasar: solo cuánto cuesta y la holgura.
+export function murosDibujados(d) {
+  const { w, h, x0, y0, res } = d.nav
+  const out = new Uint8Array(w * h)
+  const marcar = (x, y) => {
+    const cx = Math.round((x - x0) / res), cy = Math.round((y - y0) / res)
+    if (cx >= 0 && cy >= 0 && cx < w && cy < h) out[cy * w + cx] = 1
+  }
+  for (const mu of d.muros || []) {
+    let ax = Infinity, bx = -Infinity, ay = Infinity, by = -Infinity
+    for (const ring of mu) for (let i = 1; i < ring.length; i++) {
+      const [px, py] = ring[i - 1], [qx, qy] = ring[i]
+      const n = Math.max(1, Math.ceil(Math.hypot(qx - px, qy - py) / (res / 4)))
+      for (let k = 0; k <= n; k++) marcar(px + ((qx - px) * k) / n, py + ((qy - py) * k) / n)
+      ax = Math.min(ax, px); bx = Math.max(bx, px); ay = Math.min(ay, py); by = Math.max(by, py)
+    }
+    if (!isFinite(ax)) continue
+    for (let cy = Math.max(0, Math.ceil((ay - y0) / res)); cy <= Math.min(h - 1, Math.floor((by - y0) / res)); cy++) {
+      for (let cx = Math.max(0, Math.ceil((ax - x0) / res)); cx <= Math.min(w - 1, Math.floor((bx - x0) / res)); cx++) {
+        const p = [x0 + cx * res, y0 + cy * res]
+        let c = false
+        for (const ring of mu) if (dentro(p, ring)) c = !c
+        if (c) out[cy * w + cx] = 1
+      }
+    }
+  }
+  return out
+}
+
+// distancia euclidiana exacta (en cm, hasta 655 m) de cada celda al obstáculo más cercano: un muro o una celda fuera
+// de la franja de paso (cuartos cerrados, exterior). Transformada de distancia en dos pasadas (Felzenszwalb).
+export function distanciaAMuro(nav) {
+  const { w, h, celdas, banda, res } = nav
+  const INF = 1e12
+  const f = new Float64Array(w * h)
+  const dib = nav.muroDibujado
+  for (let i = 0; i < w * h; i++) f[i] = !celdas[i] || !banda[i] || (dib && dib[i]) ? 0 : INF
+  const n = Math.max(w, h)
+  const v = new Int32Array(n), z = new Float64Array(n + 1), g = new Float64Array(n), out = new Float64Array(n)
+  const pasada = (largo, leer, escribir) => {
+    for (let q = 0; q < largo; q++) g[q] = leer(q)
+    let k = 0
+    v[0] = 0; z[0] = -Infinity; z[1] = Infinity
+    for (let q = 1; q < largo; q++) {
+      let s = (g[q] + q * q - (g[v[k]] + v[k] * v[k])) / (2 * q - 2 * v[k])
+      while (s <= z[k]) { k--; s = (g[q] + q * q - (g[v[k]] + v[k] * v[k])) / (2 * q - 2 * v[k]) }
+      k++; v[k] = q; z[k] = s; z[k + 1] = Infinity
+    }
+    k = 0
+    for (let q = 0; q < largo; q++) {
+      while (z[k + 1] < q) k++
+      const p = v[k]
+      out[q] = (q - p) * (q - p) + g[p]
+    }
+    for (let q = 0; q < largo; q++) escribir(q, out[q])
+  }
+  for (let x = 0; x < w; x++) pasada(h, (y) => f[y * w + x], (y, val) => { f[y * w + x] = val })
+  for (let y = 0; y < h; y++) pasada(w, (x) => f[y * w + x], (x, val) => { f[y * w + x] = val })
+  const dist = new Uint16Array(w * h)
+  for (let i = 0; i < w * h; i++) dist[i] = Math.min(65535, Math.round(Math.sqrt(f[i]) * res * 100))
   return dist
 }
 
