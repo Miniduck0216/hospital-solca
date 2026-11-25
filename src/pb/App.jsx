@@ -20,7 +20,7 @@ import { LIGERO, REDUCIR, enReposo } from './rendimiento.js'
 import { CambioPiso } from './CambioPiso.jsx'
 import { Icono, Insignia } from '../ui/mapa2d/Iconos.jsx'
 import { ErrorBoundary } from './ErrorBoundary.jsx'
-import { idGlobal, idValido, leerModo, mensajeDestino, mensajeElegido, pinDe, pisoDeId } from './elegir.js'
+import { idGlobal, idValido, leerModo, mensajeDestino, mensajeElegido, origenesSinDestino, pinDe, pisoDeId } from './elegir.js'
 
 const Vista3D = lazy(() => import('./Vista3D.jsx').then((m) => ({ default: m.Vista3D })))
 
@@ -517,6 +517,14 @@ export default function App() {
     return !!dl && (l.entrada || !dl.nav.indice[l.local] || dl.nav.alcanzable.has(dl.nav.indice[l.local]))
   }
   const porId = useMemo(() => Object.fromEntries(todos.map((l) => [l.id, l])), [todos])
+  // ambientes con nombre que no son destino (salas de espera, pasillos): no salen en la guía, pero un tótem puede
+  // estar en uno, así que sirven de origen (?origen=, mapa-ir) y de lugar marcado
+  const origenesExtra = useMemo(() => Object.assign({}, ...Object.values(pisos).map(origenesSinDestino)), [pisos])
+  const lugarOrigen = (id) => {
+    if (!id) return null
+    const k = id.replace(/^PB:/, '')
+    return porId[k] || origenesExtra[k] || null
+  }
 
   // el más cercano de varios destinos posibles desde un origen (ver destinoMasCercano). Si ninguno tiene ruta, el
   // primero: así igual queda un destino elegido y la hoja explica por qué no hay camino. Devuelve { id, l }.
@@ -556,7 +564,7 @@ export default function App() {
     const disponibles = (d?.edificio?.pisos || []).filter((p) => p.disponible).length
     const todos = terminados >= disponibles
     let ori = origen
-    if (e.origen && porId[e.origen]) { ori = porId[e.origen]; setOrigen(ori); e.origen = null }
+    if (e.origen && lugarOrigen(e.origen)) { ori = lugarOrigen(e.origen); setOrigen(ori); e.origen = null }
     else if (!e.origen || todos) {
       // sin origen en el enlace (o uno que no existe): la Puerta 1, cuando ya cargó la planta baja
       const p1 = lugares.find((l) => l.id === 'entrada-puerta-1') || (todos ? lugares.find((l) => l.entrada) : null)
@@ -635,7 +643,7 @@ export default function App() {
     if (!pedido || !lugares.length) return
     const disponibles = (d?.edificio?.pisos || []).filter((p) => p.disponible).length
     const todosListos = terminados >= disponibles
-    const ori = pedido.origen ? porId[pedido.origen] : null
+    const ori = pedido.origen ? lugarOrigen(pedido.origen) : null
     if (pedido.origen && !ori && !todosListos) return
     const ids = typeof pedido.destino === 'string' && pedido.destino ? [pedido.destino] : listaDestinos(pedido.destinos)
     let dest = null, idDest = null
@@ -690,7 +698,7 @@ export default function App() {
   useEffect(() => {
     // ?marcar= llega antes que el plano: se espera a tener el edificio para saber qué pisos hay
     if (!marcar || !d) return
-    const l = porId[marcar.id]
+    const l = lugarOrigen(marcar.id)
     const pisosEd = (d?.edificio?.pisos || []).filter((p) => p.disponible)
     if (!l) {
       // el piso del lugar todavía no carga: se espera; si ya cargaron todos o ese piso no existe, se descarta
@@ -852,7 +860,8 @@ export default function App() {
     autoRecorrer.current = false
     setAccesible(ACCESIBLE_INICIAL); setVia(VIA_INICIAL); setPisosAbierto(false); setQr(false); setHover(null)
     setDestino(null)
-    setOrigen(porId['entrada-puerta-1'] || lugares.find((l) => l.entrada) || null)
+    // vuelve al lugar del tótem (?origen=); sin él, a la Puerta 1
+    setOrigen(lugarOrigen(PARAMS.get('origen')) || porId['entrada-puerta-1'] || lugares.find((l) => l.entrada) || null)
     setModo(VISTA_INICIAL)
     if (pisoId !== (d?.edificio?.pisoInicial || 'PB')) verPiso(d?.edificio?.pisoInicial || 'PB')
     setTimeout(() => vista()?.centrar?.(), 300)
@@ -885,9 +894,11 @@ export default function App() {
     const l = porId[idGlobal(pisoId, id)]
     if (VER) return   // vista previa: los toques no hacen nada
     if (ELEGIR) {
-      if (!l) { setAviso('Ese espacio no es un lugar del mapa. Toque un ambiente con nombre, una entrada o un punto.'); return }
-      resaltar(l)
-      window.parent.postMessage(mensajeElegido(l, pisos[l.piso]?.piso?.nivel), PADRE)
+      // la ubicación de un tótem puede ser una sala de espera o un pasillo con nombre (no son destinos)
+      const u = l || origenesExtra[idGlobal(pisoId, id)]
+      if (!u) { setAviso('Ese espacio no es un lugar del mapa. Toque un ambiente con nombre, una entrada o un punto.'); return }
+      resaltar(u)
+      window.parent.postMessage(mensajeElegido(u, pisos[u.piso]?.piso?.nivel), PADRE)
       return
     }
     if (!l) { setFicha(null); return }

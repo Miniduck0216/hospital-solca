@@ -47,6 +47,28 @@ export function pinDe(lugar, texto = 'Tótem') {
 // los de otros pisos llevan el piso adelante (P1:a12). Es el mismo id que acepta ?origen= y el mensaje mapa-ir.
 export const idGlobal = (piso, id) => (piso === 'PB' ? id : `${piso}:${id}`)
 
+/**
+ * Ambientes con nombre que no son destino (salas de espera, pasillos u oficinas sin punto de llegada) pero sí pueden
+ * ser el lugar de un tótem. OM3 deja elegirlos como ubicación; sin esta lista, el mapa no los encontraba y la ruta
+ * salía de la Puerta 1. Parten desde el centro de su rótulo (lbl), que cae dentro del ambiente.
+ * Devuelve un objeto { idGlobal: lugar } con la misma forma que los lugares de la guía.
+ * @param {{ piso?: { id?: string, corto?: string, nombre?: string }, ambientes?: object[] }} d datos de un piso
+ */
+export function origenesSinDestino(d) {
+  const piso = d?.piso?.id || 'PB'
+  const salida = {}
+  for (const a of d?.ambientes || []) {
+    if (!a || !a.nombre || a.dest || a.personal) continue
+    if (!Array.isArray(a.lbl) || !Number.isFinite(a.lbl[0]) || !Number.isFinite(a.lbl[1])) continue
+    const id = idGlobal(piso, a.id)
+    salida[id] = {
+      id, local: a.id, nombre: a.nombre, cat: a.cat, area: a.area, x: a.lbl[0], y: a.lbl[1], lbl: a.lbl,
+      piso, pisoCorto: d.piso?.corto || piso, pisoNombre: d.piso?.nombre || piso, soloOrigen: true,
+    }
+  }
+  return salida
+}
+
 /** Piso del id de un lugar: «P1:a12» → P1; sin prefijo, PB. */
 export const pisoDeId = (id) => String(id || '').match(/^([A-Z0-9]{1,3}):/)?.[1] || 'PB'
 

@@ -1,7 +1,7 @@
 // Pruebas del modo elegir (OM3 fija la ubicación de un tótem tocando el mapa) y de la lectura del modo (node --test).
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { idGlobal, idValido, leerModo, mensajeDestino, mensajeElegido, numeroPiso, pinDe, pisoDeId } from '../src/pb/elegir.js'
+import { idGlobal, idValido, leerModo, mensajeDestino, mensajeElegido, numeroPiso, origenesSinDestino, pinDe, pisoDeId } from '../src/pb/elegir.js'
 
 const OM3 = 'https://dev-omniumportal.solcaquito.org.ec'
 
@@ -123,4 +123,24 @@ test('mapa-destino: el id que mandó OM3 tal cual, el nombre y el piso como núm
   assert.equal(mensajeDestino('PB:a142', pb).id, 'PB:a142')
   // sin id (destino por consulta): el id global del lugar
   assert.equal(mensajeDestino(null, p1).id, 'P1:a7')
+})
+
+test('una sala de espera sin punto de llegada sirve de origen del tótem, desde su rótulo', () => {
+  const d = {
+    piso: { id: 'PB', corto: 'PB', nombre: 'Planta baja' },
+    ambientes: [
+      { id: 'a22', nombre: 'Laboratorio · Espera', cat: 'espera', lbl: [78.89, 11.52] },
+      { id: 'a12', nombre: 'Consultorio', cat: 'consultorio', lbl: [1, 2], dest: [1, 3] },
+      { id: 'a10', nombre: 'Pasillo Bloque B', cat: 'circulacion', lbl: [5, 5], personal: true },
+      { id: 'a88', cat: 'otro', lbl: [5, 5] },
+    ],
+  }
+  const o = origenesSinDestino(d)
+  assert.deepEqual(Object.keys(o), ['a22'])
+  assert.equal(o.a22.x, 78.89)
+  assert.equal(o.a22.y, 11.52)
+  assert.equal(o.a22.local, 'a22')
+  assert.equal(o.a22.piso, 'PB')
+  const p1 = origenesSinDestino({ piso: { id: 'P1' }, ambientes: [{ id: 'a7', nombre: 'Espera', lbl: [0, 0] }] })
+  assert.deepEqual(Object.keys(p1), ['P1:a7'])
 })
