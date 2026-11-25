@@ -217,10 +217,18 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, pin = n
     map.fitBounds([[Math.min(...lo), Math.min(...la)], [Math.max(...lo), Math.max(...la)]], { padding: pad, bearing: rumbo(), duration: 500, maxZoom: 20 })
   }
 
+  // datos con los que se armaron las fuentes del mapa (ver «datos nuevos del mismo piso», más abajo)
+  const dRef = useRef(d)
+  dRef.current = d
+  const dPintado = useRef(null)
+  // el mapa se crea una vez por piso: un cambio del administrador (o la configuración publicada que llega en vivo al
+  // tótem) trae datos nuevos del mismo piso y solo se repintan las fuentes, sin recrear el mapa ni mover la cámara
+  const pisoMapa = d.piso?.id ?? ''
+
   // ---------- creación del mapa
   useEffect(() => {
     const c = aLonLat(54, 60)
-    // al recrear el mapa (datos nuevos del administrador o de otro piso) se espera a que cargue su estilo
+    // al recrear el mapa (otro piso) se espera a que cargue su estilo
     setListo(false)
     listoRef.current = false
     const map = new maplibregl.Map({
@@ -237,9 +245,10 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, pin = n
     ro.observe(ref.current)
     let respaldo = false
     map.on('error', () => { if (!respaldo && !map.getSource('huella')) { respaldo = true; map.setStyle(FONDO) } })
-    const C = capas(d)
     const preparar = () => {
       if (map.getSource('huella')) return
+      const C = capas(dRef.current)
+      dPintado.current = dRef.current
       // el mapa base más suave: menos rótulos de comercios; en modo ligero (tótem), ninguno (ni nombres de calles):
       // ubicarlos en cada cuadro es de lo que más trabaja el procesador al mover el mapa
       for (const l of map.getStyle().layers) if (/poi|housenumber/.test(l.id) || (LIGERO && l.type === 'symbol')) map.setLayoutProperty(l.id, 'visibility', 'none')
@@ -401,9 +410,18 @@ export const Mapa = forwardRef(function Mapa({ d, ruta, origen, destino, pin = n
     }
     map.on('style.load', preparar)
     if (map.isStyleLoaded()) preparar()
-    return () => { ro.disconnect(); cancelAnimationFrame(anim.current); map.remove(); mapa.current = null }
+    return () => { ro.disconnect(); cancelAnimationFrame(anim.current); map.remove(); mapa.current = null; dPintado.current = null }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [d])
+  }, [pisoMapa])
+
+  // ---------- datos nuevos del mismo piso (nombre, categoría, pasos del administrador; configuración publicada nueva):
+  // se cambian los datos de cada fuente; la cámara, el zoom y el piso quedan donde estaban
+  useEffect(() => {
+    const map = mapa.current
+    if (!map || !listo || !map.getSource('huella') || dPintado.current === d) return
+    dPintado.current = d
+    for (const [k, v] of Object.entries(capas(d))) map.getSource(k)?.setData(v)
+  }, [d, listo])
 
   // ---------- íconos de lugares (baños, ascensores, farmacia, entradas…)
   useEffect(() => {
